@@ -193,7 +193,7 @@ class extensions {
                         toggle: valueUnwrapped
                     });
             },
-
+          
             update: (element: any, valueAccessor: () => KnockoutObservable<boolean>) => {
                 const value = valueAccessor();
                 const valueUnwrapped = ko.unwrap(value);

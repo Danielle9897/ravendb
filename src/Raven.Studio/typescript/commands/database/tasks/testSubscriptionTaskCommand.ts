@@ -34,8 +34,39 @@ class testSubscriptionTaskCommand extends commandBase {
         this.post(url, JSON.stringify(subscriptionToTest), this.db)
             .done((dto: resultsDto<documentDto>) => { 
 
+                //const test123 = (x: document | Raven.Server.Documents.Handlers.DocumentWithException) => {
+                //    if ('@metadata' in x) {
+                //        // it means it is plain document
+                //        return new document(x);
+                //    } else {
+                //        // it means it is ex
+                //        const ex = x as Raven.Server.Documents.Handlers.DocumentWithException;
+                //        const doc = new document(ex.Document);
+                //        //(doc as any).Exception = ex.Exception;
+                //        (doc as any).Exception = ex.Exception;
+                //        return doc;
+                //    }
+                //}
+
                 const result = {
-                    items: dto.Results.map(x => new document(x)),
+
+                    items: dto.Results.map((x: document | Raven.Server.Documents.Handlers.DocumentWithException) => {
+                        if ('@metadata' in x) {
+                            // ==> plain document
+                            return new document(x); // ??
+                        } else {
+                            // ==> document with exception
+                            const ex = x as Raven.Server.Documents.Handlers.DocumentWithException;
+                            const doc = new document(ex.DocumentData);
+                            (doc as any).Exception = ex.Exception;
+                            (doc as any).Etag = ex.Etag;
+                            (doc as any).Id = ex.Id;
+                            return doc;
+                        }
+                    }), 
+
+                    //items: dto.Results.map(x => new document(x)), 
+
                     totalResultCount: dto.Results.length
                 } as pagedResult<document>;
 

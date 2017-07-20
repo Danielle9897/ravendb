@@ -1216,10 +1216,15 @@ namespace Raven.Server.Json
 
         public static void WriteDocument(this BlittableJsonTextWriter writer, JsonOperationContext context, Document document)
         {
+            writer.WriteStartObject();
+            WriteDocumentProperties(writer, context, document);
+            writer.WriteEndObject();
+        }
+
+        public static void WriteDocumentProperties(this BlittableJsonTextWriter writer, JsonOperationContext context, Document document)
+        {
             if (_buffers == null)
                 _buffers = new BlittableJsonReaderObject.PropertiesInsertionBuffer();
-
-            writer.WriteStartObject();
 
             var first = true;
             BlittableJsonReaderObject metadata = null;
@@ -1248,7 +1253,6 @@ namespace Raven.Server.Json
             if (first == false)
                 writer.WriteComma();
             WriteMetadata(writer, document, metadata);
-            writer.WriteEndObject();
         }
 
         public static void WriteOperationId(this BlittableJsonTextWriter writer, JsonOperationContext context, long operationId)

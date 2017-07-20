@@ -10,10 +10,12 @@ using Sparrow.Json;
 using Raven.Client.Documents.Session;
 using Raven.Client.Documents.Conventions;
 using System.Linq;
+using System.Reflection.PortableExecutable;
 using Raven.Client.Documents.Exceptions.Subscriptions;
 using Raven.Client.Documents.Subscriptions;
 using Raven.Server.Documents.Subscriptions;
 using Raven.Server.Documents.TcpHandlers;
+using Raven.Server.Utils;
 
 namespace Raven.Server.Documents.Handlers
 {
@@ -31,15 +33,15 @@ namespace Raven.Server.Documents.Handlers
                 SubscriptionPatchDocument patch = null;
                 if (string.IsNullOrEmpty(tryout.Script) == false)
                 {
-                    patch = new SubscriptionPatchDocument(Database,tryout.Script);
+                    patch = new SubscriptionPatchDocument(Database, tryout.Script);
                 }
 
-                if(tryout.Collection == null)
+                if (tryout.Collection == null)
                     throw new ArgumentException("Collection must be specified");
 
                 var pageSize = GetIntValueQueryString("pageSize", required: true) ?? 1;
 
-                var fetcher = new SubscriptionDocumentsFetcher(Database, pageSize, -0x42, 
+                var fetcher = new SubscriptionDocumentsFetcher(Database, pageSize, -0x42,
                     new IPEndPoint(HttpContext.Connection.RemoteIpAddress, HttpContext.Connection.RemotePort));
 
                 var state = new SubscriptionState
@@ -62,26 +64,69 @@ namespace Raven.Server.Documents.Handlers
                     {
                         var first = true;
 
+                        int i = 0;
                         foreach (var itemDetails in fetcher.GetDataToSend(context, state, patch, 0))
                         {
+                            i++;
                             if (first == false)
                                 writer.WriteComma();
 
-                            if (itemDetails.Exception == null)
+                            //if (itemDetails.Exception == null)
+                            if (i < 4 || i > 8)
                             {
                                 writer.WriteDocument(context, itemDetails.Doc);
+
+                                //var docWithExcepton = new DocumentWithException()
+                                //{
+                                //    Etag = itemDetails.Doc.Etag,
+                                //    Id = itemDetails.Doc.Id,
+                                //    Document = itemDetails.Doc.Data
+                                //};
+
+                                //writer.WriteObject(context.ReadObject(docWithExcepton.ToJson(), ""));
+
+                                //writer.WriteStartObject();
+
+                                //writer.WritePropertyName(nameof(DocumentWithException.Etag));
+                                //writer.WriteValue(BlittableJsonToken.Integer, itemDetails.Doc.Etag);
+                                //writer.WriteComma();
+
+                                //writer.WritePropertyName(nameof(DocumentWithException.Id));
+                                //writer.WriteString(itemDetails.Doc.Id);
+                                //writer.WriteComma();
+
+                                //writer.WriteDocumentProperties(context, itemDetails.Doc);
+                                //writer.WriteEndObject();
                             }
                             else
                             {
-                                writer.WriteObject(context.ReadObject(
-                                    new DynamicJsonValue
-                                    {
-                                        ["Id"] = itemDetails.Doc.Id,
-                                        ["Etag"] = itemDetails.Doc.Etag,
-                                        ["Exception"] = itemDetails.Exception.ToString(),
-                                        ["Document"] = itemDetails.Doc.Data
-                                    }, "Subscription process exception"
-                                ));
+                                //writer.WriteStartObject();
+
+                                //writer.WritePropertyName(nameof(DocumentWithException.Exception));
+                                //writer.WriteString(itemDetails.Exception?.Message??"SomeException");
+                                //writer.WriteComma();
+
+                                //writer.WritePropertyName(nameof(DocumentWithException.Etag));
+                                //writer.WriteValue(BlittableJsonToken.Integer, itemDetails.Doc.Etag );
+                                //writer.WriteComma();
+
+                                //writer.WritePropertyName(nameof(DocumentWithException.Id));
+                                //writer.WriteString(itemDetails.Doc.Id);
+                                //writer.WriteComma();
+
+                                //writer.WriteDocumentProperties(context, itemDetails.Doc);
+                                //writer.WriteEndObject();
+
+                                var docWithExcepton = new DocumentWithException()
+                                {
+                                    Exception = "some exception....", //itemDetails.Exception.ToString(),
+                                    Etag = itemDetails.Doc.Etag,
+                                    Id = itemDetails.Doc.Id,
+                                    DocumentData = itemDetails.Doc.Data
+                                    //Document = itemDetails.Doc // this throws..
+                                };
+
+                                writer.WriteObject(context.ReadObject(docWithExcepton.ToJson(), ""));
                             }
 
                             first = false;
@@ -93,6 +138,82 @@ namespace Raven.Server.Documents.Handlers
                 }
             }
         }
+
+        //[RavenAction("/databases/*/subscriptions/try", "POST", "/databases/{databaseName:string}/subscriptions/try")]
+        //public async Task Try()
+        //{
+        //    DocumentsOperationContext context;
+        //    using (ContextPool.AllocateOperationContext(out context))
+        //    {
+        //        var json = await context.ReadForMemoryAsync(RequestBodyStream(), null);
+        //        var tryout = JsonDeserializationServer.SubscriptionTryout(json);
+
+        //        SubscriptionPatchDocument patch = null;
+        //        if (string.IsNullOrEmpty(tryout.Script) == false)
+        //        {
+        //            patch = new SubscriptionPatchDocument(Database,tryout.Script);
+        //        }
+
+        //        if(tryout.Collection == null)
+        //            throw new ArgumentException("Collection must be specified");
+
+        //        var pageSize = GetIntValueQueryString("pageSize", required: true) ?? 1;
+
+        //        var fetcher = new SubscriptionDocumentsFetcher(Database, pageSize, -0x42, 
+        //            new IPEndPoint(HttpContext.Connection.RemoteIpAddress, HttpContext.Connection.RemotePort));
+
+        //        var state = new SubscriptionState
+        //        {
+        //            ChangeVector = tryout.ChangeVector,
+        //            Criteria = new SubscriptionCriteria
+        //            {
+        //                Collection = tryout.Collection,
+        //                IncludeRevisions = tryout.IncludeRevisions,
+        //                Script = tryout.Script
+        //            },
+        //        };
+        //        using (var writer = new BlittableJsonTextWriter(context, ResponseBodyStream()))
+        //        {
+        //            writer.WriteStartObject();
+        //            writer.WritePropertyName("Results");
+        //            writer.WriteStartArray();
+
+        //            using (context.OpenReadTransaction())
+        //            {
+        //                var first = true;
+
+        //                foreach (var itemDetails in fetcher.GetDataToSend(context, state, patch, 0))
+        //                {
+        //                    if (first == false)
+        //                        writer.WriteComma();
+
+        //                    if (itemDetails.Exception == null)
+        //                    {
+        //                        writer.WriteDocument(context, itemDetails.Doc);
+        //                    }
+        //                    else
+        //                    {
+                                
+        //                        var docWithExcepton = new DocumentWithException()
+        //                        {
+        //                            Exception = itemDetails.Exception.ToString(),
+        //                            Etag = itemDetails.Doc.Etag,
+        //                            Id = itemDetails.Doc.Id,
+        //                            Document = itemDetails.Doc.Data
+        //                        };
+
+        //                        writer.WriteObject(context.ReadObject(docWithExcepton.ToJson(),""));
+        //                    }
+
+        //                    first = false;
+        //                }
+        //            }
+
+        //            writer.WriteEndArray();
+        //            writer.WriteEndObject();
+        //        }
+        //    }
+        //}
         
         [RavenAction("/databases/*/subscriptions", "PUT", "/databases/{databaseName:string}/subscriptions")]
         public async Task Create()
@@ -197,6 +318,25 @@ namespace Raven.Server.Documents.Handlers
             }
 
             return NoContent();
+        }
+    }
+
+    public class DocumentWithException: IDynamicJson
+    {
+        public string Id { get; set; }
+        public long Etag { get; set; }
+        public string Exception { get; set; }
+        public object DocumentData { get; set; }
+
+        public virtual DynamicJsonValue ToJson()
+        {
+            return new DynamicJsonValue
+            {
+                [nameof(Id)] = Id,
+                [nameof(Etag)] = Etag,
+                [nameof(Exception)] = Exception,
+                [nameof(DocumentData)] = DocumentData
+            };
         }
     }
 }
