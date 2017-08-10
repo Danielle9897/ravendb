@@ -8,10 +8,15 @@ class ongoingTaskSubscriptionModel extends ongoingTask {
 
     editUrl: KnockoutComputed<string>;
     collection = ko.observable<string>();
+
     timeOfLastClientActivity = ko.observable<string>(); 
+    clientIP = ko.observable<string>("0.0.0.0 test...");
+    //clientIP = ko.observable<string>();
+    connectionStrategy = ko.observable<string>("strategy..."); // what is the type ? ask !
 
     validationGroup: KnockoutValidationGroup; 
-    showSubscriptionDetails = ko.observable(false);
+    showSubscriptionDetails = ko.observable(false); 
+    
     
     constructor(dto: Raven.Client.ServerWide.Operations.OngoingTaskSubscription | Raven.Client.Documents.Subscriptions.SubscriptionState ) {
         super();

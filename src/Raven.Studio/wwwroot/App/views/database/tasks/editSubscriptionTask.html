@@ -70,8 +70,8 @@
                         <div class="form-group">
                             <label class="control-label">Send Documents From</label>
                             <div class="flex-grow">
-                                <div class="dropdown btn-block" title="Set the starting point for the subscription task">
-                                    <button class="btn btn-block dropdown-toggle text-left" type="button" data-toggle="dropdown" disabled="disabled">
+                                <div class="dropdown" title="Set the starting point for the subscription task"> <!-- btn-block -->
+                                    <button class="btn  dropdown-toggle text-left" type="button" data-toggle="dropdown"> <!-- btn-block  disabled="disabled" -->
                                         <span data-bind="text: startingPointType"></span>
                                         <span class="caret"></span>
                                     </button>
@@ -123,7 +123,6 @@
                             </div>
                         </div>
                     </div>
-                    
                     <div class="clearfix">
                         <div class="pull-right">
                             <div class="btn-group dropdown-right open">
@@ -137,7 +136,6 @@
                             </div>
                         </div>
                     </div>
-
                     <div class="flex-grow scroll">
                         <div class="objects-list-container">
                             <virtual-grid class="resizable" params="controller: gridController, emptyTemplate: 'empty-test-results-template'"></virtual-grid>

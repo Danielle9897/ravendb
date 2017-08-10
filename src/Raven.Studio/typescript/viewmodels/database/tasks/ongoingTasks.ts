@@ -214,6 +214,7 @@ class ongoingTasks extends viewModelBase {
     }
 
     refreshOngoingTaskInfo(model: ongoingTaskModel) {
+        // 1. get fresh info for list data
         new ongoingTaskInfoCommand(this.activeDatabase(), "Subscription", model.taskId, model.taskName())
             .execute()
             .done((result: Raven.Client.Documents.Subscriptions.SubscriptionState) => {
@@ -224,6 +225,8 @@ class ongoingTasks extends viewModelBase {
                 subscriptionItem.taskState(result.Disabled ? 'Disabled' : 'Enabled'); 
                 // TODO: should 'responsibleNode' be added to subscriptionState class ? Or should we put one refersh button for all tasks and then it won't be needed - to be discussed
             });
+
+        // 2. get fresh info for details data - TODO...call Maxim's new ep
     }
 
     disconnectClientFromSubscription(model: ongoingTaskModel) {
