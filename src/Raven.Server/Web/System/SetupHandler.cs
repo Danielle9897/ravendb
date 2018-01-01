@@ -160,7 +160,7 @@ namespace Raven.Server.Web.System
                     {
                         try
                         {
-                            subDomain.Ips = Dns.GetHostAddresses(subDomain + "." + rootDomain).Select(ip => ip.ToString()).ToList();
+                            subDomain.Ips = Dns.GetHostAddresses(subDomain.SubDomain + "." + rootDomain).Select(ip => ip.ToString()).ToList();
                         }
                         catch (Exception)
                         {

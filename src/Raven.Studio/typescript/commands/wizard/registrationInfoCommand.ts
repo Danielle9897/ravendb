@@ -27,8 +27,6 @@ class registrationInfoCommand extends commandBase {
             });
         
         return task;
-        
-        
     }
 }
 
