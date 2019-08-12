@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 using FastTests;
 using Raven.Client.Documents.Operations.Backups;
@@ -25,6 +26,42 @@ namespace SlowTests.Server.Documents.PeriodicBackup
         public async Task put_blob_64MB()
         {
             await PutBlob(64, false, UploadType.Regular);
+        }
+
+        [AzureStorageEmulatorFact]
+        public async Task list_blobs_()
+        {
+            var containerName = "mycontainer";
+            var blobKey1 = $"{Guid.NewGuid()}/folder/testKey";
+            var blobKey2 = $"{Guid.NewGuid()}/folder/testKey";
+            using (var client = new RavenAzureClient(Azure.GenerateAzureSettings(containerName), isTest: true))
+            {
+                try
+                {
+                    await client.DeleteContainer();
+                    await client.PutContainer();
+
+                    var path = NewDataPath(forceCreateDir: true);
+
+                    var filePath1 = Path.Combine(path, Guid.NewGuid().ToString()) + ".txt";
+                    var filePath2 = Path.Combine(path, Guid.NewGuid().ToString()) + ".txt";
+
+                    File.WriteAllText(filePath1, "abc", Encoding.UTF8);
+                    File.WriteAllText(filePath2, "def", Encoding.UTF8);
+                    using (var file1 = File.Open(filePath1, FileMode.Open))
+                    using (var file2 = File.Open(filePath2, FileMode.Open))
+                    {
+                        await client.PutBlob(blobKey1, file1, new Dictionary<string, string>());
+                        await client.PutBlob(blobKey2, file2, new Dictionary<string, string>());
+                    }
+
+                   // Assert.Equal((await client.ListBlobs(containerName)).Count, 2);
+                }
+                finally
+                {
+                    await client.DeleteContainer();
+                }
+            }
         }
 
         [AzureStorageEmulatorFact]
@@ -81,7 +118,7 @@ namespace SlowTests.Server.Documents.PeriodicBackup
             await PutBlob(256, true, UploadType.Regular);
         }
 
-        [NightlyBuildAzureStorageEmulatorFact]
+        [AzureStorageEmulatorFact]
         public async Task put_blob_into_folder_500MB()
         {
             await PutBlob(500, true, UploadType.Chunked);

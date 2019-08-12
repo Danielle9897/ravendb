@@ -37,7 +37,7 @@ namespace Raven.Server.Documents.PeriodicBackup.Azure
         private const int OnePutBlockSizeLimitInBytes = 100 * 1024 * 1024; // 100MB
         private const long TotalBlocksSizeLimitInBytes = 475L * 1024 * 1024 * 1024 * 1024L / 100; // 4.75TB
 
-        public RavenAzureClient(AzureSettings azureSettings, Progress progress = null, CancellationToken? cancellationToken = null, bool isTest = false)
+        public RavenAzureClient(AzureSettings azureSettings, Progress progress = null, CancellationToken? cancellationToken = null, bool isTest = true)
             : base(progress, cancellationToken)
         {
             _accountName = azureSettings.AccountName;
@@ -316,6 +316,8 @@ namespace Raven.Server.Documents.PeriodicBackup.Azure
             throw StorageException.FromResponseMessage(response);
         }
 
+
+
         public async Task<Blob> GetBlob(string key)
         {
             var url = _serverUrlForContainer + "/" + key;
@@ -372,6 +374,77 @@ namespace Raven.Server.Documents.PeriodicBackup.Azure
                 return;
 
             throw StorageException.FromResponseMessage(response);
+        }
+
+        public async Task<ListBlobResult> ListBlobs(string prefix, string delimiter, bool listFolders, int? maxResult = null, string marker = null)
+        {
+            var url = GetBaseServerUrl() + $"/{_containerName}?restype=container&comp=list";
+            if (prefix != null)
+                url += $"&prefix={Uri.EscapeDataString(prefix)}";
+
+            if (delimiter != null)
+                url += $"&delimiter={delimiter}";
+
+            if (maxResult != null)
+                url += $"&maxresults={maxResult}";
+
+            if (marker != null)
+                url += $"&maxresults={marker}";
+
+            var requestMessage = new HttpRequestMessage(HttpMethods.Get, url)
+            {
+                Headers =
+                {
+                    {"x-ms-date", SystemTime.UtcNow.ToString("R")},
+                    {"x-ms-version", AzureStorageVersion}
+                }
+            };
+            var client = GetClient();
+            client.DefaultRequestHeaders.Authorization = CalculateAuthorizationHeaderValue(HttpMethods.Get, url, requestMessage.Headers);
+
+            var response = await client.SendAsync(requestMessage, CancellationToken).ConfigureAwait(false);
+            if (response.StatusCode == HttpStatusCode.NotFound)
+                return new ListBlobResult();
+
+            if (response.IsSuccessStatusCode == false)
+                throw StorageException.FromResponseMessage(response);
+
+            var responseStream = await response.Content.ReadAsStreamAsync();
+            var listBlobsResult = XDocument.Load(responseStream);
+            var result = GetResult();
+
+            var nextMarker = listBlobsResult.Root.Element("NextMarker")?.Value;
+
+            return new ListBlobResult
+            {
+                ListBlob = result,
+                NextMarker = nextMarker == "true" ? listBlobsResult.Root.Element("NextMarker")?.Value : null
+            };
+
+            IEnumerable<BlobProperties> GetResult()
+            {
+                if (listFolders)
+                {
+
+                    foreach (var element in listBlobsResult.Descendants("Blobs").Descendants("Name").Select(x => new BlobProperties { Name = x.Value }))
+                    {
+                        yield return element;
+                    }
+                }
+                else
+                {
+                    var blobs = listBlobsResult.Descendants("Blob").ToList();
+                    foreach (var blob in blobs)
+                    {
+                        yield return new BlobProperties
+                        {
+                            Name = blob.Element("Name")?.Value,
+                            LastModify = Convert.ToDateTime(blob.Element("Properties")?.Element("Last-Modified")?.Value)
+                        };
+                    }
+
+                }
+            }
         }
 
         public async Task<List<string>> GetContainerNames(int maxResults)
