@@ -76,7 +76,7 @@ using Constants = Raven.Client.Constants;
 namespace Raven.Server.ServerWide
 {
     /// <summary>
-    /// Persistent store for server wide configuration, such as cluster settings, database configuration, etc
+    /// Persistent store for server-wide configuration, such as cluster settings, database configuration, etc
     /// </summary>
     public class ServerStore : IDisposable
     {
