@@ -196,13 +196,18 @@ class databaseCreationModel {
         this.creationMode = mode;
         this.canCreateEncryptedDatabases = canCreateEncryptedDatabases;
         this.isFromBackupOrFromOfflineMigration = mode !== "newDatabase";
+        
         const legacyMigrationConfig = this.configurationSections.find(x => x.id === "legacyMigration");
         legacyMigrationConfig.validationGroup = this.legacyMigrationValidationGroup;
+        
         const restoreConfig = this.configurationSections.find(x => x.id === "restore");
         restoreConfig.validationGroup = this.restoreValidationGroup;
+        
         const encryptionConfig = this.getEncryptionConfigSection();
         encryptionConfig.validationGroup = this.encryptionValidationGroup;
-        this.restore.googleCloudCredentials(googleCloudCredentials().empty());
+        
+        //this.restore.googleCloudCredentials(googleCloudCredentials().empty());
+        
         const replicationConfig = this.configurationSections.find(x => x.id === "replication");
         replicationConfig.validationGroup = this.replicationValidationGroup;
 
