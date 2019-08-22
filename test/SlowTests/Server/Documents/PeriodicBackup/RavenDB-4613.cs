@@ -34,7 +34,7 @@ namespace SlowTests.Server.Documents.PeriodicBackup
             var containerName = "mycontainer";
             var blobKey1 = $"{Guid.NewGuid()}/folder/testKey";
             var blobKey2 = $"{Guid.NewGuid()}/folder/testKey";
-            using (var client = new RavenAzureClient(Azure.GenerateAzureSettings(containerName), isTest: true))
+            using (var client = new RavenAzureClient(Azure.GenerateAzureSettings(containerName)))
             {
                 try
                 {
@@ -134,7 +134,7 @@ namespace SlowTests.Server.Documents.PeriodicBackup
         public async Task can_get_and_delete_container()
         {
             var containerName = Guid.NewGuid().ToString();
-            using (var client = new RavenAzureClient(Azure.GenerateAzureSettings(containerName), isTest: true))
+            using (var client = new RavenAzureClient(Azure.GenerateAzureSettings(containerName)))
             {
                 var containerNames = await client.GetContainerNames(500);
                 Assert.False(containerNames.Exists(x => x.Equals(containerName)));
@@ -154,7 +154,7 @@ namespace SlowTests.Server.Documents.PeriodicBackup
         public async Task can_get_container_not_found()
         {
             var containerName = Guid.NewGuid().ToString();
-            using (var client = new RavenAzureClient(Azure.GenerateAzureSettings(containerName), isTest: true))
+            using (var client = new RavenAzureClient(Azure.GenerateAzureSettings(containerName)))
             {
                 var containerNames = await client.GetContainerNames(500);
                 Assert.False(containerNames.Exists(x => x.Equals(containerName)));
@@ -176,7 +176,7 @@ namespace SlowTests.Server.Documents.PeriodicBackup
                 $"{Guid.NewGuid()}/folder/testKey";
 
             var progress = new Progress();
-            using (var client = new RavenAzureClient(Azure.GenerateAzureSettings(containerName), progress, isTest: true))
+            using (var client = new RavenAzureClient(Azure.GenerateAzureSettings(containerName)))
             {
                 try
                 {

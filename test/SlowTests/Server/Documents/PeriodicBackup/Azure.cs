@@ -23,7 +23,7 @@ namespace SlowTests.Server.Documents.PeriodicBackup
             var containerName = Guid.NewGuid().ToString();
             var blobKey = Guid.NewGuid().ToString();
 
-            using (var client = new RavenAzureClient(GenerateAzureSettings(containerName), isTest: true))
+            using (var client = new RavenAzureClient(GenerateAzureSettings(containerName)))
             {
                 try
                 {
@@ -60,7 +60,7 @@ namespace SlowTests.Server.Documents.PeriodicBackup
             var containerName = Guid.NewGuid().ToString();
             var blobKey = Guid.NewGuid().ToString();
 
-            using (var client = new RavenAzureClient(GenerateAzureSettings(containerName), isTest: true))
+            using (var client = new RavenAzureClient(GenerateAzureSettings(containerName)))
             {
                 try
                 {

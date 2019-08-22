@@ -1,6 +1,7 @@
 using System;
 using SlowTests.Client.Counters;
 using SlowTests.Cluster;
+using SlowTests.Server.Documents.PeriodicBackup.Restore;
 using StressTests.Cluster;
 
 namespace Tryouts
@@ -14,9 +15,9 @@ namespace Tryouts
                 Console.WriteLine(i);
                 try
                 {
-                    using (var test = new ClusterStressTests())
+                    using (var test = new RestoreFromAzure())
                     {
-                        test.ParallelClusterTransactions().Wait();
+                        test.can_backup_and_restore().Wait();
                     }
                 }
                 catch (Exception e)
