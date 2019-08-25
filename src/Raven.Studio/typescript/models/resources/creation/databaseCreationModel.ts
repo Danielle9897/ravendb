@@ -98,16 +98,20 @@ class databaseCreationModel {
         requiresEncryption: undefined as KnockoutComputed<boolean>,
         backupEncryptionKey: ko.observable<string>(),
         decodedS3Credentials: ko.observable<Raven.Client.Documents.Operations.Backups.S3Settings>(),
+        
         azureCredentials: ko.observable<Raven.Client.Documents.Operations.Backups.AzureSettings>(),
         azureAccountKey: ko.observable<string>(),
         azureAccountName: ko.observable<string>(),
         azureStorageContainer: ko.observable<string>(),
+        
         isFocusOnRemoteFolderName: ko.observable<boolean>(),
+        
         AwsAccessKey: ko.observable<string>(),
         AwsSecretKey: ko.observable<string>(),
         AwsRegionName: ko.observable<string>(),
         BucketName: ko.observable<string>(),
         amazonS3Credentials: ko.observable<Raven.Client.Documents.Operations.Backups.S3Settings>(),
+        
         GoogleCloudJson: ko.observable<string>(),
         googleCloudCredentials: ko.observable<googleCloudCredentials>()
     };
@@ -206,7 +210,7 @@ class databaseCreationModel {
         const encryptionConfig = this.getEncryptionConfigSection();
         encryptionConfig.validationGroup = this.encryptionValidationGroup;
         
-        //this.restore.googleCloudCredentials(googleCloudCredentials().empty());
+        //this.restore.googleCloudCredentials(this.restore.googleCloudCredentials().empty()); // todo ????
         
         const replicationConfig = this.configurationSections.find(x => x.id === "replication");
         replicationConfig.validationGroup = this.replicationValidationGroup;
