@@ -21,8 +21,7 @@ namespace Raven.Server.Documents.PeriodicBackup.Restore
         public override async Task FetchRestorePoints(string path)
         {
             path = path.TrimEnd('/');
-
-            var objects = await _client.ListAllObjects(path + "/", "/", true);
+            var objects = await _client.ListAllObjects(string.IsNullOrEmpty(path) ? "" : path + "/", "/", true);
             var folders = objects.Select(x => x.FullPath).ToList();
 
             if (folders.Count == 0)
@@ -36,15 +35,12 @@ namespace Raven.Server.Documents.PeriodicBackup.Restore
                     await FetchRestorePointsForPath(folder, assertLegacyBackups: true);
                 }
             }
-            
         }
 
         protected override async Task<List<FileInfoDetails>> GetFiles(string path)
         {
             path = path.TrimEnd('/');
-
             var allObjects = await _client.ListAllObjects(path + "/", string.Empty, false);
-
             var filesInfo = new List<FileInfoDetails>();
 
             foreach (var obj in allObjects)
