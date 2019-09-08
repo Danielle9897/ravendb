@@ -1,5 +1,6 @@
 /// <reference path="../../../../typings/tsd.d.ts"/>
 import generalUtils = require("common/generalUtils");
+import amazonSettings = require("models/database/tasks/periodicBackup/amazonSettings");
 
 abstract class restoreSettings {
     abstract backupStorageType: restoreSource;
@@ -54,6 +55,31 @@ export class amazonS3Credentials implements restoreSettings {
 
     isValid() : boolean {
         return !!_.trim(this.accessKey()) && !!_.trim(this.secretKey()) && !!_.trim(this.regionName()) && !!_.trim(this.bucketName());
+    }
+
+    useAwsRegion(awsRegionEndpoint: { label: string, value: string }) {
+        this.regionName(awsRegionEndpoint.value);
+    }
+
+    createAwsRegionAutoCompleter() {
+        return ko.pureComputed(() => {
+            let key = this.regionName();
+
+            const options = amazonSettings.availableAwsRegionEndpointsStatic             
+                .map(x => {
+                    return {
+                        label: x.label,
+                        value: x.value
+                    }
+                });
+
+            if (key) {
+                key = key.toLowerCase();
+                return options.filter(x => amazonSettings.getDisplayRegionName(x).toLowerCase().includes(key));
+            } else {
+                return options;
+            }
+        });
     }
 }
 
