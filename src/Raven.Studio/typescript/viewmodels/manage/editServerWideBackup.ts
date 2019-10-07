@@ -74,14 +74,15 @@ class editServerWideBackup extends viewModelBase {
             return deferred
                 .then(() => {
                     const encryptionSettings = this.configuration().encryptionSettings();
-                    this.encryptionSection = setupEncryptionKey.forServerWideBackup(encryptionSettings.key, encryptionSettings.keyConfirmation); 
+                    //this.encryptionSection = setupEncryptionKey.forServerWideBackup(encryptionSettings.key, encryptionSettings.keyConfirmation); // todo fix this only commented out for now !!! 
                     
                     this.dirtyFlag = this.configuration().dirtyFlag;
 
                     this.fullBackupCronEditor(new cronEditor(this.configuration().fullBackupFrequency));
                     this.incrementalBackupCronEditor(new cronEditor(this.configuration().incrementalBackupFrequency));
 
-                    if (!encryptionSettings.key()) {
+                    //if (!encryptionSettings.key()) {
+                    if (true) { // todo fix this only commented out now for compinling. !!!
                         return this.encryptionSection.generateEncryptionKey()
                             .done(() => {
                                 encryptionSettings.dirtyFlag().reset();
@@ -115,7 +116,7 @@ class editServerWideBackup extends viewModelBase {
 
         this.encryptionSection.syncQrCode();
 
-        this.configuration().encryptionSettings().key.subscribe(() => this.encryptionSection.syncQrCode());
+        //this.configuration().encryptionSettings().key.subscribe(() => this.encryptionSection.syncQrCode()); // todo : fix this, only commented out now for compiling
 
         $('.edit-backup [data-toggle="tooltip"]').tooltip();
 

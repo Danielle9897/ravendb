@@ -11,13 +11,13 @@
         <div class="padding">
             <strong><h3 data-bind="text: $parent.isAddingNewBackupTask() ? `New Server-Wide Backup Task` : `Edit Server-Wide Backup Task`"></h3></strong>
             <div class="row flex-row margin-bottom" data-bind="validationElement: name">
-                <label class="control-label col-sm-4 col-lg-2">Task name</label>
+                <label class="control-label col-sm-4 col-lg-2">Task Name</label>
                 <div class="col-sm-4 col-lg-4">
                     <input data-bind="textInput: name" id="taskName" type="text" class="form-control" placeholder="Enter a name for the Server-Wide Backup Task"/>
                 </div>
             </div>
             <div class="row flex-row margin-bottom" data-bind="validationElement: backupType">
-                <label class="control-label col-sm-4 col-lg-2">Backup type <i class="required"></i> <small><i id="backup-info" class="icon-info text-info"></i></small></label>
+                <label class="control-label col-sm-4 col-lg-2">Backup Type <i class="required"></i> <small><i id="backup-info" class="icon-info text-info"></i></small></label>
                 <div class="col-sm-4 col-lg-4" data-bind="validationOptions: { insertMessages: false }">
                     <div class="dropdown btn-block">
                         <button class="btn btn-block dropdown-toggle text-left" type="button" data-toggle="dropdown" id="backup-type">
@@ -96,19 +96,15 @@
             </div>
         </div>
     </div>
-    <h3>Encryption
-        <span data-bind="visible: !$parent.isAddingNewBackupTask()">
-            <small title="Backup is encrypted" data-bind="visible: isBackupEncrypted"><i class="icon-encryption text-success encryption-lock-icon"></i></small>
-            <small title="Backup is not encrypted" data-bind="visible: !isBackupEncrypted()"><i class="icon-unlock text-gray encryption-lock-icon"></i></small>
-        </span>
-    </h3>
+    <h3>Encryption</h3>
     <div class="panel" data-bind="with: encryptionSettings">
         <div class="padding">
-            <div class="flex-horizontal">
+            <div class="flex-horizontal" data-bind="validationElement: enabled">
                 <div class="toggle margin-right" data-bind="validationOptions: { insertMessages: false }">
                     <input id="toggle-encryption" type="checkbox" data-bind="checked: enabled, disable: $root.configuration().backupType() === 'Snapshot'">
                     <label for="toggle-encryption">Encrypt backup</label>
                 </div>
+                <span class="help-block" data-bind="validationMessage: enabled"></span>
                 <small data-bind="visible: $root.configuration().backupType() === 'Snapshot'"><i id="serverwide-snapshot-encryption-info" class="icon-info text-info"></i></small>
             </div>
             <div data-bind="collapse: needExplicitConsent">
@@ -121,7 +117,7 @@
                 </div>
             </div>
         </div>
-        <div class="panel-addon padding" data-bind="collapse: showProvidedKeySection">
+        <div class="panel-addon padding padding-lg" data-bind="collapse: showProvidedKeySection">
             <div class="row">
                 <div class="col-sm-12 col-lg-6" data-bind="with: $root.encryptionSection">
                     <h3>Encryption Key Configuration</h3>

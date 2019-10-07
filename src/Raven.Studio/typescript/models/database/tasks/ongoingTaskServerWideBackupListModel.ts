@@ -66,7 +66,8 @@ class ongoingTaskServerWideBackupListModel extends ongoingTaskListModel {
         this.retentionPolicyDisabled(serverWideDto.RetentionPolicy ? serverWideDto.RetentionPolicy.Disabled : true);
         this.retentionPolicyPeriod(serverWideDto.RetentionPolicy ? serverWideDto.RetentionPolicy.MinimumBackupAgeToKeep : "0.0:00:00");
         
-        this.isBackupEncrypted(!!serverWideDto.BackupEncryptionSettings);       
+        //this.isBackupEncrypted(!!serverWideDto.BackupEncryptionSettings);       
+        this.isBackupEncrypted(serverWideDto.IsEncrypted);       
     }
 
     private getBackupType(backupType: Raven.Client.Documents.Operations.Backups.BackupType, isFull: boolean): string {
