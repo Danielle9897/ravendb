@@ -39,6 +39,7 @@ class indexDefinition {
     defaultFieldOptions = ko.observable<indexFieldOptions>(null);
     isAutoIndex = ko.observable<boolean>(false);
 
+    hasReduce = ko.observable<boolean>(false);
     outputReduceToCollection = ko.observable<boolean>();
     reduceOutputCollectionName = ko.observable<string>(); 
     hasPatternForReduceOutputCollection = ko.observable<boolean>(); 
@@ -52,8 +53,6 @@ class indexDefinition {
     lockMode: Raven.Client.Documents.Indexes.IndexLockMode;
 
     priority = ko.observable<Raven.Client.Documents.Indexes.IndexPriority>();
-
-    hasReduce = ko.observable<boolean>(false);
 
     validationGroup: KnockoutValidationGroup;
 

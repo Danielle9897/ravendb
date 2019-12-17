@@ -221,6 +221,12 @@ class indexes extends viewModelBase {
         clearInterval(this.indexProgressInterval);
     }
 
+    compositionComplete() {
+        super.compositionComplete();
+
+        $('.index-info [data-toggle="tooltip"]').tooltip();
+    }
+    
     private fetchIndexes(): JQueryPromise<void> {
         const statsTask = new getIndexesStatsCommand(this.activeDatabase())
             .execute();

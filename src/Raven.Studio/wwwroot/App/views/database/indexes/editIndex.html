@@ -58,6 +58,10 @@
                 </div>
             </div>
         </div>
+        
+        
+        
+        
         <div class="row">
             <div class="col-sm-2">
                 <h2 id="reduce-title" class="margin-bottom margin-bottom-xs on-base-background">Reduce</h2>
@@ -90,30 +94,116 @@
                         <i class="icon-plus"></i><span>Add Reduction</span>
                     </button>
                 </div>
-                <div class="flex-horizontal margin-bottom" data-bind="visible: editedIndex().hasReduce">
-                    <div class="checkbox checkbox-inline flex-start on-base-background" title="Output the reduce results to documents in the specified collection">
-                        <input id="outputToCollection" class="styled" type="checkbox" data-bind="checked: editedIndex().outputReduceToCollection">
-                        <label for="outputToCollection">
-                            Output Reduce Results to Collection
-                        </label>
+
+
+                <div data-bind="visible: editedIndex().hasReduce()">
+                    <div class="toggle">
+                        <input id="toggleOutputToCollection" type="checkbox" data-bind="checked: editedIndex().outputReduceToCollection">
+                        <label for="toggleOutputToCollection">Output the Reduce Results to a Collection.</label>
                     </div>
                     <div data-bind="validationElement: editedIndex().reduceOutputCollectionName">
-                        <input type="text" class="form-control flex-grow has-error" placeholder="Enter collection name" data-bind="textInput: editedIndex().reduceOutputCollectionName, visible: editedIndex().outputReduceToCollection">
+                        <input type="text" class="form-control flex-grow has-error" placeholder="Enter collection name"
+                               data-bind="textInput: editedIndex().reduceOutputCollectionName, visible: editedIndex().outputReduceToCollection">
                     </div>
                 </div>
-                <div class="flex-horizontal margin-bottom" data-bind="visible: editedIndex().outputReduceToCollection">
-                    <div class="checkbox checkbox-inline flex-start on-base-background" title="Pattern for documents referencing documents from OutputReduceToCollection documents">
-                        <input id="patternForReferences" class="styled" type="checkbox" data-bind="checked: editedIndex().hasPatternForReduceOutputCollection">
-                        <label for="patternForReferences">
-                            Pattern For Output Reduce to Collection References
-                        </label>
+                <div data-bind="visible: editedIndex().outputReduceToCollection()">
+                    <div class="margin-left margin-left-lg">
+                        <div class="toggle">
+                            <input id="togglePatternForReferences" type="checkbox" data-bind="checked: editedIndex().hasPatternForReduceOutputCollection">
+                            <label for="togglePatternForReferences">Create Reference Documents to the Results Collection.</label>
+                        </div>
                     </div>
                     <div data-bind="validationElement: editedIndex().patternForReferencesToReduceOutputCollection">
-                        <input type="text" class="form-control flex-grow has-error" placeholder="Enter pattern" data-bind="textInput: editedIndex().patternForReferencesToReduceOutputCollection, visible: editedIndex().hasPatternForReduceOutputCollection">
+                        <input type="text" class="form-control flex-grow has-error" placeholder="Enter pattern"
+                               data-bind="textInput: editedIndex().patternForReferencesToReduceOutputCollection, visible: editedIndex().hasPatternForReduceOutputCollection">
                     </div>
                 </div>
+                
+<!--                <div class="flex-horizontal margin-bottom" data-bind="visible: editedIndex().hasReduce">-->
+<!--                    <div class="checkbox checkbox-inline flex-start on-base-background" title="Output the reduce results to documents in the specified collection">-->
+<!--                        <input id="outputToCollection" class="styled" type="checkbox" data-bind="checked: editedIndex().outputReduceToCollection">-->
+<!--                        <label for="outputToCollection">-->
+<!--                            Output the Reduce Results to a Collection.-->
+<!--                        </label>-->
+<!--                    </div>-->
+<!--                    <div data-bind="validationElement: editedIndex().reduceOutputCollectionName">-->
+<!--                        <input type="text" class="form-control flex-grow has-error" placeholder="Enter collection name" -->
+<!--                               data-bind="textInput: editedIndex().reduceOutputCollectionName, visible: editedIndex().outputReduceToCollection">-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--                <div class="flex-horizontal margin-bottom" data-bind="visible: editedIndex().outputReduceToCollection">-->
+<!--                    <div class="checkbox checkbox-inline flex-start on-base-background" title="Pattern for documents referencing documents from OutputReduceToCollection documents">-->
+<!--                        <input id="patternForReferences" class="styled" type="checkbox" data-bind="checked: editedIndex().hasPatternForReduceOutputCollection">-->
+<!--                        <label for="patternForReferences">-->
+<!--                            Create Reference Documents to the Results Collection.-->
+<!--                        </label>-->
+<!--                    </div>-->
+<!--                    <div data-bind="validationElement: editedIndex().patternForReferencesToReduceOutputCollection">-->
+<!--                        <input type="text" class="form-control flex-grow has-error" placeholder="Enter pattern" -->
+<!--                               data-bind="textInput: editedIndex().patternForReferencesToReduceOutputCollection, visible: editedIndex().hasPatternForReduceOutputCollection">-->
+<!--                    </div>-->
+<!--                </div>-->
+                
             </div>
         </div>
+        
+        
+<!--        <div class="row">-->
+<!--            <div class="col-sm-2">-->
+<!--                <h2 id="reduce-title" class="margin-bottom margin-bottom-xs on-base-background">Reduce</h2>-->
+<!--                <a href="#" data-bind="click: mapReduceIndexSyntaxHelp"><small>Syntax <i class="icon-help"></i></small></a>-->
+<!--            </div>-->
+<!--            <div class="col-sm-10">-->
+<!--                <div data-bind="if: editedIndex().hasReduce">-->
+<!--                    <div class="clearfix">-->
+<!--                        <div class="btn-group btn-group-sm pull-right" role="group" aria-label="...">-->
+<!--                            <button type="button" class="btn btn-default" data-bind="click: formatReduce"><i class="icon-indent"></i><span>Format</span></button>-->
+<!--                            <button type="button" class="btn btn-danger" data-bind="click: removeReduce" title="Remove the Reduce function from the index">-->
+<!--                                <i class="icon-trash"></i> <span>Delete</span>-->
+<!--                            </button>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                    &lt;!&ndash; TODO add ace props:-->
+<!--                    readOnly: $parent.isSideBySideIndex(),-->
+<!--                    &ndash;&gt;-->
+<!--                    <div class="margin-bottom">-->
+<!--                        <pre class="form-control map"-->
+<!--                             data-bind="aceEditor: { code: editedIndex().reduce, allowResize: true, getFocus: true, lang: 'ace/mode/ravenReduceLinq', typeName: 'reduce', completer: $root.indexAutoCompleter.indexReduceCompleter }, validationOptions: { errorsAsTitle: false }, validationElement: editedIndex().reduce"></pre>-->
+
+<!--                        <div data-bind="validationElement: editedIndex().reduce">-->
+<!--                            <div class="help-block" data-bind="validationMessage: editedIndex().reduce"></div>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--                <div class="margin-bottom" data-bind="visible: !editedIndex().hasReduce()">-->
+<!--                    <button class="btn btn-info" data-bind="click: addReduce">-->
+<!--                        <i class="icon-plus"></i><span>Add Reduction</span>-->
+<!--                    </button>-->
+<!--                </div>-->
+<!--                <div class="flex-horizontal margin-bottom" data-bind="visible: editedIndex().hasReduce">-->
+<!--                    <div class="checkbox checkbox-inline flex-start on-base-background" title="Output the reduce results to documents in the specified collection">-->
+<!--                        <input id="outputToCollection" class="styled" type="checkbox" data-bind="checked: editedIndex().outputReduceToCollection">-->
+<!--                        <label for="outputToCollection">-->
+<!--                            Output Reduce Results to Collection-->
+<!--                        </label>-->
+<!--                    </div>-->
+<!--                    <div data-bind="validationElement: editedIndex().reduceOutputCollectionName">-->
+<!--                        <input type="text" class="form-control flex-grow has-error" placeholder="Enter collection name" data-bind="textInput: editedIndex().reduceOutputCollectionName, visible: editedIndex().outputReduceToCollection">-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--                <div class="flex-horizontal margin-bottom" data-bind="visible: editedIndex().outputReduceToCollection">-->
+<!--                    <div class="checkbox checkbox-inline flex-start on-base-background" title="Pattern for documents referencing documents from OutputReduceToCollection documents">-->
+<!--                        <input id="patternForReferences" class="styled" type="checkbox" data-bind="checked: editedIndex().hasPatternForReduceOutputCollection">-->
+<!--                        <label for="patternForReferences">-->
+<!--                            Pattern For Output Reduce to Collection References-->
+<!--                        </label>-->
+<!--                    </div>-->
+<!--                    <div data-bind="validationElement: editedIndex().patternForReferencesToReduceOutputCollection">-->
+<!--                        <input type="text" class="form-control flex-grow has-error" placeholder="Enter pattern" data-bind="textInput: editedIndex().patternForReferencesToReduceOutputCollection, visible: editedIndex().hasPatternForReduceOutputCollection">-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
         <div class="tabs margin-top margin-top-lg">
             <ul class="nav nav-tabs" role="tablist" id="tabsId">
                 <li role="presentation" class="active" id="fieldsTab">
@@ -292,6 +382,11 @@
             </div>
         </div>
     </div>
+    
+    <!--    todo: check if can do without this...-->    
+    <div class="tooltip" style="opacity: 0; display: none">
+    </div>
+    
 </div>
 
 <script type="text/html" id="field-template-auto-index">
