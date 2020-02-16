@@ -213,6 +213,24 @@ class editDocument extends viewModelBase {
     
     private initTooltips() { 
         const $selector = $("#changeVector");
+
+        $selector.on("mouseover", ".copy", () => {
+            const $buttonSelector = $(".copy");
+            const $buttonTextSelector = $(".copy span");
+            
+            if (!$buttonSelector.hasClass("btn-success")) {
+                $buttonTextSelector.html("Copy to clipboard");
+            }
+        });
+
+        $selector.on("mouseout", ".copy", () => {
+            const $buttonSelector = $(".copy");
+            const $buttonTextSelector = $(".copy span");
+            
+            if (!$buttonSelector.hasClass("btn-success")) {
+                $buttonTextSelector.html("");
+            }
+        });
         
         $selector.on("click", ".copy", e => {
             e.stopImmediatePropagation();
@@ -420,7 +438,7 @@ class editDocument extends viewModelBase {
             const changeVectorTitle = "<div><strong>Change Vector</strong></div>";
             const changeVectorCopyButton = '<div>' +
                 '<button class="btn btn-default btn-sm margin-bottom margin-bottom-sm margin-top margin-top-sm copy"' +
-                '<small><i class="icon-copy"></i><span>Copy to clipboard</span></small>' +
+                '<small><i class="icon-copy"></i><span></span></small>' +
                 '</button></div>';
             
             return `${changeVectorTitle}${this.changeVectorFormatted()}${changeVectorCopyButton}`;
