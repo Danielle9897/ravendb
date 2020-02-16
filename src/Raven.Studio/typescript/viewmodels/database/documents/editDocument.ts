@@ -74,6 +74,7 @@ class editDocument extends viewModelBase {
     
     changeVector: KnockoutComputed<changeVectorItem[]>;
     changeVectorHtml: KnockoutComputed<string>;
+    changeVectorFormatted: KnockoutComputed<string>;
     
     lastModifiedAsAgo: KnockoutComputed<string>;    
     latestRevisionUrl: KnockoutComputed<string>;
@@ -210,8 +211,16 @@ class editDocument extends viewModelBase {
         this.initTooltips();
     }
     
-    private initTooltips() {
-        $('#right-options-panel [data-toggle="tooltip"]').tooltip();
+    private initTooltips() { 
+        const $selector = $("#changeVector");
+        
+        $selector.on("click", ".copy", e => {
+            e.stopImmediatePropagation();
+            e.preventDefault();
+            copyToClipboard.copy(_.replace(this.changeVectorFormatted(), new RegExp("<br/> ","g"), "\n"));
+            $(".copy").addClass("btn-success");
+            $(".copy span").html("Copied!");
+        });
     }
 
     detached() {
@@ -402,14 +411,19 @@ class editDocument extends viewModelBase {
 
             return changeVectorUtils.formatChangeVector(vector, changeVectorUtils.shouldUseLongFormat([vector]));
         });
+
+        this.changeVectorFormatted = ko.pureComputed(() => {
+            return this.changeVector().map(vectorItem => vectorItem.fullFormat).join('<br/>');
+        });
         
         this.changeVectorHtml = ko.pureComputed(() => {
-            let vectorText = "<h4>Change Vector</h4>";
-            if (this.changeVector().length) {
-                vectorText += this.changeVector().map(vectorItem => vectorItem.fullFormat).join('<br/>');
-            }
+            const changeVectorTitle = "<div><strong>Change Vector</strong></div>";
+            const changeVectorCopyButton = '<div>' +
+                '<button class="btn btn-default btn-sm margin-bottom margin-bottom-sm margin-top margin-top-sm copy"' +
+                '<small><i class="icon-copy"></i><span>Copy to clipboard</span></small>' +
+                '</button></div>';
             
-            return vectorText;
+            return `${changeVectorTitle}${this.changeVectorFormatted()}${changeVectorCopyButton}`;
         });
 
         this.isConflictDocument = ko.computed(() => {
@@ -434,7 +448,7 @@ class editDocument extends viewModelBase {
                 return `Computed Size: ${this.computedDocumentSize()} KB`;
             }
             
-            return `<h4>Document Size on Disk</h4> Actual Size: ${this.sizeOnDiskActual()} <br/> Allocated Size: ${this.sizeOnDiskAllocated()}`;            
+            return `<div><strong>Document Size on Disk</strong></div> Actual Size: ${this.sizeOnDiskActual()} <br/> Allocated Size: ${this.sizeOnDiskAllocated()}`;
         });
         
         this.metadata.subscribe((meta: documentMetadata) => {
