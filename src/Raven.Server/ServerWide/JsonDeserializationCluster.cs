@@ -23,6 +23,7 @@ using Raven.Server.ServerWide.Commands.Monitoring.Snmp;
 using Raven.Server.ServerWide.Commands.PeriodicBackup;
 using Raven.Server.ServerWide.Commands.Sorters;
 using Raven.Server.ServerWide.Commands.Subscriptions;
+using Raven.Server.Smuggler.Documents;
 using Sparrow.Json;
 
 namespace Raven.Server.ServerWide

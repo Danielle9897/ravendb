@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using CsvHelper;
+using CsvHelper.Configuration;
 using Raven.Client;
 using Raven.Client.Documents.Operations.Counters;
 using Raven.Client.Documents.Smuggler;
@@ -20,6 +21,28 @@ using Sparrow.Json.Parsing;
 
 namespace Raven.Server.Smuggler.Documents
 {
+    public class CsvConfiguration
+    {
+        public string Delimiter { get; set; }
+        public string Quote { get; set; }
+        public string Comment { get; set; }
+        public bool AllowComments { get; set; }
+        public TrimOptions TrimOptions { get; set; }
+
+        public CsvConfiguration()
+        {
+        }
+        
+        public CsvConfiguration(string delimiter, string quote, TrimOptions trim, bool allowComments, string comment )
+        {
+            Delimiter = delimiter;
+            Quote = quote;
+            TrimOptions = trim;
+            Comment = comment;
+            AllowComments = allowComments;
+        }
+    }
+        
     public class CsvStreamSource : ISmugglerSource, IDisposable
     {
         private readonly DocumentDatabase _database;
@@ -30,6 +53,7 @@ namespace Raven.Server.Smuggler.Documents
         private readonly string _collection;
         private StreamReader _reader;
         private CsvReader _csvReader;
+        private readonly CsvConfiguration _csvConfig;
         private bool _hasId;
         private int _idIndex;
         private bool _hasCollection;
@@ -46,13 +70,14 @@ namespace Raven.Server.Smuggler.Documents
 
         private readonly List<IDisposable> _disposables = new List<IDisposable>();
 
-        public CsvStreamSource(DocumentDatabase database, Stream stream, DocumentsOperationContext context, string collection)
+        public CsvStreamSource(DocumentDatabase database, Stream stream, DocumentsOperationContext context, string collection, CsvConfiguration csvConfig)
         {
             _database = database;
             _stream = stream;
             _context = context;
             _currentType = DatabaseItemType.Documents;
             _collection = collection;
+            _csvConfig = csvConfig;
         }
 
         public IDisposable Initialize(DatabaseSmugglerOptions options, SmugglerResult result, out long buildVersion)
@@ -60,8 +85,21 @@ namespace Raven.Server.Smuggler.Documents
             buildVersion = ServerVersion.DevBuildNumber;
             _reader = new StreamReader(_stream);
             _csvReader = new CsvReader(_reader);
-            _csvReader.Configuration.Delimiter = ",";
+            
+            // Set these options according to what is passed
+            _csvReader.Configuration.Delimiter = _csvConfig.Delimiter;  // default is CultureInfo.CurrentCulture.TextInfo.ListSeparator
+            _csvReader.Configuration.Quote = _csvConfig.Quote[0];
+
+            if (_csvConfig.Comment != null)
+            {
+                _csvReader.Configuration.Comment = _csvConfig.Comment[0];  // ?
+            }
+            
+            _csvReader.Configuration.AllowComments = _csvConfig.AllowComments; 
+            _csvReader.Configuration.TrimOptions = _csvConfig.TrimOptions;
+            
             _result = result;
+            
             return new DisposableAction(() =>
             {
                 _reader.Dispose();

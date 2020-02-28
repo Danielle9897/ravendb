@@ -1,48 +1,182 @@
 <div class="importDatabase ">
-<div class="panel">
-    <div class="panel-body">
-        <form class="flex-form" data-bind="submit: importCsv">
-            <h3>Import documents from a CSV file into a collection.</h3>
-            <div class="bg-info padding padding-xs margin-bottom"><small><i class="icon-info"></i> Note: Each column will be treated as a property.</small></div>
-            <div class="form-group">
-                <label for="importCsvFilePicker" class="control-label">
-                    Import file
-                </label>
-                <div class="col-sm-10 col-lg-6">
-                    <div class="input-group file-input" data-bind="validationElement: importedFileName">
-                        <input type="file" id="importCsvFilePicker" data-bind="event: { change: _.partial(fileSelected, $element.value) }, disable: isImporting" tabindex="-1">
-                        <span class="static-name form-control" data-bind="text: importedFileName() || 'Select file...'"></span>
-                        <span class="input-group-btn">
-                            <label for="importCsvFilePicker" class="btn btn-default">
-                                <i class="icon-document"></i><span>Browse</span>
-                            </label>
-                        </span>
-                        <p class="help-block" data-bind="validationMessage: importedFileName"></p>
+    <div class="panel">
+        <div class="panel-body">
+            <form class="flex-form" data-bind="submit: importCsv">
+                <h3>Import documents from a CSV file into a collection</h3>
+                <div class="row">
+                    <div class="col-lg-6">
+                        <hr class="margin-top margin-top-lg"/>
+                        <h4>Define source and destintaion</h4>
+                        <div class="form-group margin-top margin-top-lg margin-left">
+                            <label for="importCsvFilePicker" class="control-label">Import from File</label>
+                            <div class="flex-grow">
+                                <div class="input-group file-input" data-bind="validationElement: importedFileName">
+                                    <input type="file" accept=".csv" id="importCsvFilePicker" data-bind="event: { change: _.partial(fileSelected, $element.value) }, disable: isImporting" tabindex="-1">
+                                    <span class="static-name form-control" data-bind="text: importedFileName() || 'Select file...'"></span>
+                                    <span class="input-group-btn">
+                                    <label for="importCsvFilePicker" class="btn btn-default">
+                                        <i class="icon-document"></i><span>Browse</span>
+                                    </label>
+                                </span>
+                                    <p class="help-block" data-bind="validationMessage: importedFileName"></p>
+                                </div>
+                                <div class="bg-info text-info padding padding-xs margin-top margin-top-sm">
+                                    <small><i class="icon-info"></i> Each column will be treated as a property.</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group margin-top margin-left">
+                            <label for="csvImportCollection" class="control-label">Import to Collection</label>
+                            <div class="flex-grow">
+                                <input placeholder="Enter collection name to import to" class="form-control" type="text" name="csvImportCollection" id="csvImportCollection" data-bind="textInput: customCollectionName" autocomplete="off" />
+                                <div class="bg-info text-info padding padding-xs margin-top margin-top-sm">
+                                    <small><i class="icon-info"></i><span>If not provided, the collection name will be derived from the file name! todo...!!!</span></small>
+                                </div>
+                            </div>
+                        </div>
+                        <hr class="margin-top margin-top-lg"/>
+                        <h4>CSV options</h4>
+                        <div class="margin-left margin-top margin-top-lg">
+                            <div class="form-group">
+                                <label class="control-label">Fields Delimiter</label>
+                                <div class="flex-grow" data-bind="with: csvConfig">
+                                    <button class="btn btn-block dropdown-toggle text-left" data-toggle="dropdown">
+                                        <span data-bind="text: selectedDelimiter"></span>
+                                        <span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu" data-bind="foreach: possibleDelimiters">
+                                        <li>
+                                            <a href="#" data-bind="text: $data, click: $parent.selectedDelimiter.bind($parent.selectedDelimiter, $data)"></a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="margin-left">
+                            <div class="form-group" data-bind="with: csvConfig">
+                                <label class="control-label">Quote Character</label>
+                                <div class="flex-grow">
+                                    <button class="btn btn-block dropdown-toggle text-left" data-toggle="dropdown">
+                                        <span data-bind="text: selectedQuote"></span>
+                                        <span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu" data-bind="foreach: possibleQuoteChars">
+                                        <li>
+                                            <a href="#" data-bind="text: $data, click: $parent.selectedQuote.bind($parent.selectedQuote, $data)"></a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="margin-left">
+                            <div class="form-group" data-bind="with: csvConfig">
+                                <label class="control-label">Trimming Option</label>
+                                <div class="flex-grow">
+                                    <button class="btn btn-block dropdown-toggle text-left" data-toggle="dropdown">
+                                        <span data-bind="text: selectedTrimOption"></span>
+                                        <span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu" data-bind="foreach: possibleTrimOptions">
+                                        <li>
+                                            <a href="#" data-bind="text: $data, click: $parent.selectedTrimOption.bind($parent.selectedTrimOption, $data)"></a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="margin-left">
+                            <div class="form-group" data-bind="with: csvConfig">
+                                <label class="control-label margin-left margin-left-sm"></label>      
+                                <div class="toggle">
+                                    <input id="allowComments" type="checkbox" data-bind="checked: allowComments"/>
+                                    <label for="allowComments">Allow Comments</label>
+                                </div>
+                                <div class="flex-grow margin-left">
+<!--                                    todo: validate... entered value if checked....-->
+                                    <input id="test" type="text" class="form-control" placeholder="Enter comment character"
+                                           data-bind="textInput: commentCharacter, disable: !allowComments()" autocomplete="off">
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <div class="form-group">
-                <label for="csvImportCollection" class="control-label">
-                    Specific collection
-                </label>
-                <div class="col-sm-10 col-lg-6">
-                    <input placeholder="Select collection" class="form-control" type="text" name="csvImportCollection" id="csvImportCollection" data-bind="textInput: customCollectionName" />
-                    <small>
-                        <i class="icon-info"></i>
-                        <span>If not provided, the collection name will be derived from the file name!</span>
-                    </small>
+                <hr />
+                <div class="progress" data-bind="visible: isUploading()">
+                    <div class="progress-bar progress-bar-primary progress-bar-striped" role="progressbar" data-bind="style: { width: uploadStatus() + '%' }"> <span class="sr-only" data-bind="text: uploadStatus() + '%'"></span> </div>
                 </div>
-            </div>
-            <hr />
-            <div class="progress" data-bind="visible: isUploading()">
-                <div class="progress-bar progress-bar-primary progress-bar-striped" role="progressbar" data-bind="style: { width: uploadStatus() + '%' }"> <span class="sr-only" data-bind="text: uploadStatus() + '%'"></span> </div>
-            </div>
-            <div class="form-group">
-                <div class="col-sm-10">
-                    <button class="btn btn-primary" type="submit" data-bind="css: { 'btn-spinner': isImporting() }"><span class="icon-import"></span> <span>Import collection</span></button>
+                <div>
+                    <button class="btn btn-primary" type="submit" data-bind="css: { 'btn-spinner': isImporting() }"><span class="icon-import"></span> <span>Import Collection</span></button>                  
                 </div>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
 </div>
-</div>
+
+
+
+<!--<div class="importDatabase ">-->
+<!--<div class="panel">-->
+<!--    <div class="panel-body">-->
+<!--        <form class="flex-form" data-bind="submit: importCsv">-->
+<!--            <h3>Import documents from a CSV file into a collection</h3>-->
+<!--            <div class="form-group margin-top margin-top-lg">-->
+<!--                <label for="importCsvFilePicker" class="control-label">File to import</label>-->
+<!--                <div class="col-sm-10 col-lg-6">-->
+<!--                    <div class="input-group file-input" data-bind="validationElement: importedFileName">-->
+<!--                        <input type="file" accept=".csv" id="importCsvFilePicker" data-bind="event: { change: _.partial(fileSelected, $element.value) }, disable: isImporting" tabindex="-1">-->
+<!--                        <span class="static-name form-control" data-bind="text: importedFileName() || 'Select file...'"></span>-->
+<!--                        <span class="input-group-btn">-->
+<!--                            <label for="importCsvFilePicker" class="btn btn-default">-->
+<!--                                <i class="icon-document"></i><span>Browse</span>-->
+<!--                            </label>-->
+<!--                        </span>-->
+<!--                        <p class="help-block" data-bind="validationMessage: importedFileName"></p>                      -->
+<!--                    </div>-->
+<!--                    <div class="bg-info text-info padding padding-xs margin-top margin-top-sm">-->
+<!--                        <small><i class="icon-info"></i> Each column will be treated as a property.</small>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <div class="form-group margin-top">-->
+<!--                <label for="csvImportCollection" class="control-label">Import to Collection</label>-->
+<!--                <div class="col-sm-10 col-lg-6">-->
+<!--                    <input placeholder="Enter collection name to import to" class="form-control" type="text" name="csvImportCollection" id="csvImportCollection" data-bind="textInput: customCollectionName" autocomplete="off" />-->
+<!--                    <div class="bg-info text-info padding padding-xs margin-top margin-top-sm">-->
+<!--                        <small><i class="icon-info"></i><span>If not provided, the collection name will be derived from the file name! todo...!!!</span></small>-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <hr />-->
+<!--            <h3>Import options</h3>-->
+<!--            <div class="col-lg-6">-->
+<!--                <div class="form-group">-->
+<!--                    <div>-->
+<!--                        <label class="control-label">Delimiter</label>-->
+<!--                    </div>    -->
+<!--                    <div class="flex-grow">-->
+<!--                        <button class="btn btn-block dropdown-toggle text-left" data-toggle="dropdown">-->
+<!--                            <span data-bind="text: 'test'"></span>-->
+<!--                            <span class="caret"></span>-->
+<!--                        </button>-->
+<!--&lt;!&ndash;                        <ul class="dropdown-menu" data-bind="foreach: $data.constructor.possibleDelimiters">&ndash;&gt;-->
+<!--&lt;!&ndash;                            <li>&ndash;&gt;-->
+<!--&lt;!&ndash;                                <a href="#"&ndash;&gt;-->
+<!--&lt;!&ndash;                                   data-bind="text: $parent.labelForProvider($data), click: $parent.databaseType.bind($parent.databaseType, $data)"></a>&ndash;&gt;-->
+<!--&lt;!&ndash;                            </li>&ndash;&gt;-->
+<!--&lt;!&ndash;                        </ul>                            &ndash;&gt;-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <hr />-->
+<!--            <div class="progress" data-bind="visible: isUploading()">-->
+<!--                <div class="progress-bar progress-bar-primary progress-bar-striped" role="progressbar" data-bind="style: { width: uploadStatus() + '%' }"> <span class="sr-only" data-bind="text: uploadStatus() + '%'"></span> </div>-->
+<!--            </div>-->
+<!--            <div class="form-group">-->
+<!--                <div class="col-sm-10">-->
+<!--                    <button class="btn btn-primary" type="submit" data-bind="css: { 'btn-spinner': isImporting() }"><span class="icon-import"></span> <span>Import Collection</span></button>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </form>-->
+<!--    </div>-->
+<!--</div>-->
+<!--</div>-->
