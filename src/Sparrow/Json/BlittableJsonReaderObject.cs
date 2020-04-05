@@ -363,6 +363,12 @@ namespace Sparrow.Json
                             return false;
                         obj = (T)(object)timeSpan;
                     }
+                    // else if (type == typeof(Size)) // Danielle
+                    // {
+                    //     if (ChangeTypeToString(result, out string sizeString) == false)
+                    //         return false;
+                    //     // what to do here ?
+                    // }
                     else if (type == typeof(Guid))
                     {
                         if (ChangeTypeToString(result, out string guidString) == false)
@@ -462,6 +468,12 @@ namespace Sparrow.Json
                             ThrowFormatException(result, result.GetType().FullName, "TimeSpan");
                         obj = (T)(object)timeSpan;
                     }
+                    // else if (type == typeof(Size)) // Danielle
+                    // {
+                    //     if (ChangeTypeToString(result, out string sizeString) == false)
+                    //         ThrowFormatException(result, result.GetType().FullName, "string");
+                    //     // what to do here ? 
+                    // }
                     else if (type == typeof(Guid))
                     {
                         if (ChangeTypeToString(result, out string guidString) == false)

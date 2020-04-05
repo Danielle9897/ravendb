@@ -11,6 +11,7 @@ using System.Linq;
 
 namespace Sparrow
 {
+    //[Serializable] // I added this ? 
     public struct Size
     {
         public static readonly Size Zero = new Size(0, SizeUnit.Bytes);
@@ -22,6 +23,12 @@ namespace Sparrow
 
         private readonly SizeUnit _unit;
         private long _valueInBytes;
+
+        // test...
+        public long getValueInBytes()
+        {
+            return _valueInBytes;
+        } 
 
         public Size(long value, SizeUnit unit)
         {

@@ -106,7 +106,7 @@ namespace Raven.Client.Documents.Session
                 DocumentConventions.Default.CreateSerializer().Serialize(writer, entity);
                 writer.FinalizeDocument();
 
-                var reader = writer.CreateReader();
+                var reader = writer.CreateReader(); 
                 var type = entity.GetType();
 
                 var changes = TrySimplifyJson(reader, type);

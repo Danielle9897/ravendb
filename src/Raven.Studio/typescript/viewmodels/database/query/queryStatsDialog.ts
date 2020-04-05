@@ -35,7 +35,7 @@ class queryStatsDialog extends dialogViewModelBase {
         return true;
     }
     
-    cancel() {                
+    cancel() {
         dialog.close(this);
     }
 
