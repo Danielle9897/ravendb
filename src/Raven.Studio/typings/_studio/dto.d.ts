@@ -400,7 +400,6 @@ interface indexStalenessReasonsResponse {
     StalenessReasons: string[];
 }
 
-
 interface autoCompleteWordList {
     caption: string; 
     value: string; 
@@ -566,6 +565,7 @@ type sortMode = "asc" | "desc";
 
 interface textColumnOpts<T> {
     extraClass?: (item: T) => string;
+    extraClassForLink?: (item: T) => string;
     useRawValue?: (item: T) => boolean;
     title?: (item:T) => string;
     sortable?: "number" | "string" | valueProvider<T>;
@@ -691,3 +691,6 @@ interface timeSeriesRawItemResultDto {
     Timestamp: string;
     Values: number[];
 }
+
+type SettingsTemplateType = Raven.Server.Config.ConfigurationEntryType | 'StringArray' | 'EnumArray' | 'ServeWide';
+type setttingsItem = { key: string, value: string | null };
