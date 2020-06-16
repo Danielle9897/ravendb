@@ -4,10 +4,7 @@ declare const QRCode: any;
 /// Sortable
 declare const Sortable: any;
 
-///
 /// JSZip
-///
-
 declare const JSZipUtils: {
     getBinaryContent: (url: string, handler: (error: any, data: any) => void) => void;
 };
@@ -16,9 +13,14 @@ declare module "jszip-utils" {
     export = JSZipUtils;
 }
 
+/// diffMatchPatch
+declare const diffMatchPatch: any;
+
+declare module "diff-match-patch" {
+    export = diffMatchPatch;
+}
 
 /// forge 
-
 declare module "forge/forge" {
     
     namespace util {
@@ -130,7 +132,6 @@ declare module "forge/forge" {
 }
 
 /// Cola.js
-
 declare module 'cola' {
     export = cola;
 }
@@ -138,7 +139,6 @@ declare module 'cola' {
 /// Favico
 ///
 /// Using *any* as official typings are broken
-
 declare const Favico: any;
 
 ///
@@ -148,7 +148,6 @@ declare const Favico: any;
 ///   - highlight
 ///   - fullscreen
 ///
-
 interface JQuery {
 
     selectpicker(): void;
@@ -163,12 +162,9 @@ interface JQuery {
     fullScreen(): boolean;
 }
 
-
 ///
 /// jwerty
 ///
-
-
 interface JwertyStatic {
     key(keyCombination: string, handler: (event: KeyboardEvent, keyCombination: string) => any, context?: any, selector?: string): JwertySubscription;
 }

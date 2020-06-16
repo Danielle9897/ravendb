@@ -82,6 +82,7 @@ var paths = {
         "css-escape/css.escape.js",
         "cronstrue/dist/cronstrue.min.js",
         "favico.js/favico.js"
+        //"diff-match-patch/index.js"
     ]
 };
 

@@ -39,7 +39,8 @@
     "forge": "^0.6.49",
     "jszip": "^3.1.5",
     "jszip-utils": "^0.0.2",
-    "diff": "https://cdnjs.cloudflare.com/ajax/libs/jsdiff/4.0.1/diff.min.js"
+    "diff": "https://cdnjs.cloudflare.com/ajax/libs/jsdiff/4.0.1/diff.min.js",
+    "diff-match-patch": "https://raw.githubusercontent.com/google/diff-match-patch/master/javascript/diff_match_patch.js"
   },
   "resolutions": {
     "jquery": "^2.2.0",

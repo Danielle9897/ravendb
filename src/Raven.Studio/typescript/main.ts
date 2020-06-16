@@ -20,7 +20,8 @@ requirejs.config({
           "quickselect": "../Content/rbush/quickselect",
           "moment": "../lib/moment/moment",
           "plugins/bootstrapModal": "../App/plugins/bootstrapModal",
-          "diff": "../lib/diff/index"
+          "diff": "../lib/diff/index",
+          "diff-match-patch": "../lib/diff-match-patch/index"
       }  
     },
 

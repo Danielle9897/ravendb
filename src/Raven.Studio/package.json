@@ -35,5 +35,8 @@
     "through2": "^3.0.1",
     "typescript": "^3.8.3"
   },
-  "dependencies": {}
+  "dependencies": {
+    "diff-match-patch": "^1.0.5",
+    "install": "^0.13.0"
+  }
 }

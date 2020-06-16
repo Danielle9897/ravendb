@@ -1,6 +1,9 @@
 /// <reference path="../../../../typings/tsd.d.ts" />
 
 import diff = require("diff");
+import diffMatchPatch = require("diff-match-patch");
+//import DiffMatchPatch from 'diff-match-patch';
+//const DiffMatchPatch = require('diff-match-patch');
 
 type gapItem = {
     firstLine: number;
@@ -401,6 +404,10 @@ class aceDiff {
         const leftLines = this.leftEditor.getAllLines();
         const rightLines = this.rightEditor.getAllLines();
 
+        const dmp = new diffMatchPatch();
+        const dmpDiff = dmp.diff_main(leftLines, rightLines);
+        
+        
         const patch = diff.structuredPatch("left", "right",
             leftLines.join("\r\n"), rightLines.join("\r\n"),
             null, null, {
