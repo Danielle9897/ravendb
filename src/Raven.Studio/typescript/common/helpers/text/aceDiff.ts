@@ -335,6 +335,20 @@ class aceDiffEditor {
     }
 }
 
+//
+// constants from ace-diff
+//
+const DIFF_EQUAL = 0;
+const DIFF_DELETE= -1;
+const DIFF_INSERT = 1;
+const EDITOR_RIGHT = 'right';
+const EDITOR_LEFT = 'left';
+const RTL = 'rtl';
+const LTR = 'ltr';
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const DIFF_GRANULARITY_SPECIFIC = 'specific';
+const DIFF_GRANULARITY_BROAD = 'broad';
+
 class aceDiff {
     
     private readonly leftEditor: aceDiffEditor;
@@ -399,13 +413,222 @@ class aceDiff {
         this.rightEditor.getSession().setScrollTop(this.leftEditor.getSession().getScrollTop());
     }
 
+    //
+    // trying to convert this logic from ace-diff
+    //
+    
+    // private getSingleDiffInfo(editor:  aceDiffEditor, offset: number, diffString: string) {
+    //     const info = {
+    //         startLine: 0,
+    //         startChar: 0,
+    //         endLine: 0,
+    //         endChar: 0,
+    //     };
+    //     const endCharNum = offset + diffString.length;
+    //     let runningTotal = 0;
+    //     let startLineSet = false;
+    //     let endLineSet = false;
+    //
+    //     editor.getAllLines().forEach((lineLength, lineIndex) => { 
+    //         runningTotal += lineLength;
+    //
+    //         if (!startLineSet && offset < runningTotal) {
+    //             info.startLine = lineIndex;
+    //             info.startChar = offset - runningTotal + lineLength;
+    //             startLineSet = true;
+    //         }
+    //
+    //         if (!endLineSet && endCharNum <= runningTotal) {
+    //             info.endLine = lineIndex;
+    //             info.endChar = endCharNum - runningTotal + lineLength;
+    //             endLineSet = true;
+    //         }
+    //     });
+    //
+    //     // if the start char is the final char on the line, it's a newline & we ignore it
+    //     if (info.startChar > 0 && getCharsOnLine(editor, info.startLine) === info.startChar) {
+    //         info.startLine++;
+    //         info.startChar = 0;
+    //     }
+    //
+    //     // if the end char is the first char on the line, we don't want to highlight that extra line
+    //     if (info.endChar === 0) {
+    //         info.endLine--;
+    //     }
+    //
+    //     const endsWithNewline = /\n$/.test(diffString);
+    //     if (info.startChar > 0 && endsWithNewline) {
+    //         info.endLine++;
+    //     }
+    //
+    //     return info;
+    // }
+
+
+    //
+    // trying to convert this logic from ace-diff
+    //
+    
+    // private computeDiff(diffType: number, offsetLeft: number, offsetRight: number, diffText: string) {
+    //     let lineInfo = {};
+    //
+    //     // this was added in to hack around an oddity with the Google lib. Sometimes it would include a newline
+    //     // as the first char for a diff, other times not - and it would change when you were typing on-the-fly. This
+    //     // is used to level things out so the diffs don't appear to shift around
+    //     let newContentStartsWithNewline = /^\n/.test(diffText);
+    //
+    //     if (diffType === DIFF_INSERT) {
+    //         // pretty confident this returns the right stuff for the left editor: start & end line & char
+    //         var info = getSingleDiffInfo(this.leftEditor, offsetLeft, diffText);
+    //
+    //         // this is the ACTUAL undoctored current line in the other editor. It's always right. Doesn't mean it's
+    //         // going to be used as the start line for the diff though.
+    //         var currentLineOtherEditor = getLineForCharPosition(this.rightEditor, offsetRight);
+    //         var numCharsOnLineOtherEditor = getCharsOnLine(this.rightEditor, currentLineOtherEditor);
+    //         const numCharsOnLeftEditorStartLine = getCharsOnLine(this.leftEditor, info.startLine);
+    //         var numCharsOnLine = getCharsOnLine(this.leftEditor, info.startLine);
+    //
+    //         // this is necessary because if a new diff starts on the FIRST char of the left editor, the diff can comes
+    //         // back from google as being on the last char of the previous line so we need to bump it up one
+    //         let rightStartLine = currentLineOtherEditor;
+    //         if (numCharsOnLine === 0 && newContentStartsWithNewline) {
+    //             newContentStartsWithNewline = false;
+    //         }
+    //         if (info.startChar === 0 && isLastChar(this.rightEditor, offsetRight, newContentStartsWithNewline)) {
+    //             rightStartLine = currentLineOtherEditor + 1;
+    //         }
+    //
+    //         var sameLineInsert = info.startLine === info.endLine;
+    //
+    //         // whether or not this diff is a plain INSERT into the other editor, or overwrites a line take a little work to
+    //         // figure out. This feels like the hardest part of the entire script.
+    //         var numRows = 0;
+    //         if (
+    //
+    //             // dense, but this accommodates two scenarios:
+    //             // 1. where a completely fresh new line is being inserted in left editor, we want the line on right to stay a 1px line
+    //             // 2. where a new character is inserted at the start of a newline on the left but the line contains other stuff,
+    //             //    we DO want to make it a full line
+    //             (info.startChar > 0 || (sameLineInsert && diffText.length < numCharsOnLeftEditorStartLine))
+    //
+    //             // if the right editor line was empty, it's ALWAYS a single line insert [not an OR above?]
+    //             && numCharsOnLineOtherEditor > 0
+    //
+    //             // if the text being inserted starts mid-line
+    //             && (info.startChar < numCharsOnLeftEditorStartLine)) {
+    //             numRows++;
+    //         }
+    //
+    //         lineInfo = {
+    //             leftStartLine: info.startLine,
+    //             leftEndLine: info.endLine + 1,
+    //             rightStartLine,
+    //             rightEndLine: rightStartLine + numRows,
+    //         };
+    //     } else {
+    //         var info = getSingleDiffInfo(acediff.editors.right, offsetRight, diffText);
+    //
+    //         var currentLineOtherEditor = getLineForCharPosition(this.leftEditor, offsetLeft);
+    //         var numCharsOnLineOtherEditor = getCharsOnLine(this.leftEditor, currentLineOtherEditor);
+    //         const numCharsOnRightEditorStartLine = getCharsOnLine(this.rightEditor, info.startLine);
+    //         var numCharsOnLine = getCharsOnLine(this.rightEditor, info.startLine);
+    //
+    //         // this is necessary because if a new diff starts on the FIRST char of the left editor, the diff can comes
+    //         // back from google as being on the last char of the previous line so we need to bump it up one
+    //         let leftStartLine = currentLineOtherEditor;
+    //         if (numCharsOnLine === 0 && newContentStartsWithNewline) {
+    //             newContentStartsWithNewline = false;
+    //         }
+    //         if (info.startChar === 0 && isLastChar(this.leftEditor, offsetLeft, newContentStartsWithNewline)) {
+    //             leftStartLine = currentLineOtherEditor + 1;
+    //         }
+    //
+    //         var sameLineInsert = info.startLine === info.endLine;
+    //         var numRows = 0;
+    //         if (
+    //
+    //             // dense, but this accommodates two scenarios:
+    //             // 1. where a completely fresh new line is being inserted in left editor, we want the line on right to stay a 1px line
+    //             // 2. where a new character is inserted at the start of a newline on the left but the line contains other stuff,
+    //             //    we DO want to make it a full line
+    //             (info.startChar > 0 || (sameLineInsert && diffText.length < numCharsOnRightEditorStartLine))
+    //
+    //             // if the right editor line was empty, it's ALWAYS a single line insert [not an OR above?]
+    //             && numCharsOnLineOtherEditor > 0
+    //
+    //             // if the text being inserted starts mid-line
+    //             && (info.startChar < numCharsOnRightEditorStartLine)) {
+    //             numRows++;
+    //         }
+    //
+    //         lineInfo = {
+    //             leftStartLine,
+    //             leftEndLine: leftStartLine + numRows,
+    //             rightStartLine: info.startLine,
+    //             rightEndLine: info.endLine + 1,
+    //         };
+    //     }
+    //
+    //     return lineInfo;
+    // }
+
+    //
+    // trying to convert this logic from ace-diff
+    //
+    
+    // private followAceDiffLogic(left: string, right: string) {
+    //    
+    //     const dmp = new diff_match_patch();
+    //     const diff = dmp.diff_main(left, right);
+    //     dmp.diff_cleanupSemantic(diff);
+    //   
+    //     const diffs = [];
+    //     const offset = {
+    //         left: 0,
+    //         right: 0,
+    //     };
+    //
+    //     diff.forEach((chunk, index, array) => {
+    //         const chunkType = chunk[0];
+    //         let text = chunk[1];
+    //
+    //         // Fix for #28 https://github.com/ace-diff/ace-diff/issues/28
+    //         if (array[index + 1] && text.endsWith('\n') && array[index + 1][1].startsWith('\n')) {
+    //             text += '\n';
+    //             diff[index][1] = text;
+    //             diff[index + 1][1] = diff[index + 1][1].replace(/^\n/, '');
+    //         }
+    //
+    //         // oddly, occasionally the algorithm returns a diff with no changes made
+    //         if (text.length === 0) {
+    //             return;
+    //         }
+    //         if (chunkType === DIFF_EQUAL) {
+    //             offset.left += text.length;
+    //             offset.right += text.length;
+    //         } else if (chunkType === DIFF_DELETE) { 
+    //             diffs.push(this.computeDiff(DIFF_DELETE, offset.left, offset.right, text));
+    //             offset.right += text.length;
+    //         } else if (chunkType === DIFF_INSERT) {
+    //             diffs.push(this.computeDiff(DIFF_INSERT, offset.left, offset.right, text));
+    //             offset.left += text.length;
+    //         }
+    //     }, this);
+    //
+    //     // simplify our computed diffs; this groups together multiple diffs on subsequent lines
+    //     this.diffs = simplifyDiffs(this, diffs);
+    //
+    //     // if we're dealing with too many diffs, fail silently
+    //     if (this.diffs.length > this.options.maxDiffs) {
+    //         return;
+    //     }
+    // }
+
     private computeDifference() {
         const leftLines = this.leftEditor.getAllLines();
         const rightLines = this.rightEditor.getAllLines();
-
-        const dmp = new diff_match_patch();
-        const dmpDiff = dmp.diff_main(leftLines, rightLines);
         
+        this.followAceDiffLogic(leftLines.join("\r\n"), rightLines.join("\r\n")); // todo 
         
         const patch = diff.structuredPatch("left", "right",
             leftLines.join("\r\n"), rightLines.join("\r\n"),
