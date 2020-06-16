@@ -4,6 +4,9 @@ declare const QRCode: any;
 /// Sortable
 declare const Sortable: any;
 
+/// diffMatchPatch
+declare const diff_match_patch: any;
+
 /// JSZip
 declare const JSZipUtils: {
     getBinaryContent: (url: string, handler: (error: any, data: any) => void) => void;
@@ -11,13 +14,6 @@ declare const JSZipUtils: {
 
 declare module "jszip-utils" {
     export = JSZipUtils;
-}
-
-/// diffMatchPatch
-declare const diffMatchPatch: any;
-
-declare module "diff-match-patch" {
-    export = diffMatchPatch;
 }
 
 /// forge 

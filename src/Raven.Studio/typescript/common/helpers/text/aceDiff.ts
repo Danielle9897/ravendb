@@ -1,7 +1,6 @@
 /// <reference path="../../../../typings/tsd.d.ts" />
 
 import diff = require("diff");
-import diffMatchPatch = require("diff-match-patch");
 //import DiffMatchPatch from 'diff-match-patch';
 //const DiffMatchPatch = require('diff-match-patch');
 
@@ -404,7 +403,7 @@ class aceDiff {
         const leftLines = this.leftEditor.getAllLines();
         const rightLines = this.rightEditor.getAllLines();
 
-        const dmp = new diffMatchPatch();
+        const dmp = new diff_match_patch();
         const dmpDiff = dmp.diff_main(leftLines, rightLines);
         
         
