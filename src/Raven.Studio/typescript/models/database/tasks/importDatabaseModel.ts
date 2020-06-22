@@ -1,5 +1,4 @@
 ﻿/// <reference path="../../../../typings/tsd.d.ts"/>
-
 import smugglerDatabaseRecord = require("models/database/tasks/smugglerDatabaseRecord");
 
 class importDatabaseModel {
@@ -32,56 +31,38 @@ class importDatabaseModel {
 
     validationGroup: KnockoutValidationGroup;
     importDefinitionHasIncludes: KnockoutComputed<boolean>;
+    itemsToWarnAbout: KnockoutComputed<string>;
     
     constructor() {
         this.initValidation();
-
-        this.includeDocuments.subscribe(documents => {
-            if (!documents) {
-                this.includeCounters(false);
-                this.includeLegacyCounters(false);
-                this.includeAttachments(false);
-                this.includeLegacyAttachments(false);
-                this.includeTimeSeries(false);
-            }
-        });
-        
+        this.initObservables();
+    }
+    
+    private initObservables() {
         this.includeCounters.subscribe(counters => {
             if (counters) {
                 this.includeDocuments(true);
             }
         });
-        
+
         this.includeAttachments.subscribe(attachments => {
             if (attachments) {
                 this.includeDocuments(true);
             }
         });
-        
+
         this.includeTimeSeries.subscribe(timeSeries => {
             if (timeSeries) {
                 this.includeDocuments(true);
             }
         });
 
-        this.includeCounters.subscribe(counters => {
-            if (counters) {
-                this.includeDocuments(true);
-            }
-        });
-
-        this.includeAttachments.subscribe(attachments => {
-            if (attachments) {
-                this.includeDocuments(true);
-            }
-        });
-        
         this.removeAnalyzers.subscribe(analyzers => {
             if (analyzers) {
                 this.includeIndexes(true);
             }
         });
-        
+
         this.includeIndexes.subscribe(indexes => {
             if (!indexes) {
                 this.removeAnalyzers(false);
@@ -98,7 +79,36 @@ class importDatabaseModel {
             if (customize) {
                 this.includeDatabaseRecord(true);
             }
-        })
+        });
+        
+        this.itemsToWarnAbout = ko.pureComputed(() => {
+           let items = [];
+           
+           if (!this.includeDocuments()) {
+               if (this.includeAttachments()) {
+                   items.push(["Attachments"]); // todo: replace attachments w/ revisions  after I verify attachment is not in the flow !!!!
+               }                                // todo: and then make subscribe connection for attachmetns !!
+                                                // todo: but the other also don'e make sense... art. docs, conflicts... etc....
+                                                // todo: art.docs validation...
+               if (this.includeCounters()) {
+                   items.push(["Counters"]);
+               }
+               if (this.includeTimeSeries()) {
+                   items.push(["Time Series"]);
+               }
+           }
+           
+           switch (items.length) {
+               case 3: 
+                   return `${items[0]}, ${items[1]} & ${items[2]}`;
+               case 2: 
+                   return `${items[0]} & ${items[1]}`;
+               case 1:
+                   return `${items[0]}`;
+               default: 
+                   return "";
+           }
+        });
     }
     
     toDto(): Raven.Client.Documents.Smuggler.DatabaseSmugglerImportOptions {

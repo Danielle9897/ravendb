@@ -5,8 +5,8 @@
             <div class="row">
                 <div class="col-sm-8 col-lg-6 col-xl-5">
                     <h3>Import data from a .ravendbdump file into the current database</h3>
-                    <div class="bg-warning text-warning padding padding-xs margin-top margin-bottom">
-                        <small><i class="icon-warning"></i><span>Note: Importing will overwrite any existing documents and indexes.</span></small>
+                    <div class="bg-info text-info padding padding-xs margin-top margin-bottom">
+                        <small><i class="icon-info"></i><span>Note: Importing will overwrite any existing documents and indexes.</span></small>
                     </div>
                 </div>
             </div>
@@ -205,11 +205,22 @@
                 </div>
             </div>
             <hr />
+            <div class="row" data-bind="collapse: model.itemsToWarnAbout">
+                <div class="col-sm-8 col-lg-6 col-xl-5">
+                    <div class="bg-warning text-warning padding padding-xs margin-bottom flex-horizontal">
+                        <div class="flex-start"><small><i class="icon-warning"></i></small></div>
+                        <div>
+                            <small>Note: You are importing <span data-bind="text: model.itemsToWarnAbout"></span> data without including the Documents.</small><br>
+                            <small>You must verify that matching documents exist in the current database prior to importing.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div class="progress" data-bind="visible: isUploading()">
                 <div class="progress-bar progress-bar-primary progress-bar-striped" role="progressbar" data-bind="style: { width: uploadStatus() + '%' }"> <span class="sr-only" data-bind="text: uploadStatus() + '%'"></span> </div>
             </div>
             <button class="btn btn-default" type="button" data-bind="click: showAdvancedOptions.toggle.bind(showAdvancedOptions)">
-                Advanced
+                <span data-bind="text: showAdvancedOptions() ? 'Close ' : ''"></span>Advanced
             </button>
             <button class="btn btn-primary" type="submit" data-bind="css: { 'btn-spinner': isImporting() }"><span class="icon-import"></span><span>Import Database</span></button>
         </form>

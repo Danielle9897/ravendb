@@ -4,7 +4,7 @@
         <form data-bind="submit: startExport">
             <h3>Export your database to a .ravendbdump file</h3>
             <div class="row">
-                <div class="col-sm-6">
+                <div class="col-sm-12 col-lg-6">
                     <div class="form-group">
                         <div class="input-group">
                             <div class="input-group-addon">Destination File Name:</div>
@@ -79,7 +79,7 @@
                         <div class="toggle">
                             <input id="toggleConfiguration" type="checkbox" data-bind="checked: includeDatabaseRecord" />
                             <label for="toggleConfiguration" class="margin-right margin-right-sm">Include Configuration and Ongoing Tasks</label>
-                            <button class="btn btn-sm margin-right margin-right-sm" data-bind="enable: includeDatabaseRecord, click: $root.customizeConfigurationClicked">Customize</button>
+                            <button class="btn btn-default btn-sm margin-right margin-right-sm" data-bind="enable: includeDatabaseRecord, click: $root.customizeConfigurationClicked">Customize</button>
                             <small id="js-ongoing-tasks-disabled"><i class="icon-info text-info"></i></small>
                         </div>
                     </div>
@@ -179,8 +179,19 @@
                 </div>
             </div>
             <hr/>
+            <div class="row" data-bind="collapse: model.itemsToWarnAbout">
+                <div class="col-sm-12 col-lg-6">
+                    <div class="bg-warning text-warning padding padding-xs margin-bottom flex-horizontal">
+                        <div class="flex-start"><small><i class="icon-warning"></i></small></div>
+                        <div>
+                            <small>Note: You are exporting <span data-bind="text: model.itemsToWarnAbout"></span> data without including the Documents.</small><br>
+                            <small>The documents data will be needed when importing this exported file to another database.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <button class="btn btn-default" type="button" data-bind="click: showAdvancedOptions.toggle.bind(showAdvancedOptions)">
-                Advanced
+                <span data-bind="text: showAdvancedOptions() ? 'Close ' : ''"></span>Advanced
             </button>
             <button class="btn btn-primary" type="submit" data-bind="disable: isExporting, css: { 'btn-spinner': isExporting() }"><span class="icon-export"></span> <span>Export Database</span></button>
         </form>
