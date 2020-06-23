@@ -270,6 +270,9 @@ class connectedDocuments {
                 return this.crudActionsProvider().fetchCounters(this.searchInput().toLocaleLowerCase(), skip, take); 
             case "timeSeries":
                 return this.crudActionsProvider().fetchTimeSeries(this.searchInput().toLocaleLowerCase(), skip, take);
+                // todo here is the problem
+                // todo: I want to return empty if clone state....
+                
             default: return connectedDocuments.emptyDocResult<connectedDocumentItem | attachmentItem | counterItem | timeSeriesItem>();
         }
     }

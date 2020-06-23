@@ -1391,7 +1391,7 @@ class normalCrudActions implements editDocumentCrudActions {
 class clonedDocumentCrudActions implements editDocumentCrudActions {
     counters = ko.observableArray<counterItem>();
     attachments = ko.observableArray<attachmentItem>();
-    timeSeries = ko.observableArray<timeSeriesItem>();
+    timeSeries = ko.observableArray<timeSeriesItem>([]);
     
     attachmentsCount: KnockoutComputed<number>;
     countersCount: KnockoutComputed<number>;
@@ -1499,8 +1499,9 @@ class clonedDocumentCrudActions implements editDocumentCrudActions {
     }
     
     fetchTimeSeries(nameFilter: string, skip: number, take: number): JQueryPromise<pagedResult<timeSeriesItem>> {
-        //TODO:
-        return null;
+        //TODO:        
+        // return null; // here ???
+        return connectedDocuments.emptyDocResult<timeSeriesItem>(); // this works...
     }
 
     fetchRevisionsCount(docId: string, db: database): void {
