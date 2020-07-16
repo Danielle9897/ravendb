@@ -21,6 +21,7 @@ import queryUtil = require("common/queryUtil");
 import queryCriteria = require("models/database/query/queryCriteria");
 import recentQueriesStorage = require("common/storage/savedQueriesStorage");
 import popoverUtils = require("common/popoverUtils");
+import getTimeSeriesEntryOffsetCommand = require("commands/database/documents/timeSeries/getTimeSeriesEntryOffsetCommand");
 
 class timeSeriesInfo {
     name = ko.observable<string>();
@@ -58,6 +59,14 @@ class editTimeSeries extends viewModelBase {
         
     namedValuesCache: {[key: string]: Record<string, string[]>} = {};
 
+    timestampToGoTo = ko.observable<moment.Moment>();
+    timestampToGoToFormattedAsUtc: KnockoutComputed<string>;
+    
+    datePickerOptions = {
+        format: "YYYY-MM-DD HH:mm:ss.SSS",
+        sideBySide: true
+    };
+
     private gridController = ko.observable<virtualGridController<Raven.Client.Documents.Session.TimeSeries.TimeSeriesEntry>>();
     private columnPreview = new columnPreviewPlugin<Raven.Client.Documents.Session.TimeSeries.TimeSeriesEntry>();
     
@@ -69,7 +78,7 @@ class editTimeSeries extends viewModelBase {
     constructor() {
         super();
         
-        this.bindToCurrentInstance("changeCurrentSeries", "createTimeSeries", "deleteTimeSeries", "plotTimeSeries", "plotGroupedTimeSeries");
+        this.bindToCurrentInstance("changeCurrentSeries", "createTimeSeries", "deleteTimeSeries", "plotTimeSeries", "plotGroupedTimeSeries", "goToTimestamp");
         
         this.initObservables();
         datePickerBindingHandler.install();
@@ -517,6 +526,18 @@ class editTimeSeries extends viewModelBase {
             const tsInfo = this.getSeriesFromList(this.timeSeriesName());
             return tsInfo ? tsInfo.nameAndNumberFormatted() : "<creating new>";
         });
+
+        this.timestampToGoToFormattedAsUtc = ko.pureComputed(() => {
+            if (this.timestampToGoTo()) {
+                const date = moment(this.timestampToGoTo());
+                if (!date.isValid()) {
+                    return "";
+                }
+                return date.utc().format(editTimeSeriesEntry.utcTimeFormat) + "Z (UTC)";
+            } else {
+                return "";
+            }
+        });
     }
 
     plotTimeSeries() {
@@ -546,6 +567,17 @@ class editTimeSeries extends viewModelBase {
         this.navigate(queryUrl);
     }
 
+    goToTimestamp() {
+        if (this.timestampToGoTo() && this.timestampToGoTo().isValid()) {
+            const goToTime = this.timestampToGoTo().utc().format(generalUtils.utcFullDateFormat);
+            new getTimeSeriesEntryOffsetCommand(this.documentId(), this.timeSeriesName(), this.activeDatabase(), goToTime)
+                .execute()
+                .done(result => {
+                    this.gridController().scrollIntoView(result.TotalEntriesCount, result.EntryOffset, true);
+                });
+        }
+    }
+    
     private urlForTimeSeriesPolicies() {
         return appUrl.forTimeSeries(this.activeDatabase());
     }

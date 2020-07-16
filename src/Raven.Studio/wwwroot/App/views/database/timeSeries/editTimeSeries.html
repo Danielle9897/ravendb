@@ -103,6 +103,22 @@
                     </li>
                 </ul>
             </div>
+            <div class="btn-group margin-left margin-left-sm" data-bind="validationElement: timestampToGoTo" id="goToTimestamp">
+                <div  class="flex-horizontal" title="Scroll to the entry that is closest to this time">
+                    <input type="text" class="form-control" placeholder="Enter time to go to (Local)"
+                           data-bind="datePicker: timestampToGoTo, datepickerOptions: datePickerOptions" />
+                    <button class="btn btn-default text-left" data-bind="click: goToTimestamp, visible: timestampToGoToFormattedAsUtc" id="goButtonUtc">
+                        <i class="icon-arrow-filled-right"></i>
+                        <span data-bind="text: 'Go to:'" class="margin-right margin-right-sm"></span>
+                        <span data-bind="text: timestampToGoToFormattedAsUtc()"></span>
+                    </button>
+                    <button class="btn btn-default text-left" data-bind="click: goToTimestamp, visible: !timestampToGoToFormattedAsUtc()" disabled id="goButton">
+                        <i class="icon-list"></i>
+                        <span>Go</span>
+                    </button>
+                </div>
+            </div>
+            
         </div>
     </div>
     <div class="flex-grow utc-info-container">

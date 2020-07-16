@@ -455,7 +455,6 @@ namespace Raven.Server.Web.System
                     continue;
                 }
 
-
                 foreach (var ext in FileExtensionToContentTypeMapping.Keys)
                 {
                     foreach (var file in files)

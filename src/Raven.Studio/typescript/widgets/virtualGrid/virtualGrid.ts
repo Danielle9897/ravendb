@@ -95,7 +95,8 @@ class virtualGrid<T> {
             markColumnsDirty: () => this.markColumnsDirty(),
             resultEtag: () => this.previousResultsEtag(),
             scrollDown: () => this.scrollDown(),
-            setDefaultSortBy: (columnIndex, mode) => this.setDefaultSortBy(columnIndex, mode)
+            setDefaultSortBy: (columnIndex, mode) => this.setDefaultSortBy(columnIndex, mode),
+            scrollIntoView: (totalEntriesCount: number, entryOffset: number, withBlink: boolean = true) => this.scrollIntoView(totalEntriesCount, entryOffset, withBlink)
         }
     }
 
@@ -396,6 +397,26 @@ class virtualGrid<T> {
             element.scrollTop = element.scrollHeight;
         }
     }
+   
+    scrollIntoView(totalEntriesCount: number, entryOffset: number, withBlink: boolean) {
+        // scroll to location
+        const offsetRatio = totalEntriesCount / entryOffset;
+        const location = this.virtualHeight() / offsetRatio;
+        this.$viewportElement.scrollTop(location);
+        this.render();
+        
+        // find item
+        const item = this.findItem((item, idx) => idx === entryOffset)
+        const virtualItem = this.virtualRows.find(row => row.data === item);
+        
+        // blink item
+        if (withBlink) {
+            virtualItem.element.addClass("blink-style");
+            setTimeout(() => {
+                virtualItem.element.removeClass("blink-style");
+            }, 500);
+        }
+    }
 
     private checkGridVisibility(): boolean {
         // If we've already determined the grid is visible, roll with that.
@@ -625,7 +646,7 @@ class virtualGrid<T> {
             if (actionValue) {
                 this.handleAction(actionValue, this.findRowForCell($target), e);
             } else if ($target.hasClass("checked-column-header")) {
-                // If we clicked the the checked column header, toggle select all.
+                // If we clicked the checked column header, toggle select all.
                 this.handleSelectAllClicked();
             } else if ($target.hasClass("checked-cell-input")) {
                 // If we clicked a checked cell, toggle its selected state.

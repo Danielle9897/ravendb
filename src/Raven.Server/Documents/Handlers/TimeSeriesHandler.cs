@@ -118,6 +118,41 @@ namespace Raven.Server.Documents.Handlers
             return Task.CompletedTask;
         }
 
+        public class OffsetResult: IDynamicJson
+        {
+            public int TotalEntriesCount { get; set; }
+            public int EntryOffset { get; set; }
+            
+            public DynamicJsonValue ToJson()
+            {
+                return new DynamicJsonValue
+                {
+                    [nameof(TotalEntriesCount)] = TotalEntriesCount,
+                    [nameof(EntryOffset)] = EntryOffset,
+                };
+            }
+        }
+        
+        [RavenAction("/databases/*/timeseries/offset", "GET", AuthorizationStatus.ValidUser)]
+        public Task GetTimestampOffset()
+        {
+            var documentId = GetStringQueryString("docId");
+            var timeSeriesName = GetStringValuesQueryString("name");
+            var timestamp = GetStringValuesQueryString("timestamp");
+            
+            // TODO ....
+            
+            using (ContextPool.AllocateOperationContext(out DocumentsOperationContext context))
+            using (var writer = new BlittableJsonTextWriter(context, ResponseBodyStream()))
+            {
+               // TODO ....
+               var offsetResult = new OffsetResult() { TotalEntriesCount = 120, EntryOffset = 100 }; 
+               context.Write(writer, offsetResult.ToJson());
+            }
+
+            return Task.CompletedTask;
+        }
+
         [RavenAction("/databases/*/timeseries/ranges", "GET", AuthorizationStatus.ValidUser)]
         public async Task ReadRanges()
         {

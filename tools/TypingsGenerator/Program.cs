@@ -491,6 +491,7 @@ namespace TypingsGenerator
             scripter.AddType(typeof(TimeSeriesOperation.AppendOperation));
             scripter.AddType(typeof(TimeSeriesOperation.DeleteOperation));
             scripter.AddType(typeof(TimeSeriesConfiguration));
+            scripter.AddType(typeof(TimeSeriesHandler.OffsetResult));
             
             // studio configuration
             scripter.AddType(typeof(ServerWideStudioConfiguration));
