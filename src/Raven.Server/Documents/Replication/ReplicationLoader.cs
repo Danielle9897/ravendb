@@ -309,7 +309,7 @@ namespace Raven.Server.Documents.Replication
                                     "Incoming filtered replication is not supported on legacy replication hub. Make sure that there are no inline certificates on the replication hub: " +
                                     pullReplicationDefinition.Name);
 
-                            incomingPaths = DetailedReplicationHubAccess.Preferred(header.ReplicationHubAccess.Incoming, header.ReplicationHubAccess.Outgoing);
+                            incomingPaths = DetailedReplicationHubAccess.Preferred(header.ReplicationHubAccess.AllowedWritePaths, header.ReplicationHubAccess.AllowedReadPaths);
 
                             // same as normal incoming replication, just using the filtering
                             break;
@@ -355,7 +355,7 @@ namespace Raven.Server.Documents.Replication
             {
                 // Note that if the certificate isn't registered *specifically* in the pull replication, we don't do 
                 // any filtering. That means that the certificate has global access to the database, so there is not point
-                outgoingReplication.MyOutgoingPaths = DetailedReplicationHubAccess.Preferred(header.ReplicationHubAccess.Outgoing, header.ReplicationHubAccess.Incoming);
+                outgoingReplication.MyOutgoingPaths = DetailedReplicationHubAccess.Preferred(header.ReplicationHubAccess.AllowedReadPaths, header.ReplicationHubAccess.AllowedWritePaths);
             }
 
             outgoingReplication.Failed += OnOutgoingSendingFailed;
