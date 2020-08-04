@@ -41,7 +41,16 @@ class ongoingTaskPullReplicationSinkEditModel extends ongoingTaskEditModel {
             TaskId: taskId,
             HubDefinitionName: this.hubDefinitionName(),
             CertificatePassword: certificatePassphrase,
-            CertificateWithPrivateKey: certificate
+            CertificateWithPrivateKey: certificate,
+            
+            // the new interface 
+            _hubName: "test",
+            AllowedReadPaths: ["aaa", "bbb"],
+            AllowedWritePaths: ["ccc", "ddd"],
+            Mode: "Incoming",
+            Database: "q2",
+            Disabled: false,
+            Url: "???"
         } as Raven.Client.Documents.Operations.Replication.PullReplicationAsSink;
     }
 
