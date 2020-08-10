@@ -4,38 +4,116 @@
             <button type="button" class="close" data-bind="click: cancel" aria-hidden="true">
                 <i class="icon-cancel"></i>
             </button>
-            <h4 class="modal-title">Generate Pull Replication Certificate</h4>
+            <h4 class="modal-title">Generate Replication Certificate</h4>
         </div>
         <div class="modal-body">
+            <p class="margin-top">
+                This option generates a new certificate for the Replication Hub & Sink tasks.<br>
+                The <strong>Hub task</strong> keeps the public key.<br>
+                The <strong>Sink task</strong> provides the private key when connecting to the Hub.<br>
+            </p>
+            <hr>
             <p>
-                This option allows to generate new certificate for pull replication.
+                Save the private key for the Sink task usage by either one of the following:                                
             </p>
-            <p>
-                After generation process you can either <strong>export certificate</strong> as PFX file, or
-                use <strong>Export Configuration for Sink</strong> to save configuration along with private key 
-                which can be imported on 'Pull Replication' sink side.
+            <ul>
+                <li>
+                    <strong>Export Access Configuration</strong><br>
+                    <small>All your Replication Access configuration (including the certificate)<br>will be downloaded to a JSON file.</small>
+                </li>
+                <li class="margin-top margin-top-sm">
+                    <strong>Download the Generated Certificate</strong><br>
+                    <small>Only the certificate will be downloaded as a PFX file.</small>
+                </li>
+            </ul>
+            <p class="text-info bg-info padding padding-xs margin-right margin-right-lg margin-top margin-top-lg">
+                <small><i class="icon-info"></i><span>Keep these files in a save place. The private key isn't saved on the Hub task.</span></small>
             </p>
-            <p class="text-info">
-                <i class="icon-info"></i> <span>Private key won't be saved on current node.</span>
+            <p class="margin-top">
+                Either one of the above files can be imported when defining a Sink task.
             </p>
-
-            <p>
-                Please provide validity period for generated certificate:
+            <hr>
+            <p class="margin-top margin-top-lg">
+                Please provide validity period for the generated certificate:
             </p>
-            
+<!--            <div class="flex-form">-->
+<!--                <div class="form-group" data-bind="validationElement: validityInYears">-->
+<!--                    <label class="control-label">Validity Period</label>-->
+<!--                    <div class="flex-grow">-->
+<!--                        <input type="number" min="1" class="form-control" data-bind="numericInput: validityInYears" placeholder="Enter number of years" />-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
             <div class="flex-form">
-                <div class="form-group" data-bind="validationElement: validityInYears">
-                    <label class="control-label">Validity in years</label>
-                    <div class="flex-grow">
-                        <input type="text" class="form-control" data-bind="numericInput: validityInYears" />
+                <div class="form-group" data-bind="validationElement: validityInMonths">
+                    <label class="control-label">Validity Period</label>
+                    <div class="input-group btn-block">
+                        <input type="number" min="1" class="form-control" data-bind="numericInput: validityInMonths" placeholder="Enter number of months" />
+                        <div class="input-group-addon">months</div>
                     </div>
                 </div>
             </div>
-            
         </div>
         <div class="modal-footer">
             <button type="button" class="btn btn-default" data-bind="click: cancel">Cancel</button>
-            <button type="button" class="btn btn-danger" data-bind="click: generate">Generate</button>
+            <button type="button" class="btn btn-danger" data-bind="click: generate">
+                <i class="icon-magic-wand"></i>
+                <span>Generate New Certificate</span>
+            </button>
         </div>
     </div>
 </div>
+
+
+<!--<div class="modal-dialog" role="document">-->
+<!--    <div class="modal-content" tabindex="-1">-->
+<!--        <div class="modal-header">-->
+<!--            <button type="button" class="close" data-bind="click: cancel" aria-hidden="true">-->
+<!--                <i class="icon-cancel"></i>-->
+<!--            </button>-->
+<!--            <h4 class="modal-title">Generate Replication Certificate</h4>-->
+<!--        </div>-->
+<!--        <div class="modal-body">-->
+<!--            <p class="margin-top">-->
+<!--                This option will generate a new certificate for the <i>Replication Hub & Sink</i> tasks.<br>-->
+<!--                -->
+<!--                The public key will be kept in the Hub Task-->
+<!--                The private key will be kept in the Sink Task-->
+<!--                -->
+<!--                When generation process is done, do either one of the following:-->
+<!--            </p>-->
+<!--            <ul>-->
+<!--                <li>-->
+<!--                    <strong>Export Access Configuration</strong><br>-->
+<!--                    <small>All your Replication Access configuration (including the certificate)<br>will be downloaded to a JSON file.</small>-->
+<!--                </li>-->
+<!--                <li class="margin-top margin-top-sm">-->
+<!--                    <strong>Download the Generated Certificate</strong><br>-->
+<!--                    <small>Only the certificate will be downloaded as a PFX file.</small>-->
+<!--                </li>-->
+<!--            </ul>-->
+<!--            <p class="text-info bg-info padding padding-xs margin-right margin-right-lg margin-top margin-top-lg">-->
+<!--                <small><i class="icon-info"></i><span>The private key isn't saved on the RavenDB server.</span></small>-->
+<!--            </p>-->
+<!--            <p class="margin-top">-->
+<!--                Either one of the above can be imported when defining a <i>Replication Sink</i> task.-->
+<!--            </p>-->
+<!--            <hr>-->
+<!--            <p class="margin-top margin-top-lg">-->
+<!--                Please provide validity period for the generated certificate:-->
+<!--            </p>-->
+<!--            <div class="flex-form">-->
+<!--                <div class="form-group" data-bind="validationElement: validityInYears">-->
+<!--                    <label class="control-label">Validity Period (years)</label>-->
+<!--                    <div class="flex-grow">-->
+<!--                        <input type="number" min="1" class="form-control" data-bind="numericInput: validityInYears" placeholder="Enter number of years" />-->
+<!--                    </div>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--        <div class="modal-footer">-->
+<!--            <button type="button" class="btn btn-default" data-bind="click: cancel">Cancel</button>-->
+<!--            <button type="button" class="btn btn-danger" data-bind="click: generate">Generate</button>-->
+<!--        </div>-->
+<!--    </div>-->
+<!--</div>-->

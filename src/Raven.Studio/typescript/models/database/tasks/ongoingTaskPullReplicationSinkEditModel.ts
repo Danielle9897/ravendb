@@ -42,12 +42,12 @@ class ongoingTaskPullReplicationSinkEditModel extends ongoingTaskEditModel {
             HubDefinitionName: this.hubDefinitionName(),
             CertificatePassword: certificatePassphrase,
             CertificateWithPrivateKey: certificate,
-            
+             
             // the new interface 
-            _hubName: "test",
-            AllowedReadPaths: ["aaa", "bbb"],
-            AllowedWritePaths: ["ccc", "ddd"],
-            Mode: "Incoming",
+            HubName: "test",
+            AllowedHubToSinkPaths: ["aaa", "bbb"],
+            AllowedSinkToHubPaths: ["ccc", "ddd"],
+            Mode: "HubToSink",
             Database: "q2",
             Disabled: false,
             Url: "???"

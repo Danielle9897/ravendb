@@ -43,6 +43,8 @@ class connectionStringRavenEtlModel extends connectionStringModel {
             urlsCount,
             urlsAreDirty
         ], false, jsonUtil.newLineNormalizingHashFunction);
+        
+        this.topologyDiscoveryUrls.error();
     }    
 
     update(dto: Raven.Client.Documents.Operations.ETL.RavenConnectionString) {

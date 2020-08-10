@@ -3,19 +3,21 @@ import dialogViewModelBase = require("viewmodels/dialogViewModelBase");
 
 class generatePullReplicationCertificateConfirm extends dialogViewModelBase {
     
-    validityInYears = ko.observable<number>(1);
+    //validityInYears = ko.observable<number>(1);
+    validityInMonths = ko.observable<number>(1);
     
     validationGroup: KnockoutValidationGroup;
     
     constructor() {
         super();
         
-        this.validityInYears.extend({
-            required: true
+        this.validityInMonths.extend({
+            required: true,
+            digit: true
         });
         
         this.validationGroup = ko.validatedObservable({
-            validityInYears: this.validityInYears
+            validityInMonths: this.validityInMonths
         });
     }
     
@@ -25,7 +27,7 @@ class generatePullReplicationCertificateConfirm extends dialogViewModelBase {
 
     generate() {
         if (this.isValid(this.validationGroup)) {
-            dialog.close(this, this.validityInYears());    
+            dialog.close(this, this.validityInMonths());    
         }
     }
 }

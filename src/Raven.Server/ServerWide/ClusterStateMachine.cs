@@ -3488,14 +3488,23 @@ namespace Raven.Server.ServerWide
             {
                 if (pageSize-- < 0)
                     break;
+                
                 var blittable = GetReplicationCertificateAccessObject(context, ref val.Reader);
+                
                 blittable.Modifications = new DynamicJsonValue(blittable)
                 {
-                    ["CertificateThumbprint"] = key.ToString().Substring(prefixString.Length),
+                    // need to pass this to Studio because need to pass this to back to server upon edit->save as server expects class ReplicationHubAccess. 
+                    ["Certificate"] = GetCertificateAsBase64(val),
+                    
+                    ["Thumbprint"] = key.ToString().Substring(prefixString.Length), 
                     ["HubDefinitionName"] = hub,
                     ["Database"] = database
                 };
-                yield return blittable;
+
+
+                var newBlittable = context.ReadObject(blittable, "get blittable from.. todo");
+                yield return newBlittable;
+                //yield return blittable.Clone(context);
             }
         }
         
@@ -3524,12 +3533,19 @@ namespace Raven.Server.ServerWide
                 });
             }
 
-            unsafe string GetCertificateAsBase64(Table.TableValueHolder val)
-            {
-                var buffer = val.Reader.Read((int)ReplicationCertificatesTable.Certificate, out var size);
-                string certBase64 = Convert.ToBase64String(new ReadOnlySpan<byte>(buffer, size));
-                return certBase64;
-            }
+            // unsafe string GetCertificateAsBase64(Table.TableValueHolder val)
+            // {
+            //     var buffer = val.Reader.Read((int)ReplicationCertificatesTable.Certificate, out var size);
+            //     string certBase64 = Convert.ToBase64String(new ReadOnlySpan<byte>(buffer, size));
+            //     return certBase64;
+            // }
+        }
+        
+        unsafe string GetCertificateAsBase64(Table.TableValueHolder val)
+        {
+            var buffer = val.Reader.Read((int)ReplicationCertificatesTable.Certificate, out var size);
+            string certBase64 = Convert.ToBase64String(new ReadOnlySpan<byte>(buffer, size));
+            return certBase64;
         }
 
         unsafe BlittableJsonReaderObject GetReplicationCertificateAccessObject(TransactionOperationContext context, ref TableValueReader reader)

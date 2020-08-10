@@ -22,6 +22,8 @@ namespace Raven.Client.Documents.Operations.Replication
         public string Name;
         public long TaskId;
 
+        public bool FilteringIsRequired;
+
         public PullReplicationDefinition() { }
 
         public PullReplicationDefinition(string name, TimeSpan delay = default, string mentor = null)
@@ -41,7 +43,8 @@ namespace Raven.Client.Documents.Operations.Replication
                 [nameof(Disabled)] = Disabled,
                 [nameof(MentorNode)] = MentorNode,
                 [nameof(DelayReplicationFor)] = DelayReplicationFor,
-                [nameof(Mode)] = Mode
+                [nameof(Mode)] = Mode,
+                [nameof(FilteringIsRequired)] = FilteringIsRequired
             };
         }
 

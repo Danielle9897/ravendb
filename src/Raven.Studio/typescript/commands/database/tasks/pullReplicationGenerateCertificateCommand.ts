@@ -4,13 +4,13 @@ import endpoints = require("endpoints");
 
 class pullReplicationGenerateCertificateCommand extends commandBase {
 
-    constructor(private db: database, private expirationInYears: number) {
+    constructor(private db: database, private expirationInMonths: number) {
         super();
     }
 
     execute(): JQueryPromise<Raven.Server.Documents.Handlers.PullReplicationHandler.PullReplicationCertificate> {
         const args = {
-            validYears: this.expirationInYears
+            validMonths: this.expirationInMonths
         };
         
         const url = endpoints.databases.pullReplication.adminPullReplicationGenerateCertificate + this.urlEncodeArgs(args);

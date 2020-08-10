@@ -24,7 +24,7 @@ import etlScriptDefinitionCache = require("models/database/stats/etlScriptDefini
 import ongoingTaskPullReplicationSinkListModel = require("models/database/tasks/ongoingTaskPullReplicationSinkListModel");
 import accessManager = require("common/shell/accessManager");
 
-type TasksNamesInUI = "External Replication" | "RavenDB ETL" | "SQL ETL" | "Backup" | "Subscription" | "Pull Replication Hub" | "Pull Replication Sink";
+type TasksNamesInUI = "External Replication" | "RavenDB ETL" | "SQL ETL" | "Backup" | "Subscription" | "Replication Hub" | "Replication Sink";
 
 class ongoingTasks extends viewModelBase {
     
@@ -53,7 +53,7 @@ class ongoingTasks extends viewModelBase {
     showBackupSection = this.createShowSectionComputed(this.backupTasks, 'Backup');
     showSubscriptionsSection = this.createShowSectionComputed(this.subscriptionTasks, 'Subscription');
     showPullReplicationHubSection = this.createShowSectionComputedForPullHub(this.pullReplicationHubTasks);
-    showPullReplicationSinkSection = this.createShowSectionComputed(this.pullReplicationSinkTasks, "Pull Replication Sink");
+    showPullReplicationSinkSection = this.createShowSectionComputed(this.pullReplicationSinkTasks, "Replication Sink");
 
     tasksTypesOrderForUI = ["Replication", "RavenEtl", "SqlEtl", "Backup", "Subscription", "PullReplicationAsHub", "PullReplicationAsSink"] as Array<Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskType>;
     existingTaskTypes = ko.observableArray<TasksNamesInUI | "All tasks">();    
@@ -180,7 +180,7 @@ class ongoingTasks extends viewModelBase {
     private createShowSectionComputedForPullHub(tasksContainer: KnockoutObservableArray<ongoingTaskPullReplicationHubDefinitionListModel>) {
         return ko.pureComputed(() =>  {
             const hasAnyTask = tasksContainer().length > 0;
-            const matchesSelectTaskType = this.selectedTaskType() === "Pull Replication Hub" || this.selectedTaskType() === "All tasks";
+            const matchesSelectTaskType = this.selectedTaskType() === "Replication Hub" || this.selectedTaskType() === "All tasks";
 
             let nodeMatch = true;
             if (this.selectedNode() !== "All nodes") {
@@ -360,9 +360,9 @@ class ongoingTasks extends viewModelBase {
                     case "SqlEtl":
                         return "SQL ETL" as TasksNamesInUI;
                     case "PullReplicationAsHub":
-                        return "Pull Replication Hub" as TasksNamesInUI;
+                        return "Replication Hub" as TasksNamesInUI;
                     case "PullReplicationAsSink":
-                        return "Pull Replication Sink" as TasksNamesInUI;
+                        return "Replication Sink" as TasksNamesInUI;
                     default:
                         return taskType;
                 }

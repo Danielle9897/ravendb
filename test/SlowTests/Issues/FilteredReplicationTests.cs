@@ -16,6 +16,7 @@ using Tests.Infrastructure;
 using Xunit;
 using Xunit.Abstractions;
 
+
 namespace SlowTests.Issues
 {
     public class FilteredReplicationTests : ClusterTestBase
@@ -98,6 +99,7 @@ namespace SlowTests.Issues
             await storeA.Maintenance.SendAsync(new PutPullReplicationAsHubOperation(new PullReplicationDefinition
             {
                 Name = "pull",
+                FilteringIsRequired = true
             }));
             await storeA.Maintenance.SendAsync(new RegisterReplicationHubAccessOperation("pull",
                 new ReplicationHubAccess
@@ -149,6 +151,7 @@ namespace SlowTests.Issues
         {
             [TimeSeriesValue(0)] public double HeartRate;
         }
+        
         [Fact]
         public async Task Can_pull_via_filtered_replication()
         {
@@ -221,6 +224,7 @@ namespace SlowTests.Issues
             {
                 Name = "pull",
                 Mode = PullReplicationMode.SinkToHub | PullReplicationMode.HubToSink,
+                FilteringIsRequired = true
             }));
             
             await storeA.Maintenance.SendAsync(new RegisterReplicationHubAccessOperation("pull", new ReplicationHubAccess
@@ -364,6 +368,7 @@ namespace SlowTests.Issues
             {
                 Name = "push",
                 Mode = PullReplicationMode.SinkToHub | PullReplicationMode.HubToSink,
+                FilteringIsRequired = true
             }));
             
             await storeB.Maintenance.SendAsync(new RegisterReplicationHubAccessOperation("push", new ReplicationHubAccess
@@ -435,7 +440,8 @@ namespace SlowTests.Issues
                 Assert.NotNull(await s.Advanced.Attachments.GetAsync("users/ayende", "test.bin"));
             }
         }
-         [Fact]
+        
+        [Fact]
         public async Task Can_pull_and_push_and_filter_at_dest_and_source()
         {
             var certificates = SetupServerAuthentication();
@@ -484,6 +490,7 @@ namespace SlowTests.Issues
             {
                 Name = "both",
                 Mode = PullReplicationMode.SinkToHub | PullReplicationMode.HubToSink,
+                FilteringIsRequired = true
             }));
             
             await storeA.Maintenance.SendAsync(new RegisterReplicationHubAccessOperation("both", new ReplicationHubAccess
@@ -548,7 +555,7 @@ namespace SlowTests.Issues
             }
         }
         
-         [Fact]
+        [Fact]
         public async Task Can_import_export_replication_certs()
         {
             var certificates = SetupServerAuthentication();
@@ -587,6 +594,7 @@ namespace SlowTests.Issues
             {
                 Name = "both",
                 Mode = PullReplicationMode.SinkToHub | PullReplicationMode.HubToSink,
+                FilteringIsRequired = true
             }));
             
             await storeA.Maintenance.SendAsync(new RegisterReplicationHubAccessOperation("both", new ReplicationHubAccess
@@ -616,6 +624,75 @@ namespace SlowTests.Issues
             accessResult = await storeB.Maintenance.SendAsync(new GetReplicationHubAccessOperation("both"));
             Assert.NotEmpty(accessResult.Results);
             Assert.Equal("Arava", accessResult.Results[0].Name);
+        }
+        
+        [Fact]
+        public async Task Cannot_use_access_paths_if_filtering_is_not_set()
+        {
+            var certificates = SetupServerAuthentication();
+            var dbNameA = GetDatabaseName();
+            var adminCert = RegisterClientCertificate(certificates.ServerCertificate.Value, certificates
+                .ClientCertificate1.Value, new Dictionary<string, DatabaseAccess>(), SecurityClearance.ClusterAdmin);
+
+            using var storeA = GetDocumentStore(new Options
+            {
+                AdminCertificate = adminCert,
+                ClientCertificate = adminCert,
+                ModifyDatabaseName = s => dbNameA
+            });
+            
+            var pullCert = certificates.ClientCertificate2.Value;
+            await storeA.Maintenance.SendAsync(new PutPullReplicationAsHubOperation(new PullReplicationDefinition
+            {
+                Name = "pull",
+                FilteringIsRequired = false
+            }));
+            
+            var ex = await Assert.ThrowsAsync<RavenException>( async () => 
+                await storeA.Maintenance.SendAsync(new RegisterReplicationHubAccessOperation("pull",
+                    new ReplicationHubAccess
+                    {
+                        Name = "Arava",
+                        CertificateBase64 = Convert.ToBase64String(pullCert.Export(X509ContentType.Cert)),
+                        AllowedHubToSinkPaths = new[] {"users/ayende", "users/ayende/*"}
+                    })
+            ));
+            
+            Assert.Contains("Filtering replication is not set for this Replication Hub task. AllowedSinkToHubPaths and AllowedHubToSinkPaths cannot have a value.",  ex.InnerException.Message);
+        }
+        
+        [Fact]
+        public async Task Must_use_access_paths_if_filtering_is_set()
+        {
+            var certificates = SetupServerAuthentication();
+            var dbNameA = GetDatabaseName();
+            var adminCert = RegisterClientCertificate(certificates.ServerCertificate.Value, certificates
+                .ClientCertificate1.Value, new Dictionary<string, DatabaseAccess>(), SecurityClearance.ClusterAdmin);
+
+            using var storeA = GetDocumentStore(new Options
+            {
+                AdminCertificate = adminCert,
+                ClientCertificate = adminCert,
+                ModifyDatabaseName = s => dbNameA
+            });
+            
+            var pullCert = certificates.ClientCertificate2.Value;
+            await storeA.Maintenance.SendAsync(new PutPullReplicationAsHubOperation(new PullReplicationDefinition
+            {
+                Name = "pull",
+                FilteringIsRequired = true
+            }));
+            
+            var ex = await Assert.ThrowsAsync<RavenException>( async () => 
+                await storeA.Maintenance.SendAsync(new RegisterReplicationHubAccessOperation("pull",
+                    new ReplicationHubAccess
+                    {
+                        Name = "Arava",
+                        CertificateBase64 = Convert.ToBase64String(pullCert.Export(X509ContentType.Cert))
+                    })
+                ));
+            
+            Assert.Contains("Either AllowedSinkToHubPaths or AllowedHubToSinkPaths must have a value, but both were null or empty",  ex.InnerException.Message);
         }
     }
 }

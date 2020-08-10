@@ -1,14 +1,15 @@
 ﻿/// <reference path="../../../../typings/tsd.d.ts"/>
-
 import certificateUtils = require("common/certificateUtils");
 
 class pullReplicationCertificate {
     
     publicKey = ko.observable<string>();
     thumbprint = ko.observable<string>();
+    
     expirationText = ko.observable<string>();
     expirationIcon = ko.observable<string>();
     expirationClass = ko.observable<string>();
+    
     validFromText = ko.observable<string>();
 
     certificate = ko.observable<string>();
@@ -20,7 +21,7 @@ class pullReplicationCertificate {
         this.certificatePassphrase(password);
         
         const certInfo = certificateUtils.extractCertificateInfo(publicKey);
-        this.thumbprint(certInfo.thumbprint);
+        this.thumbprint(certInfo.thumbprint); // why ? don't I get from server ?
 
         const expirationMoment = moment.utc(certInfo.expiration);
         const dateFormatted = expirationMoment.format("YYYY-MM-DD");
@@ -48,7 +49,6 @@ class pullReplicationCertificate {
         const publicKey = certificateUtils.extractCertificateFromPkcs12(base64EncodedCertificate, password);
         return new pullReplicationCertificate(publicKey, base64EncodedCertificate, password);
     }
-    
 }
 
 export = pullReplicationCertificate;

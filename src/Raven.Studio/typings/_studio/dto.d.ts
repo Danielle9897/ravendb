@@ -647,12 +647,23 @@ type etlScriptDefinitionCacheItem = {
 type addressType = "ipv4" | "ipv6" | "hostname" | "invalid";
 type timeMagnitude = "minutes" | "hours" | "days";
 
+
 interface pullReplicationExportFileFormat {
-    Database: string;
-    Certificate?: string;
-    HubDefinitionName: string;
+    Database: string;   
+    HubTaskName: string;
     TopologyUrls: Array<string>;
+    AccessName: string,
+    Certificate: string
+    HubToSinkPrefixes: Array<string>,
+    SinkToHubPrefixes: Array<string>
+    
 }
+// interface pullReplicationExportFileFormat {
+//     Database: string;
+//     Certificate?: string;
+//     HubDefinitionName: string;
+//     TopologyUrls: Array<string>;
+// }
 
 interface certificateInfo {
     thumbprint: string;

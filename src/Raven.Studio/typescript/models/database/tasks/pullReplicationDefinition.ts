@@ -1,6 +1,6 @@
 ﻿/// <reference path="../../../../typings/tsd.d.ts"/>
 import generalUtils = require("common/generalUtils");
-import pullReplicationCertificate = require("models/database/tasks/pullReplicationCertificate");
+import replicationAccessModel = require("models/database/tasks/replicationAccessModel");
 
 class pullReplicationDefinition {
 
@@ -9,26 +9,29 @@ class pullReplicationDefinition {
     taskType = ko.observable<Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskType>();
     responsibleNode = ko.observable<Raven.Client.ServerWide.Operations.NodeId>();
     
-    manualChooseMentor = ko.observable<boolean>(false);
+    manualChooseMentor = ko.observable<boolean>();
     mentorNode = ko.observable<string>();
     nodeTag: string = null;
     
     delayReplicationTime = ko.observable<number>();
-    showDelayReplication = ko.observable<boolean>(false);
+    showDelayReplication = ko.observable<boolean>();
     humaneDelayDescription: KnockoutComputed<string>;
     
-    certificates = ko.observableArray<pullReplicationCertificate>([]);
+    allowReplicationFromHubToSink = ko.observable<boolean>(true);
+    allowReplicationFromSinkToHub = ko.observable<boolean>();
+    replicationMode: KnockoutComputed<Raven.Client.Documents.Operations.Replication.PullReplicationMode>;
+        
+    filteringIsRequired = ko.observable<boolean>();
+    
+    replicationAccessItems = ko.observableArray<replicationAccessModel>([]);
+    
+    validationGroupForSave: KnockoutValidationGroup;
+    validationGroupForExport: KnockoutValidationGroup;
 
-    certificateGenerated: KnockoutComputed<boolean>;
-    certificateExported = ko.observable<boolean>(false);
-     
-    validationGroup: KnockoutValidationGroup;
-    exportValidationGroup: KnockoutValidationGroup;
-
-    constructor(dto: Raven.Client.Documents.Operations.Replication.PullReplicationDefinition, requiresCertificates: boolean) {
+    constructor(dto: Raven.Client.Documents.Operations.Replication.PullReplicationDefinition) {
         this.update(dto); 
         this.initializeObservables();
-        this.initValidation(requiresCertificates);
+        this.initValidation();
     }
 
     initializeObservables() {
@@ -37,12 +40,16 @@ class pullReplicationDefinition {
             return this.showDelayReplication() && this.delayReplicationTime.isValid() && this.delayReplicationTime() !== 0 ?
                 `Documents will be replicated after a delay time of <strong>${delayTimeHumane}</strong>` : "";
         });
+        
+        this.replicationMode = ko.pureComputed(() => {
+            
+            if (this.allowReplicationFromHubToSink() && this.allowReplicationFromSinkToHub()) {
+                return "HubToSink,SinkToHub" as Raven.Client.Documents.Operations.Replication.PullReplicationMode;
+            }
 
-        this.certificateGenerated = ko.pureComputed(() => {
-            return _.some(this.certificates(), x => !!x.certificate());
-        });
-        
-        
+            return (this.allowReplicationFromHubToSink()) ? "HubToSink" :
+                    this.allowReplicationFromSinkToHub() ? "SinkToHub" : "None";
+        })
     }
     
     update(dto: Raven.Client.Documents.Operations.Replication.PullReplicationDefinition) {
@@ -56,32 +63,24 @@ class pullReplicationDefinition {
         this.showDelayReplication(dto.DelayReplicationFor != null && delayTime !== 0);
         this.delayReplicationTime(dto.DelayReplicationFor ? delayTime : null);
         
-        if (dto.Certificates) {
-            this.certificates(_.map(dto.Certificates, value => new pullReplicationCertificate(value)));
-        }
+        this.allowReplicationFromHubToSink(dto.Mode.includes("HubToSink"));
+        this.allowReplicationFromSinkToHub(dto.Mode.includes("SinkToHub"));
+        
+        this.filteringIsRequired(dto.FilteringIsRequired);
     }
 
-    toDto(taskId: number): Raven.Client.Documents.Operations.Replication.PullReplicationDefinition { 
-        const certificates = {} as dictionary<string>;
-        this.certificates().forEach(cert => {
-            certificates[cert.thumbprint()] = cert.publicKey();
-        });
-        
+    toDto(taskId: number): Raven.Client.Documents.Operations.Replication.PullReplicationDefinition {
         return {
             Name: this.taskName(),
             MentorNode: this.manualChooseMentor() ? this.mentorNode() : undefined,
             TaskId: taskId,
             DelayReplicationFor: this.showDelayReplication() ? generalUtils.formatAsTimeSpan(this.delayReplicationTime() * 1000) : null,
-            Certificates: certificates
+            Mode: this.replicationMode(),
+            FilteringIsRequired: this.filteringIsRequired()
         } as Raven.Client.Documents.Operations.Replication.PullReplicationDefinition;
     }
-
-    getCertificate() {
-        const certificate = this.certificates().find(x => !!x.certificate());
-        return certificate ? certificate.certificate() : null;
-    }
     
-    initValidation(requiresCertificates: boolean) {
+    initValidation() {
         this.taskName.extend({
             required: true
         });
@@ -99,54 +98,39 @@ class pullReplicationDefinition {
             min: 0
         });
         
-        if (requiresCertificates) {
-            this.certificates.extend({
-                validation: [
-                    {
-                        validator: (cert: Array<pullReplicationCertificate>) => cert.length > 0,
-                        message: "Please define at least one certificate"
-                    }
-                ]
-            });
-
-            this.certificateExported.extend({
-                validation: [
-                    {
-                        validator: (v: boolean) => {
-                            const required = this.certificateGenerated();
-                            return !required || v;
-                        },
-                        message: "Please download or export generated certificate"
-                    }
-                ]
-            });
-        }
+        this.replicationMode.extend({
+            validation: [
+                {
+                    validator: () => this.replicationMode() !== "None",
+                    message: "Please select at least one replication mode"
+                }
+            ]
+        })
         
-        this.validationGroup = ko.validatedObservable({
+        this.validationGroupForSave = ko.validatedObservable({
             taskName: this.taskName,
             mentorNode: this.mentorNode,
             delayReplicationTime: this.delayReplicationTime,
-            certificates: this.certificates,
-            certificateExported: this.certificateExported
+            replicationMode: this.replicationMode
         });
 
-        this.exportValidationGroup = ko.validatedObservable({
+        this.validationGroupForExport = ko.validatedObservable({
             taskName: this.taskName,
             mentorNode: this.mentorNode,
-            delayReplicationTime: this.delayReplicationTime,
-            certificates: this.certificates
+            delayReplicationTime: this.delayReplicationTime
         });
     }
 
     static empty(requiresCertificates: boolean): pullReplicationDefinition {
-        return new pullReplicationDefinition({  
+        return new pullReplicationDefinition({            
             Name: "",
             DelayReplicationFor: null,
-            Certificates: null,
             Disabled: false,
             MentorNode: null,
-            TaskId: null
-        } as Raven.Client.Documents.Operations.Replication.PullReplicationDefinition, requiresCertificates);
+            TaskId: null,
+            FilteringIsRequired: false,
+            Mode: "HubToSink"
+        } as Raven.Client.Documents.Operations.Replication.PullReplicationDefinition);
     }
 }
 

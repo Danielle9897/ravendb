@@ -14,7 +14,7 @@ using Raven.Server.ServerWide.Context;
 using Raven.Server.Utils;
 using Sparrow.Json;
 using Raven.Client.Json.Serialization;
-using Sparrow.Json.Parsing;
+using Raven.Client.ServerWide.Commands;
 
 namespace Raven.Server.Documents.Handlers
 {
@@ -50,7 +50,7 @@ namespace Raven.Server.Documents.Handlers
         [RavenAction("/databases/*/admin/tasks/pull-replication/hub/access", "PUT", AuthorizationStatus.Operator)]
         public async Task RegisterHubAccess()
         {
-            var hub = GetStringQueryString("name", true);
+            var hubTaskName = GetStringQueryString("name", true);
             
             if (ResourceNameValidator.IsValidResourceName(Database.Name, ServerStore.Configuration.Core.DataDirectory.FullPath, out string errorMessage) == false)
                 throw new BadRequestException(errorMessage);
@@ -59,31 +59,42 @@ namespace Raven.Server.Documents.Handlers
             
             using (ServerStore.ContextPool.AllocateOperationContext(out TransactionOperationContext context))
             {
-                var blittableJson = await context.ReadForMemoryAsync(RequestBodyStream(), "register-hub-access");
-                var access = JsonDeserializationClient.ReplicationHubAccess(blittableJson);
-                access.Validate();
-
-                var definition = Database.GetPullReplicationDefinition(hub);
-                if (definition == null)
+                var hubDefinition = Database.GetPullReplicationDefinition(hubTaskName);
+                if (hubDefinition == null)
                 {
                     HttpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
                     return;
                 }
 
-                if (definition.Certificates != null && definition.Certificates.Count > 0)
+                if (hubDefinition.Certificates != null && hubDefinition.Certificates.Count > 0)
                 {
                     // this handles the backward compact aspect
-                    throw new InvalidOperationException("Cannot register hub access to a replication hub that already has inline certificates: " + hub  +
+                    throw new InvalidOperationException("Cannot register hub access to a replication hub that already has inline certificates: " + hubTaskName +
                                                         ". Create a new replication hub and try again");
                 }
+                
+                var blittableJson = await context.ReadForMemoryAsync(RequestBodyStream(), "register-hub-access");
+                var access = JsonDeserializationClient.ReplicationHubAccess(blittableJson);
+                access.Validate(hubDefinition.FilteringIsRequired);
 
                 using var cert = new X509Certificate2(Convert.FromBase64String(access.CertificateBase64));
                 var publicKeyPinningHash = cert.GetPublicKeyPinningHash();
 
-                var command = new RegisterReplicationHubAccessCommand(Database.Name, hub, access, publicKeyPinningHash, cert.Thumbprint, GetRaftRequestIdFromQuery(),
+                var command = new RegisterReplicationHubAccessCommand(Database.Name, hubTaskName, access, publicKeyPinningHash, cert.Thumbprint, GetRaftRequestIdFromQuery(),
                     cert.Issuer, cert.Subject,cert.NotBefore, cert.NotAfter);
+                
                 var result = await Server.ServerStore.SendToLeaderAsync(command);
                 await WaitForIndexToBeApplied(context, result.Index);
+                
+                
+                HttpContext.Response.StatusCode = (int)HttpStatusCode.OK;
+                using (var writer = new BlittableJsonTextWriter(context, ResponseBodyStream()))
+                {
+                    writer.WriteStartObject();
+                    writer.WritePropertyName("Task index");
+                    writer.WriteInteger(result.Index);
+                    writer.WriteEndObject();
+                }
             }
         }
 
@@ -103,6 +114,15 @@ namespace Raven.Server.Documents.Handlers
                 var command = new UnregisterReplicationHubAccessCommand(Database.Name, hub, thumbprint, GetRaftRequestIdFromQuery());
                 var result = await Server.ServerStore.SendToLeaderAsync(command);
                 await WaitForIndexToBeApplied(context, result.Index);
+                
+                HttpContext.Response.StatusCode = (int)HttpStatusCode.OK;
+                using (var writer = new BlittableJsonTextWriter(context, ResponseBodyStream()))
+                {
+                    writer.WriteStartObject();
+                    writer.WritePropertyName("Task index");
+                    writer.WriteInteger(result.Index);
+                    writer.WriteEndObject();
+                }
             }
         }
 
@@ -121,9 +141,7 @@ namespace Raven.Server.Documents.Handlers
                 using (var writer = new BlittableJsonTextWriter(context, ResponseBodyStream()))
                 {
                     writer.WriteStartObject();
-
                     writer.WriteArray(nameof(ReplicationHubAccessResult.Results), results);
-              
                     writer.WriteEndObject();
                 }
                 
@@ -166,8 +184,28 @@ namespace Raven.Server.Documents.Handlers
 
             ServerStore.LicenseManager.AssertCanAddPullReplicationAsHub();
 
-            var validYears = GetIntValueQueryString("validYears", required: false) ?? 0; // 0 yr. will set the expiration to 3 months
-            var notAfter = validYears == 0 ? DateTime.UtcNow.AddMonths(3) : DateTime.UtcNow.AddYears(validYears);
+            // var validYears = GetIntValueQueryString("validYears", required: false) ?? 0; // 0 yr. will set the expiration to 3 months
+            // var notAfter = validYears == 0 ? DateTime.UtcNow.AddMonths(3) : DateTime.UtcNow.AddYears(validYears);
+            
+            var validMonths = GetIntValueQueryString("validMonths", required: false) ?? 0;
+            var validYears = GetIntValueQueryString("validYears", required: false) ?? 0;
+
+            if (validMonths > 0 && validYears > 0)
+            {
+                throw new BadRequestException("Please provide validation period in either months or years. Not both.");
+            }
+
+            var notAfter = DateTime.UtcNow.AddMonths(3);
+            if (validMonths > 0)
+            {
+                notAfter = DateTime.UtcNow.AddMonths(validMonths);
+            }
+            if (validYears > 0)
+            {
+                notAfter = DateTime.UtcNow.AddMonths(validYears);
+            }
+
+            //var notAfter = validYears == 0 ? DateTime.UtcNow.AddMonths(3) : DateTime.UtcNow.AddYears(validYears);
 
             var log = new StringBuilder();
             var commonNameValue = "PullReplicationAutogeneratedCertificate";

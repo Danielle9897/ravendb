@@ -1,7 +1,7 @@
 import appUrl = require("common/appUrl");
 import viewModelBase = require("viewmodels/viewModelBase");
 import router = require("plugins/router");
-import savePullReplicationSinkTaskCommand = require("commands/database/tasks/savePullReplicationSinkTaskCommand");
+import saveReplicationSinkTaskCommand = require("commands/database/tasks/saveReplicationSinkTaskCommand");
 import ongoingTaskPullReplicationSinkEditModel = require("models/database/tasks/ongoingTaskPullReplicationSinkEditModel");
 import eventsCollector = require("common/eventsCollector");
 import generalUtils = require("common/generalUtils");
@@ -19,16 +19,19 @@ import fileImporter = require("common/fileImporter");
 class editPullReplicationSinkTask extends viewModelBase {
 
     editedReplication = ko.observable<ongoingTaskPullReplicationSinkEditModel>();
-    isAddingNewTask = ko.observable<boolean>(true);
+    isAddingNewTask = ko.observable<boolean>(true);    
     private taskId: number = null;
     
     possibleMentors = ko.observableArray<string>([]);
     
     ravenEtlConnectionStringsDetails = ko.observableArray<Raven.Client.Documents.Operations.ETL.RavenConnectionString>([]);
-
     connectionStringsUrl = appUrl.forCurrentDatabase().connectionStrings();
-
     testConnectionResult = ko.observable<Raven.Server.Web.System.NodeConnectionTestResult>();
+
+    // not here , on model..
+    allowReplicationFromHubToSink = ko.observable<boolean>(true);
+    allowReplicationFromSinkToHub = ko.observable<boolean>();
+    replicationMode: KnockoutComputed<Raven.Client.Documents.Operations.Replication.PullReplicationMode>;
     
     spinners = { 
         test: ko.observable<boolean>(false),
@@ -71,7 +74,6 @@ class editPullReplicationSinkTask extends viewModelBase {
                 })
                 .fail(() => {
                     deferred.reject();
-                    
                     router.navigate(appUrl.forOngoingTasks(this.activeDatabase()));
                 });
         } else {
@@ -82,7 +84,10 @@ class editPullReplicationSinkTask extends viewModelBase {
         }
 
         return $.when<any>(this.getAllConnectionStrings(), this.loadPossibleMentors(), deferred)
-            .done(() => this.initObservables());
+            .done(() => {
+                this.initObservables(); 
+                this.initValidation();
+            });
     }
     
     private loadPossibleMentors() {
@@ -101,6 +106,18 @@ class editPullReplicationSinkTask extends viewModelBase {
     }
 
     private initObservables() {
+
+        this.replicationMode = ko.pureComputed(() => {
+
+            if (this.allowReplicationFromHubToSink() && this.allowReplicationFromSinkToHub()) {
+                return "HubToSink,SinkToHub" as Raven.Client.Documents.Operations.Replication.PullReplicationMode;
+            }
+
+            return (this.allowReplicationFromHubToSink()) ? "HubToSink" :
+                this.allowReplicationFromSinkToHub() ? "SinkToHub" : "None";
+        })
+        
+        
         if (this.canDefineCertificates) {
             this.importedFileName.extend({
                 validation: [
@@ -157,6 +174,17 @@ class editPullReplicationSinkTask extends viewModelBase {
         const readDebounced = _.debounce(() => this.tryReadCertificate(), 1500);
         
         model.certificatePassphrase.subscribe(() => readDebounced());
+    }
+    
+    private initValidation() {
+        this.replicationMode.extend({
+            validation: [
+                {
+                    validator: () => this.replicationMode() !== "None",
+                    message: "Please select at least one replication mode"
+                }
+            ]
+        })
     }
 
     compositionComplete() {
@@ -224,7 +252,7 @@ class editPullReplicationSinkTask extends viewModelBase {
 
             eventsCollector.default.reportEvent("pull-replication-sink", "save");
             
-            new savePullReplicationSinkTaskCommand(this.activeDatabase(), dto)
+            new saveReplicationSinkTaskCommand(this.activeDatabase(), dto)
                 .execute()
                 .done(() => {
                     this.dirtyFlag().reset();
@@ -270,13 +298,13 @@ class editPullReplicationSinkTask extends viewModelBase {
         try {
             const config = JSON.parse(contents) as pullReplicationExportFileFormat;
             
-            if (!config.Database || !config.HubDefinitionName || !config.TopologyUrls) {
+            if (!config.Database || !config.HubTaskName || !config.TopologyUrls) {
                 messagePublisher.reportError("Invalid configuration format");
                 return;
             }
             
             const model = this.editedReplication();
-            model.hubDefinitionName(config.HubDefinitionName);
+            model.hubDefinitionName(config.HubTaskName);
             
             if (config.Certificate) {
                 model.certificate(pullReplicationCertificate.fromPkcs12(config.Certificate));

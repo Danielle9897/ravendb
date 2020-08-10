@@ -2,7 +2,7 @@ import commandBase = require("commands/commandBase");
 import database = require("models/resources/database");
 import endpoints = require("endpoints");
 
-class savePullReplicationSinkTaskCommand extends commandBase {
+class saveReplicationSinkTaskCommand extends commandBase {
 
     constructor(private db: database, private replicationSettings: Raven.Client.Documents.Operations.Replication.PullReplicationAsSink) {
         super();
@@ -24,5 +24,5 @@ class savePullReplicationSinkTaskCommand extends commandBase {
     }
 }
 
-export = savePullReplicationSinkTaskCommand; 
+export = saveReplicationSinkTaskCommand; 
 
