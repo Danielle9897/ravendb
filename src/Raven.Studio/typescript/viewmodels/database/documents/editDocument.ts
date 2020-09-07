@@ -1,6 +1,5 @@
 import app = require("durandal/app");
 import router = require("plugins/router");
-
 import document = require("models/database/documents/document");
 import documentMetadata = require("models/database/documents/documentMetadata");
 import collection = require("models/database/documents/collection");
@@ -26,14 +25,12 @@ import copyToClipboard = require("common/copyToClipboard");
 import deleteAttachmentCommand = require("commands/database/documents/attachments/deleteAttachmentCommand");
 import setCounterCommand = require("commands/database/documents/counters/setCounterCommand");
 import CountersDetail = Raven.Client.Documents.Operations.Counters.CountersDetail;
-
 import deleteDocuments = require("viewmodels/common/deleteDocuments");
 import viewModelBase = require("viewmodels/viewModelBase");
 import showDataDialog = require("viewmodels/common/showDataDialog");
 import connectedDocuments = require("viewmodels/database/documents/editDocumentConnectedDocuments");
 import getDocumentAtRevisionCommand = require("commands/database/documents/getDocumentAtRevisionCommand");
 import changeVectorUtils = require("common/changeVectorUtils");
-
 import eventsCollector = require("common/eventsCollector");
 import collectionsTracker = require("common/helpers/database/collectionsTracker");
 import database = require("models/resources/database");
@@ -484,9 +481,9 @@ class editDocument extends viewModelBase {
 
         this.canViewTimeSeries = ko.pureComputed(() => {
             // TODO: Bring this back once issue RavenDB-14386 is done
-            // if (this.isClone()) {
-            //     return true;
-            // }
+            if (this.isClone()) {
+                return true;
+            }
             
             return !this.connectedDocuments.isArtificialDocument() && !this.connectedDocuments.isHiloDocument() && !this.isCreatingNewDocument() && !this.isDeleteRevision();
         });
@@ -636,25 +633,43 @@ class editDocument extends viewModelBase {
     }
 
     createClone() {
-        const attachments = this.document().__metadata.attachments() 
+        const attachments = this.document().__metadata.attachments()
             ? this.document().__metadata.attachments().map(x => editDocument.mapToAttachmentItem(this.editedDocId(), x))
             : [];
-        
+
+        const timeSeries = this.normalActionProvider.fetchTimeSeries("", 0, 1024 * 1024).then();
+
         if (this.crudActionsProvider().countersCount() > 0) {
-            // looks like we have at least one counter - download current values before doing clone
+            // looks like we have at least one counter - fetch current values before doing clone // why ??
             this.normalActionProvider.fetchCounters("", 0, 1024 * 1024)
                 .then(counters => {
-                    this.createCloneInternal(attachments, counters.items);
+                    this.createCloneInternal(attachments, counters.items, timeSeries);
                 })
         } else {
-            this.createCloneInternal(attachments, []);
+            this.createCloneInternal(attachments, [], timeSeries);
         }
     }
+    // createClone() {
+    //     const attachments = this.document().__metadata.attachments() 
+    //         ? this.document().__metadata.attachments().map(x => editDocument.mapToAttachmentItem(this.editedDocId(), x))
+    //         : [];
+    //    
+    //     const timeSeries = this.normalActionProvider.fetchTimeSeries("", 0, 1024 * 1024).then();
+    //    
+    //     if (this.crudActionsProvider().countersCount() > 0) {
+    //         // looks like we have at least one counter - fetch current values before doing clone // why ??
+    //         this.normalActionProvider.fetchCounters("", 0, 1024 * 1024)
+    //             .then(counters => {
+    //                 this.createCloneInternal(attachments, counters.items, timeSeries);
+    //             })
+    //     } else {
+    //         this.createCloneInternal(attachments, [], timeSeries);
+    //     }
+    // }
     
-    private createCloneInternal(attachments: attachmentItem[], counters: counterItem[]) {
+    private createCloneInternal(attachments: attachmentItem[], counters: counterItem[], timeseries: timeSeriesItem[]) {
         // Show current document as a new document...
-        this.crudActionsProvider(new clonedDocumentCrudActions(this, this.activeDatabase, 
-            attachments, counters, () => this.connectedDocuments.reload()));
+        this.crudActionsProvider(new clonedDocumentCrudActions(this, this.activeDatabase, attachments, counters, timeseries, () => this.connectedDocuments.reload()));
 
         this.isCreatingNewDocument(true);
         this.isClone(true);
@@ -1427,7 +1442,7 @@ class clonedDocumentCrudActions implements editDocumentCrudActions {
     private changeVector: string;
     private fromRevision: boolean;
     
-    constructor(parentView: editDocument, db: KnockoutObservable<database>, attachments: attachmentItem[], counters: counterItem[], reload: () => void) {
+    constructor(parentView: editDocument, db: KnockoutObservable<database>, attachments: attachmentItem[], counters: counterItem[], timeSeries: timeSeriesItem[], reload: () => void) {
         this.parentView = parentView;
         this.sourceDocumentId = parentView.editedDocId();
         
@@ -1440,6 +1455,7 @@ class clonedDocumentCrudActions implements editDocumentCrudActions {
         
         this.attachments(attachments);
         this.counters(counters);
+        this.timeSeries(timeSeries);
 
         _.bindAll(this, "setCounter");
         
@@ -1524,8 +1540,16 @@ class clonedDocumentCrudActions implements editDocumentCrudActions {
     }
     
     fetchTimeSeries(nameFilter: string, skip: number, take: number): JQueryPromise<pagedResult<timeSeriesItem>> {
-        //TODO:
-        return null;
+        let timeseries: timeSeriesItem[] = this.timeSeries();
+
+        if (nameFilter) {
+            timeseries = timeseries.filter(ts => ts.name.toLocaleLowerCase().includes(nameFilter));
+        }
+
+        return $.Deferred<pagedResult<timeSeriesItem>>().resolve({
+            items: timeseries,
+            totalResultCount: timeseries.length
+        });
     }
 
     fetchRevisionsCount(docId: string, db: database): void {
