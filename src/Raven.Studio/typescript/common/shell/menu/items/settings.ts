@@ -190,6 +190,14 @@ function getSettingsMenuItem(appUrls: computedAppUrls) {
             itemRouteToHighlight: 'databases/tasks/ongoingTasks'
         }),
         new leafMenuItem({
+            route: 'databases/tasks/backups',
+            moduleId: 'viewmodels/database/tasks/backups',
+            title: 'Backups',
+            nav: true,
+            css: 'icon-backup', // todo - rafal - icon ???
+            dynamicHash: appUrls.backupsUrl
+        }),
+        new leafMenuItem({
             route: 'databases/tasks/import*details',
             moduleId: 'viewmodels/database/tasks/importParent',
             title: 'Import Data',
