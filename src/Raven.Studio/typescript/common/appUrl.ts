@@ -26,8 +26,7 @@ class appUrl {
         adminSettingsCluster: ko.pureComputed(() => appUrl.forCluster()),
 
         serverDashboard: ko.pureComputed(() => appUrl.forServerDashboard()),
-        databases: ko.pureComputed(() => appUrl.forDatabases()),
-        backups: ko.pureComputed(() => appUrl.forBackups(appUrl.currentDatabase())),
+        databases: ko.pureComputed(() => appUrl.forDatabases()),        
         manageDatabaseGroup: ko.pureComputed(() => appUrl.forManageDatabaseGroup(appUrl.currentDatabase())),
         clientConfiguration: ko.pureComputed(() => appUrl.forClientConfiguration(appUrl.currentDatabase())),
         studioConfiguration: ko.pureComputed(() => appUrl.forStudioConfiguration(appUrl.currentDatabase())),
@@ -55,6 +54,7 @@ class appUrl {
         migrateRavenDbDatabaseUrl: ko.pureComputed(() => appUrl.forMigrateRavenDbDatabase(appUrl.currentDatabase())),
         migrateDatabaseUrl: ko.pureComputed(() => appUrl.forMigrateDatabase(appUrl.currentDatabase())),
         sampleDataUrl: ko.pureComputed(() => appUrl.forSampleData(appUrl.currentDatabase())),
+        backups: ko.pureComputed(() => appUrl.forBackups(appUrl.currentDatabase())),
         ongoingTasksUrl: ko.pureComputed(() => appUrl.forOngoingTasks(appUrl.currentDatabase())),
         editExternalReplicationTaskUrl: ko.pureComputed(() => appUrl.forEditExternalReplication(appUrl.currentDatabase())),
         editReplicationHubTaskUrl: ko.pureComputed(() => appUrl.forEditReplicationHub(appUrl.currentDatabase())),
@@ -185,13 +185,12 @@ class appUrl {
         return "#admin/settings/editServerWideBackup" + backupNamePart;
     }
 
-    static forDatabases(databaseToCompact?: string): string {
-        const compactPart = databaseToCompact ? "?compact=" + encodeURIComponent(databaseToCompact) : "";
-        return "#databases" + compactPart;
-    }
-
-    static forBackups(db: database | databaseInfo): string {
-        return "#databases/backups?" + appUrl.getEncodedDbPart(db);
+    static forDatabases(databaseToCompact?: string, restore?: boolean): string {
+        const paramPart = databaseToCompact || restore ? "?" : "";
+        const compactPart = databaseToCompact ? "compact=" + encodeURIComponent(databaseToCompact) : "";
+        const andPart = databaseToCompact && restore ? "&" : "";
+        const restorePart = restore ? "restore=true" : "";        
+        return "#databases" + paramPart + compactPart + andPart + restorePart;
     }
 
     static forAbout(): string {
@@ -476,6 +475,10 @@ class appUrl {
         return "#databases/tasks/import/migrate?" + databasePart;
     }
 
+    static forBackups(db: database | databaseInfo): string {
+        return "#databases/tasks/backups?" + appUrl.getEncodedDbPart(db);
+    }
+    
     static forOngoingTasks(db: database | databaseInfo): string {
         const databasePart = appUrl.getEncodedDbPart(db);
         return "#databases/tasks/ongoingTasks?" + databasePart;
@@ -504,6 +507,11 @@ class appUrl {
         const taskPart = taskId ? "&taskId=" + taskId : "";
         return "#databases/tasks/editPeriodicBackupTask?" + databasePart + taskPart;
     }
+    // static forEditPeriodicBackupTask(db: database | databaseInfo, taskId?: number): string {
+    //     const databasePart = appUrl.getEncodedDbPart(db);
+    //     const taskPart = taskId ? "&taskId=" + taskId : "";
+    //     return "#databases/tasks/editPeriodicBackupTask?" + databasePart + taskPart;
+    // }
 
     static forEditSubscription(db: database | databaseInfo, taskId?: number, taskName?: string): string {
         const databasePart = appUrl.getEncodedDbPart(db);

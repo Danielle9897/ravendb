@@ -118,37 +118,44 @@ class editPeriodicBackupTask extends viewModelBase {
     attached() {
         super.attached();
         
-        popoverUtils.longWithHover($("#backup-info"),
+        // popoverUtils.longWithHover($("#backup-info"),
+        popoverUtils.longWithHover($(".backup-info"),
             {
                 content: backupCommonContent.generalBackupInfo
             });
 
-        popoverUtils.longWithHover($("#backup-age-info"),
+        // popoverUtils.longWithHover($("#backup-age-info"),
+        popoverUtils.longWithHover($(".backup-age-info"),
             {
                 content: backupCommonContent.backupAgeInfo
             });
 
-        popoverUtils.longWithHover($("#bucket-info"),
+        // popoverUtils.longWithHover($("#bucket-info"),
+        popoverUtils.longWithHover($(".bucket-info"),
             {
                 content: backupCommonContent.textForPopover("Bucket")
             });
 
-        popoverUtils.longWithHover($("#bucket-gcs-info"),
+        // popoverUtils.longWithHover($("#bucket-gcs-info"),
+        popoverUtils.longWithHover($(".bucket-gcs-info"),
             {
                 content: backupCommonContent.textForPopoverGCS("Bucket")
             });
 
-        popoverUtils.longWithHover($("#storage-container-info"),
+        // popoverUtils.longWithHover($("#storage-container-info"),
+        popoverUtils.longWithHover($(".storage-container-info"),
             {
                 content: backupCommonContent.textForPopover("Storage container")
             });
 
-        popoverUtils.longWithHover($("#vault-info"),
+        // popoverUtils.longWithHover($("#vault-info"),
+        popoverUtils.longWithHover($(".vault-info"),
             {
                 content: backupCommonContent.textForPopover("Vault")
             });
 
-        popoverUtils.longWithHover($("#ftp-host-info"),
+        // popoverUtils.longWithHover($("#ftp-host-info"),
+        popoverUtils.longWithHover($(".ftp-host-info"),
             {
                 content: backupCommonContent.ftpHostInfo
             });
@@ -169,11 +176,15 @@ class editPeriodicBackupTask extends viewModelBase {
 
         eventsCollector.default.reportEvent("periodic-backup", "save");
         
+        // todo go to different ep if manual...but it has to be like when clicking backup now in details... check...
+        // ok it is not save in the ecit view, it is backup now button .....
+        
         new savePeriodicBackupConfigurationCommand(this.activeDatabase(), dto)
             .execute()
             .done(() => {
                 this.dirtyFlag().reset();
-                this.goToOngoingTasksView();
+                //this.goToOngoingTasksView();
+                this.goToBackupsView();
             });
     }
 
@@ -194,12 +205,16 @@ class editPeriodicBackupTask extends viewModelBase {
     }
 
     cancelOperation() {
-        this.goToOngoingTasksView();
+        // this.goToOngoingTasksView();
+        this.goToBackupsView();
     }
 
-    private goToOngoingTasksView() {
-        router.navigate(appUrl.forOngoingTasks(this.activeDatabase()));
+    private goToBackupsView() {
+        router.navigate(appUrl.forBackups(this.activeDatabase()));
     }
+    // private goToOngoingTasksView() {
+    //     router.navigate(appUrl.forOngoingTasks(this.activeDatabase()));
+    // }
 
     private validate(): boolean {
         let valid = true;

@@ -2,6 +2,8 @@ using System;
 using Raven.Client.ServerWide;
 using Sparrow.Json.Parsing;
 
+// this is what I get back from GET
+
 namespace Raven.Client.Documents.Operations.Backups
 {
     public class PeriodicBackupStatus : IDatabaseTaskStatus

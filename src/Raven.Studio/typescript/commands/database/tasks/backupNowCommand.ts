@@ -2,6 +2,8 @@ import commandBase = require("commands/commandBase");
 import database = require("models/resources/database");
 import endpoints = require("endpoints");
 
+// this is a backup now for a periodic - todo - rename to backupNowPeriodic ?
+
 class backupNowCommand extends commandBase {
     constructor(private db: database, private taskId: number, private isFullBackup: boolean, private taskName: string) {
         super();

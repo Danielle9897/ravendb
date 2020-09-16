@@ -9,7 +9,7 @@
     </div>
     <div class="panel">
         <div class="padding">
-            <h3 data-bind="text: $parent.isAddingNewBackupTask() ? `New Backup` : `Edit Backup`"></h3>
+            <h3 data-bind="text: $parent.isAddingNewBackupTask() ? `New Periodic Backup` : `Edit Periodic Backup`"></h3>
             <div class="row margin-bottom" data-bind="validationElement: name">
                 <label class="control-label col-sm-4 col-lg-2">Task Name</label>
                 <div class="col-sm-4">
@@ -17,7 +17,8 @@
                 </div>
             </div>
             <div class="row margin-bottom" data-bind="validationElement: backupType">
-                <label class="control-label col-sm-4 col-lg-2">Backup Type <i class="required"></i> <small><i id="backup-info" class="icon-info text-info"></i></small></label>
+<!--                <label class="control-label col-sm-4 col-lg-2">Backup Type <i class="required"></i> <small><i id="backup-info" class="icon-info text-info"></i></small></label>-->
+                <label class="control-label col-sm-4 col-lg-2">Backup Type <i class="required"></i> <small><i class="backup-info icon-info text-info"></i></small></label>
                 <div class="col-sm-4" data-bind="validationOptions: { insertMessages: false }">
                     <div class="dropdown btn-block">
                         <button class="btn btn-block dropdown-toggle text-left" type="button" data-toggle="dropdown">
@@ -111,7 +112,7 @@
                 <div class="col-sm-8 col-lg-6 margin-top margin-bottom">
                     <div class="row" data-bind="validationElement: minimumBackupAgeToKeep">
                         <label class="control-label col-xs-12 col-sm-6 col-lg-4">
-                            Minimum retention time <small><i id="backup-age-info" class="icon-info text-info"></i></small>
+                            Minimum retention time <small><i class="backup-age-info icon-info text-info"></i></small>
                         </label>
                         <div class="col-xs-12 col-sm-6 col-lg-8">
                             <input type="text" class="form-control" data-bind="durationPicker: minimumBackupAgeToKeep, durationPickerOptions: { showDays: true }" />

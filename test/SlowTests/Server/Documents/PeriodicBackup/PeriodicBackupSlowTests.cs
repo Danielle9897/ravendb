@@ -1946,7 +1946,7 @@ namespace SlowTests.Server.Documents.PeriodicBackup
         }
 
         [Theory]
-        [InlineData(BackupType.Snapshot)]
+        // [InlineData(BackupType.Snapshot)]
         [InlineData(BackupType.Backup)]
         public async Task CanCreateOneTimeBackupAndRestore(BackupType backupType)
         {
@@ -1970,7 +1970,7 @@ namespace SlowTests.Server.Documents.PeriodicBackup
                     }
                 };
 
-                var operation = await store.Maintenance.SendAsync(new BackupOperation(config));
+                var operation = await store.Maintenance.SendAsync(new BackupOperation(config)); // one time
                 var backupResult = (BackupResult)await operation.WaitForCompletionAsync(TimeSpan.FromSeconds(15));
                 Assert.True(backupResult.Documents.Processed);
                 Assert.True(backupResult.CompareExchange.Processed);
@@ -2001,6 +2001,9 @@ namespace SlowTests.Server.Documents.PeriodicBackup
                 var databaseName = $"restored_database-{Guid.NewGuid()}";
                 var backupLocation = Directory.GetDirectories(backupPath).First();
 
+                
+                WaitForUserToContinueTheTest(store);
+                
                 using (ReadOnly(backupLocation))
                 using (RestoreDatabase(store, new RestoreBackupConfiguration { BackupLocation = backupLocation, DatabaseName = databaseName }))
                 {

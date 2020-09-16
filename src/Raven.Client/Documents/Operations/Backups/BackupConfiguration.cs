@@ -5,6 +5,8 @@ using Sparrow.Json.Parsing;
 
 namespace Raven.Client.Documents.Operations.Backups
 {
+    // this I pass to the POST request when creating !!!
+    
     public class BackupConfiguration : IDynamicJson
     {
         public BackupType BackupType { get; set; }
