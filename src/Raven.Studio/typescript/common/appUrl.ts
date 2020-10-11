@@ -303,10 +303,13 @@ class appUrl {
         const databasePart = appUrl.getEncodedDbPart(db); 
         return "#databases/settings/databaseSettings?" + databasePart;
     }
-    
+
     static forDatabaseRecord(db: database | databaseInfo): string {
-        return "#databases/settings/databaseRecord?" + appUrl.getEncodedDbPart(db);
+        return "#databases/advanced/databaseRecord?" + appUrl.getEncodedDbPart(db);
     }
+    // static forDatabaseRecord(db: database | databaseInfo): string {
+    //     return "#databases/settings/databaseRecord?" + appUrl.getEncodedDbPart(db);
+    // }
 
     static forRevisions(db: database | databaseInfo): string {
         return "#databases/settings/revisions?" + appUrl.getEncodedDbPart(db);

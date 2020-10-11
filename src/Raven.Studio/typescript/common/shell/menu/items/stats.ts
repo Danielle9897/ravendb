@@ -5,8 +5,10 @@ import leafMenuItem = require("common/shell/menu/leafMenuItem");
 export = getStatsMenuItem;
 
 function getStatsMenuItem(appUrls: computedAppUrls) {
-    let activeDatabase = activeDatabaseTracker.default.database;
+    //let activeDatabase = activeDatabaseTracker.default.database;
+    
     var items: menuItem[] = [
+        
         new leafMenuItem({
             route: 'databases/status',
             moduleId: 'viewmodels/database/status/statistics',
@@ -48,8 +50,7 @@ function getStatsMenuItem(appUrls: computedAppUrls) {
             nav: true,
             css: 'icon-replication-stats',
             dynamicHash: appUrls.ongoingTasksStats
-        }),
-      
+        }),      
         new leafMenuItem({
             route: 'databases/status/debug*details',
             moduleId: 'viewmodels/database/status/debug/statusDebug',
@@ -57,7 +58,6 @@ function getStatsMenuItem(appUrls: computedAppUrls) {
             nav: false,
             css: 'icon-debug'
         })
-       
     ];
 
     return new intermediateMenuItem("Stats", items, "icon-stats");
