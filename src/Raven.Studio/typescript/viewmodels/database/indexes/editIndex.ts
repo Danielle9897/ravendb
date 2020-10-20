@@ -371,7 +371,18 @@ class editIndex extends viewModelBase {
     removeField(field: indexFieldOptions) {
         eventsCollector.default.reportEvent("index", "remove-field");
         if (field.isDefaultOptions()) {
+            //this.editedIndex().removeDefaultFieldOptions();
+            
+            // if any child has indexing inherited then need to take the value of parent first
+            // otherwise state is not stable
+            this.editedIndex().fields().forEach(x => {
+                if (x.indexing() === null) {
+                    x.indexing(field.indexing());
+                }
+            })
+
             this.editedIndex().removeDefaultFieldOptions();
+            
         } else {
             this.editedIndex().fields.remove(field);
         }
@@ -425,15 +436,83 @@ class editIndex extends viewModelBase {
         });
     }
 
-    createAnalyzerNameAutocompleter(analyzerName: string): KnockoutComputed<string[]> {
+    createAnalyzerNameAutocompleter(field: indexFieldOptions): KnockoutComputed<string[]> {
         return ko.pureComputed(() => {
-            if (analyzerName) {
-                return indexFieldOptions.analyzersNames.filter(x => x.toLowerCase().includes(analyzerName.toLowerCase()));
+            let analyzerOptions = [];
+            
+            // add inherit option only if Indexing field has 'Inherit' (i.e. has null)
+            if (!field.indexing()) {
+                analyzerOptions = [field.getInheritTextForAnalyzer(), ...indexFieldOptions.analyzersNames];
             } else {
-                return indexFieldOptions.analyzersNames;
+                analyzerOptions = indexFieldOptions.analyzersNames;
+            }
+
+            const analyzerText = field.analyzer();
+            if (analyzerText) {
+                return analyzerOptions.filter(x => x.toLowerCase().includes(analyzerText.toLowerCase()));
+            } else {
+                return analyzerOptions;
             }
         });
     }
+    // createAnalyzerNameAutocompleter(field: indexFieldOptions): KnockoutComputed<string[]> {
+    //     return ko.pureComputed(() => {
+    //         const analyzerText = field.analyzer();
+    //        
+    //         //const parentAnalyzer = field.getParentAnalyzer();
+    //         //const inheritText = `${indexFieldOptions.inheritPrefix}${parentAnalyzer}${indexFieldOptions.inheritPostfix}`;
+    //                                
+    //         // add inherit option only if Indexing field has 'Inherit' (i.e. has null)
+    //         const inheritText = !field.indexing() ? field.getInheritTextForAnalyzer() : "";
+    //         //const inheritText = field.getInheritTextForAnalyzer();    
+    //        
+    //         // todo check if need separate line...
+    //        
+    //         const analyzerOptions =  [inheritText, ...indexFieldOptions.analyzersNames];
+    //        
+    //         if (analyzerText) {
+    //             return analyzerOptions.filter(x => x.toLowerCase().includes(analyzerText.toLowerCase()));
+    //         } else {
+    //             return analyzerOptions;
+    //         }
+    //     });
+    // }
+    
+    // createAnalyzerNameAutocompleter(field: indexFieldOptions): KnockoutComputed<string[]> {
+    //     return ko.pureComputed(() => {
+    //         const analyzerName = field.analyzer();
+    //
+    //         const analyzersNames = indexFieldOptions.analyzersNames;
+    //         const inheritText = `Inherit (${parentAnalyzer})`;
+    //         const analyzerOptions =  [inheritText, ...analyzersNames];
+    //        
+    //         const analyzerOptions = 
+    //        
+    //         if (analyzerName) {
+    //             return indexFieldOptions.analyzersNames.filter(x => x.toLowerCase().includes(analyzerName.toLowerCase()));
+    //         } else {
+    //             const parentAnalyzer = field.parent().analyzer();
+    //             // todo need to calc parent correctly !!
+    //             // field.getParentAnalyzer()...
+    //            
+    //             const analyzersNames = indexFieldOptions.analyzersNames;
+    //             const inheritText = `Inherit (${parentAnalyzer})`;
+    //             return [inheritText, ...analyzersNames];
+    //            
+    //             //return indexFieldOptions.analyzersNames.concat(`Inherit (${parentAnalyzer})`);
+    //         }
+    //     });
+    // }
+    
+    // createAnalyzerNameAutocompleter(analyzerName: string): KnockoutComputed<string[]> {
+    //     return ko.pureComputed(() => {
+    //         if (analyzerName) {
+    //             return indexFieldOptions.analyzersNames.filter(x => x.toLowerCase().includes(analyzerName.toLowerCase()));
+    //         } else {
+    //             return indexFieldOptions.analyzersNames;
+    //         }
+    //     });
+    // }
 
     private fetchIndexToEdit(indexName: string): JQueryPromise<Raven.Client.Documents.Indexes.IndexDefinition> {
         return new getIndexDefinitionCommand(indexName, this.activeDatabase())

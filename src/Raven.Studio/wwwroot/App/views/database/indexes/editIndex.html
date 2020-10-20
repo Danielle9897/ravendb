@@ -44,7 +44,7 @@
                     -->
                     <div class="margin-bottom">
                         <pre class="form-control map"
-                             data-bind="aceEditor: { code: map, allowResize: true, getFocus: true, lang: 'ace/mode/ravenMapLinq', typeName: 'map', completer: $root.indexAutoCompleter.indexMapCompleter  }, validationOptions: { errorsAsTitle: false }, validationElement: map"></pre>
+                             data-bind="aceEditor: { code: map, allowResize: true, getFocus: true, lang: 'ace/mode/ravenMapLinq', typeName: 'map', completer: $root.indexAutoCompleter.indexMapCompleter }, validationOptions: { errorsAsTitle: false }, validationElement: map"></pre>
 
                         <div data-bind="validationElement: map">
                             <div class="help-block" data-bind="validationMessage: map"></div>
@@ -555,17 +555,30 @@
                                 </ul>
                             </div>
                         </div>
-                        <div class="properties-item" data-bind="visible: showAnalyzer">
+                        <div class="properties-item" data-bind="visible: showAnalyzer, validationElement: analyzer">
                             <span class="properties-label">Analyzer</span>
                             <div class="btn-group properties-value">
                                 <div class="has-disable-reason" data-bind="attr: { 'data-original-title': disabledAnalyzerText }" data-placement="top">
-                                    <input class="form-control" placeholder="StandardAnalyzer" autocomplete="off"
+<!--                                    <input class="form-control" placeholder="StandardAnalyzer" autocomplete="off"-->
+<!--                                           data-bind="textInput: analyzer, disable: !!disabledAnalyzerText(),-->
+<!--                                                      attr: { id: 'analyzerName' + (isDefaultFieldOptions() ? '' : $index()) }" />-->
+
+                                    <input class="form-control" autocomplete="off" placeholder="Select (or enter) analyzer"
                                            data-bind="textInput: analyzer, disable: !!disabledAnalyzerText(),
                                                       attr: { id: 'analyzerName' + (isDefaultFieldOptions() ? '' : $index()) }" />
+<!--                                    <ul class="dropdown-menu" role="menu"-->
+<!--                                        data-bind="autoComplete: '#analyzerName' + (isDefaultFieldOptions() ? '' : $index()), foreach: $root.createAnalyzerNameAutocompleter($data.analyzer()),-->
+<!--                                                       css: { 'list-dropup' : $root.shouldDropupMenu($data, isDefaultFieldOptions() ? 0 : $index())() }">-->
+<!--                                        <li role="presentation" data-bind="click: $parent.analyzer.bind($parent, $data)">-->
+<!--                                            <a role="menuitem" tabindex="-1" href="#">-->
+<!--                                                <span data-bind="text: $data"></span>-->
+<!--                                            </a>-->
+<!--                                        </li>-->
+<!--                                    </ul>-->
                                     <ul class="dropdown-menu" role="menu"
-                                        data-bind="autoComplete: '#analyzerName' + (isDefaultFieldOptions() ? '' : $index()), foreach: $root.createAnalyzerNameAutocompleter($data.analyzer()),
+                                        data-bind="autoComplete: '#analyzerName' + (isDefaultFieldOptions() ? '' : $index()), foreach: $root.createAnalyzerNameAutocompleter($data),
                                                        css: { 'list-dropup' : $root.shouldDropupMenu($data, isDefaultFieldOptions() ? 0 : $index())() }">
-                                        <li role="presentation" data-bind="click: $parent.analyzer.bind($parent, $data)" >
+                                        <li role="presentation" data-bind="click: $parent.analyzer.bind($parent, $data)">
                                             <a role="menuitem" tabindex="-1" href="#">
                                                 <span data-bind="text: $data"></span>
                                             </a>

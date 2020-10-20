@@ -77,6 +77,7 @@ class indexDefinition {
         this.collectionNameForReferenceDocuments(dto.PatternReferencesCollectionName);
         
         this.fields(_.map(dto.Fields, (fieldDto, indexName) => new indexFieldOptions(indexName, fieldDto, indexFieldOptions.defaultFieldOptions())));
+        // Marcin - why 8 times ??? todo...
         
         const defaultFieldOptions = this.fields().find(x => x.name() === indexFieldOptions.DefaultFieldOptions);
         if (defaultFieldOptions) {
@@ -87,6 +88,8 @@ class indexDefinition {
 
             this.fields().forEach(field => {
                 field.parent(defaultFieldOptions);
+                // update analyzer for inherited values
+                field.computeAnalyzer();
             });
 
             this.initDefaultFieldOptionsSubscriptions();
@@ -185,10 +188,24 @@ class indexDefinition {
     }
     
     private initDefaultFieldOptionsSubscriptions() {
-        this.defaultFieldOptions().indexing.subscribe(() => {
-            this.fields().forEach(x => x.computeAnalyzer())
-        });
 
+        this.defaultFieldOptions().indexing.subscribe(() => {
+            this.fields().forEach(x => {
+                if (x.indexing() === null) {
+                    x.indexing.valueHasMutated();
+                }
+            })
+        });
+        // this.defaultFieldOptions().indexing.subscribe(() => {            
+        //     this.fields().forEach(x => x.computeAnalyzer())
+        // });
+
+        
+        // this.defaultFieldOptions().fullTextSearch.subscribe(() => {
+        //     this.fields().forEach(x => {
+        //         x.fullTextSearch.valueHasMutated();
+        //     })
+        // })
         this.defaultFieldOptions().fullTextSearch.subscribe(() => {
             this.fields().forEach(x => {
                 if (x.fullTextSearch() === null) {
@@ -196,6 +213,12 @@ class indexDefinition {
                 }
             })
         })
+
+        this.defaultFieldOptions().analyzer.subscribe(() => {
+            this.fields().forEach(x => {
+                this.fields().forEach(x => x.computeAnalyzer())
+            })
+        });
     }
     
     private parseConfiguration(config: Raven.Client.Documents.Indexes.IndexConfiguration): Array<configurationItem> {
