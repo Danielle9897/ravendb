@@ -370,7 +370,7 @@ class indexFieldOptions {
         const parentIndexing = this.parent() ? this.parent().indexing() : null;
 
         if (thisIndexing === "No" ||
-           (thisIndexing === null && parentIndexing === "No")) {
+           (!thisIndexing && parentIndexing === "No")) {
             this.analyzer(null);
         }
         
@@ -378,15 +378,15 @@ class indexFieldOptions {
         const helpMsg = "To set a different analyzer, select the 'Indexing.Search' option first."
         
         if (thisIndexing === "Exact" ||
-           (thisIndexing === null && parentIndexing === "Exact")) {
+           (!thisIndexing && parentIndexing === "Exact")) {
             this.analyzer(null);
             placeHolder = "Keyword Analyzer";
             this.disabledAnalyzerText("KeywordAnalyzer is used when selecting Indexing.Exact. " + helpMsg);
         } 
         
         if (thisIndexing === "Default" ||
-           (thisIndexing === null && parentIndexing === "Default") ||
-           (thisIndexing === null && parentIndexing === null)) {
+           (!thisIndexing && parentIndexing === "Default") ||
+           (!thisIndexing && !parentIndexing)) {
             this.analyzer(null);
             placeHolder = "LowerCase Keyword Analyzer";
             this.disabledAnalyzerText("LowerCaseKeywordAnalyzer is used when selecting Indexing.Default. " + helpMsg);
