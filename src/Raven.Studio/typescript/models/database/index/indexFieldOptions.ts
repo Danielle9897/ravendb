@@ -10,7 +10,7 @@ function yesNoLabelProvider(arg: boolean) {
     return arg ? "Yes" : "No";
 }
 
-type indexingTypes = Raven.Client.Documents.Indexes.FieldIndexing | "Search (implied)";
+//type indexingTypes = Raven.Client.Documents.Indexes.FieldIndexing | "Search (implied)";
 
 type analyzerNameInUI = "Keyword Analyzer" | "LowerCase Keyword Analyzer" | "LowerCase Whitespace Analyzer" |
                         "NGram Analyzer" | "Simple Analyzer" | "Standard Analyzer" | "Stop Analyzer" | "Whitespace Analyzer";
@@ -81,8 +81,10 @@ class indexFieldOptions {
             value: "Search"
         }];
 
-    static readonly IndexingWithSearchImplied: Array<valueAndLabelItem<indexingTypes, string>> =
-        [...indexFieldOptions.Indexing, { label: "Search (implied)", value: "Search (implied)" }];
+    static readonly IndexingWithSearchImplied: Array<valueAndLabelItem<Raven.Client.Documents.Indexes.FieldIndexing, string>> =
+    // static readonly IndexingWithSearchImplied: Array<valueAndLabelItem<indexingTypes, string>> =
+        // [...indexFieldOptions.Indexing, { label: "Search (implied)", value: "Search (implied)" }];
+        [...indexFieldOptions.Indexing, { label: "Search (implied)", value: null }];
     
     static readonly SpatialType: Array<Raven.Client.Documents.Indexes.Spatial.SpatialFieldType> = ["Cartesian", "Geography"];
     
@@ -104,10 +106,13 @@ class indexFieldOptions {
     isDefaultAnalyzer: KnockoutComputed<boolean>;
     showAnalyzer: KnockoutComputed<boolean>;
 
-    indexing = ko.observable<indexingTypes>(); // the actual value
+    indexing = ko.observable<Raven.Client.Documents.Indexes.FieldIndexing>(); // the actual value
+    //indexing = ko.observable<indexingTypes>(); // the actual value
     effectiveIndexing = this.effectiveComputed(x => x.indexing(), labelMatcher(indexFieldOptions.IndexingWithSearchImplied)); // for button label
     defaultIndexing = this.defaultComputed(x => x.indexing(), labelMatcher(indexFieldOptions.IndexingWithSearchImplied)); // for dropdown label
-    indexingDropdownOptions: KnockoutComputed<Array<valueAndLabelItem<indexingTypes, string>>>;
+    // indexingDropdownOptions: KnockoutComputed<Array<valueAndLabelItem<indexingTypes, string>>>;
+    indexingDropdownOptions: KnockoutComputed<Array<valueAndLabelItem<Raven.Client.Documents.Indexes.FieldIndexing, string>>>;
+    indexingSearchImplied: KnockoutComputed<boolean>;
 
     storage = ko.observable<Raven.Client.Documents.Indexes.FieldStorage>();
     effectiveStorage = this.effectiveComputed(x => x.storage());
@@ -149,9 +154,14 @@ class indexFieldOptions {
                                                        this.analyzer() === "Raven.Server.Documents.Indexes.Persistence.Lucene.Analyzers.LowerCaseKeywordAnalyzer" ||
                                                        this.analyzerPlaceHolder() === "LowerCase Keyword Analyzer");
         
+        this.indexingSearchImplied = ko.pureComputed(() => {
+            return this.analyzerDefinedWithoutIndexing() && !this.indexing();
+        });
+
         this.showAnalyzer = ko.pureComputed(() => this.indexing() === "Search" ||
-                                                   this.indexing() === "Search (implied)" ||
-                                                  (this.indexing() === null && this.parent().indexing() === "Search") ||
+                                                  this.indexingSearchImplied() ||
+                                                  // this.indexing() === "Search (implied)" ||
+                                                  (!this.indexing() && this.parent().indexing() === "Search") ||
                                                   !!this.analyzer() ||
                                                   (!this.analyzer() && !!this.analyzerPlaceHolder()));
         
@@ -165,7 +175,7 @@ class indexFieldOptions {
         if (!dto.Indexing && this.analyzer() && !this.isDefaultAnalyzer()) {
            this.analyzerDefinedWithoutIndexing(true);
            this.theAnalyzerThatWasDefinedWithoutIndexing(this.analyzer());
-           this.indexing("Search (implied)");
+           //this.indexing("Search (implied)"); // try w/o
         }
         
         this.storage(dto.Storage);
@@ -325,11 +335,17 @@ class indexFieldOptions {
         
         switch (this.indexing()) {
             case "Search":
-            case "Search (implied)":
+            //case "Search (implied)":
                 fts = true;
                 break;
             // 'Exact', 'No' & 'Default' stay false
             case null:
+                
+                if (this.indexingSearchImplied()) {
+                    fts = true;
+                    break; // todo check this break...
+                }
+                
                 if (!this.analyzer() && !this.analyzerPlaceHolder()) {
                     fts = null;
                 } else {
@@ -354,12 +370,13 @@ class indexFieldOptions {
 
     private computeHighlighting() {
         this.highlighting(!this.analyzer() && this.analyzerPlaceHolder() &&
-                          (this.indexing() === "Search" || this.indexing() === "Search (implied)") &&
+                          (this.indexing() === "Search" || this.indexingSearchImplied()) &&
+                          // (this.indexing() === "Search" || this.indexing() === "Search (implied)") &&
                            this.storage() === "Yes" &&
                            this.termVector() === "WithPositionsAndOffsets");
        
-        if (this.storage() === null &&
-            this.termVector() === null) {
+        if (!this.storage() &&
+            !this.termVector()) {
             this.highlighting(null);
         }
     }
@@ -369,41 +386,46 @@ class indexFieldOptions {
         const thisIndexing = this.indexing();
         const parentIndexing = this.parent() ? this.parent().indexing() : null;
 
-        if (thisIndexing === "No" ||
-           (!thisIndexing && parentIndexing === "No")) {
-            this.analyzer(null);
-        }
         
-        this.disabledAnalyzerText("");
-        const helpMsg = "To set a different analyzer, select the 'Indexing.Search' option first."
-        
-        if (thisIndexing === "Exact" ||
-           (!thisIndexing && parentIndexing === "Exact")) {
-            this.analyzer(null);
-            placeHolder = "Keyword Analyzer";
-            this.disabledAnalyzerText("KeywordAnalyzer is used when selecting Indexing.Exact. " + helpMsg);
-        } 
-        
-        if (thisIndexing === "Default" ||
-           (!thisIndexing && parentIndexing === "Default") ||
-           (!thisIndexing && !parentIndexing)) {
-            this.analyzer(null);
-            placeHolder = "LowerCase Keyword Analyzer";
-            this.disabledAnalyzerText("LowerCaseKeywordAnalyzer is used when selecting Indexing.Default. " + helpMsg);
-        }
+        if (!this.indexingSearchImplied()) {
 
-        if (!thisIndexing && parentIndexing === "Search") {
-            this.analyzer(null);
-            placeHolder = this.parent().analyzer() || "Standard Analyzer";
-        }
+            if (thisIndexing === "No" ||
+                (!thisIndexing && parentIndexing === "No")) {
+                this.analyzer(null);
+            }
 
-        if (thisIndexing === "Search") {
-            this.analyzer(null);
-            placeHolder = "Standard Analyzer";
+            this.disabledAnalyzerText("");
+            const helpMsg = "To set a different analyzer, select the 'Indexing.Search' option first."
+
+            if (thisIndexing === "Exact" ||
+                (!thisIndexing && parentIndexing === "Exact")) {
+                this.analyzer(null);
+                placeHolder = "Keyword Analyzer";
+                this.disabledAnalyzerText("KeywordAnalyzer is used when selecting Indexing.Exact. " + helpMsg);
+            }
+
+            if (thisIndexing === "Default" ||
+                (!thisIndexing && parentIndexing === "Default") ||
+                (!thisIndexing && !parentIndexing)) {
+                this.analyzer(null);
+                placeHolder = "LowerCase Keyword Analyzer";
+                this.disabledAnalyzerText("LowerCaseKeywordAnalyzer is used when selecting Indexing.Default. " + helpMsg);
+            }
+
+            if (!thisIndexing && parentIndexing === "Search") {
+                this.analyzer(null);
+                placeHolder = this.parent().analyzer() || "Standard Analyzer";
+            }
+
+            if (thisIndexing === "Search") {
+                this.analyzer(null);
+                placeHolder = "Standard Analyzer";
+            }
         }
         
         // for issue RavenDB-12607
-        if (thisIndexing === "Search (implied)") {
+        //if (thisIndexing === "Search (implied)") {
+        if (this.indexingSearchImplied()) {
             this.analyzer(this.theAnalyzerThatWasDefinedWithoutIndexing());
         }
 
@@ -422,6 +444,7 @@ class indexFieldOptions {
         return ko.pureComputed(() => "Inherit (" + this.parent().extractEffectiveValue(x => extractor(x), false, labelProvider) + ")");
     }
 
+
     private extractEffectiveValue<T>(extractor: (field: indexFieldOptions) => T, wrapWithDefault: boolean, labelProvider?: (arg: T) => string): string {
         const candidates = [] as T[];
 
@@ -432,13 +455,33 @@ class indexFieldOptions {
             field = field.parent();
         }
 
-        const index = candidates.findIndex(x => !_.isNull(x) && !_.isUndefined(x));
-        const value = candidates[index];
 
-        const label = labelProvider ? labelProvider(value) : value;
+        const mappedLabels = candidates.map((x) => labelProvider ? labelProvider(x) : x);
+
+        const index = mappedLabels.findIndex(x => !_.isNull(x) && !_.isUndefined(x));
+
+        const label = mappedLabels[index];
 
         return (index > 0 && wrapWithDefault) ? "Inherit (" + label + ")" : <any>label;
     }
+
+    //private extractEffectiveValue<T>(extractor: (field: indexFieldOptions) => T, wrapWithDefault: boolean, labelProvider?: (arg: T) => string): string {
+    //    const candidates = [] as T[];
+
+    //    let field = this as indexFieldOptions;
+
+    //    while (field) {
+    //        candidates.push(extractor(field));
+    //        field = field.parent();
+    //    }
+
+    //    const index = candidates.findIndex(x => !_.isNull(x) && !_.isUndefined(x));
+    //    const value = candidates[index];
+
+    //    const label = labelProvider ? labelProvider(value) : value;
+
+    //    return (index > 0 && wrapWithDefault) ? "Inherit (" + label + ")" : <any>label;
+    //}
 
     private initValidation() {
         if (!this.isDefaultOptions()) {
@@ -503,7 +546,8 @@ class indexFieldOptions {
         
         return {
             Analyzer: analyzerToSend,
-            Indexing: this.indexing() === "Search (implied)" ? null : this.indexing() as Raven.Client.Documents.Indexes.FieldIndexing,
+            //Indexing: this.indexing() === "Search (implied)" ? null : this.indexing() as Raven.Client.Documents.Indexes.FieldIndexing,
+            Indexing: this.indexing(),
             Storage: this.storage(),
             Suggestions: this.suggestions(),
             TermVector: this.termVector(),
