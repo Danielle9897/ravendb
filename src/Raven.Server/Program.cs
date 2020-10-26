@@ -12,6 +12,7 @@ using Raven.Client.Properties;
 using Raven.Server.Commercial;
 using Raven.Server.Config;
 using Raven.Server.Config.Settings;
+using Raven.Server.Documents.Indexes.Static.NuGet;
 using Raven.Server.ServerWide;
 using Raven.Server.ServerWide.BackgroundTasks;
 using Raven.Server.ServerWide.Context;
@@ -98,6 +99,8 @@ namespace Raven.Server
 
             if (Logger.IsInfoEnabled)
                 Logger.Info($"Logging to {configuration.Logs.Path} set to {configuration.Logs.Mode} level.");
+
+            MultiSourceNuGetFetcher.Instance.Initialize(configuration.Indexing.NuGetPackagesPath);
 
             LatestVersionCheck.Instance.Initialize(configuration.Updates);
 
