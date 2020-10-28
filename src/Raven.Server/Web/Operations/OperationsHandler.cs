@@ -82,6 +82,43 @@ namespace Raven.Server.Web.Operations
             return Task.CompletedTask;
         }
 
+        // new        
+        [RavenAction("/databases/*/operations/state-by-type", "GET", AuthorizationStatus.ValidUser)]
+        public Task StateByType()
+        {
+            var type = GetLongQueryString("type");
+            // ReSharper disable once PossibleInvalidOperationException
+            
+            // todo - change type to enum
+
+
+            var listOfOps = Database.Operations.GetOperationByType(type);
+            // return highest id.state
+            
+            var state = Database.Operations.GetOperation(type);
+
+            ////////////////// todo take to outer method..
+            if (state == null)
+            {
+                HttpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                return Task.CompletedTask;
+            }
+
+            using (ContextPool.AllocateOperationContext(out DocumentsOperationContext context))
+            {
+                using (var writer = new BlittableJsonTextWriter(context, ResponseBodyStream()))
+                {
+                    context.Write(writer, state.ToJson());
+                    // writes Patch response
+                    if (TrafficWatchManager.HasRegisteredClients)
+                        AddStringToHttpContext(writer.ToString(), TrafficWatchChangeType.Operations);
+                }
+            }
+            ////////////////
+
+            return Task.CompletedTask;
+        }
+        
         [RavenAction("/databases/*/operations/state", "GET", AuthorizationStatus.ValidUser)]
         public Task State()
         {

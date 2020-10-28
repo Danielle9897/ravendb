@@ -79,19 +79,36 @@ namespace Raven.Server.Documents.Operations
             if (operation?.Killable == false)
                 throw new ArgumentException($"Operation {id} is unkillable");
         }
+        
+        public long GetOperationByType(OperationType type)
+        {
 
+            // find list 
+            foreach (Operation op in _active)
+            {
+                if (op.Description.TaskType == type)
+                {
+                    return op.Id; // add to list, return list
+                }
+            }
+           
+            // same for completed
+
+            return null;
+        }
+        
         public Operation GetOperation(long id)
         {
             if (_active.TryGetValue(id, out Operation operation))
             {
                 return operation;
             }
-
+        
             if (_completed.TryGetValue(id, out operation))
             {
                 return operation;
             }
-
+        
             return null;
         }
 

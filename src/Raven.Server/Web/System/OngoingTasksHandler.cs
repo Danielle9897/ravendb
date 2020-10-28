@@ -534,7 +534,7 @@ namespace Raven.Server.Web.System
                     var t = Database.Operations.AddOperation(
                         null,
                         $"Manual backup for database: {Database.Name}",
-                        Documents.Operations.Operations.OperationType.DatabaseBackup,
+                        Documents.Operations.Operations.OperationType.DatabaseBackup, // todo pass new enum type
                         onProgress =>
                         {
                             var tcs = new TaskCompletionSource<IOperationResult>(TaskCreationOptions.RunContinuationsAsynchronously);
