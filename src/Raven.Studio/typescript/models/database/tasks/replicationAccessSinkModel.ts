@@ -11,11 +11,30 @@ class replicationAccessSinkModel extends replicationAccessBaseModel {
     selectedFilePassphrase = ko.observable<string>();
     
     certificateExtracted = ko.observable<boolean>(false);
+
+    certificateSourceText: KnockoutComputed<string>;
+    isServerCertificate = ko.observable<boolean>(false);
+    
+    serverCertificate = ko.observable<replicationCertificateModel>();
+    clusterNodesNumber: number;
     
     validationGroup: KnockoutValidationGroup;
     
-    constructor(accessName: string, certificate: replicationCertificateModel, hubToSink: prefixPathModel[], sinkToHub: prefixPathModel[]) {
+    constructor(accessName: string, 
+                certificate: replicationCertificateModel,
+                serverCertificate: replicationCertificateModel,
+                hubToSink: prefixPathModel[], 
+                sinkToHub: prefixPathModel[],
+                clusterNodesCount: number) {
         super(accessName, certificate, hubToSink, sinkToHub, false);
+        
+        this.serverCertificate(serverCertificate);
+        this.clusterNodesNumber = clusterNodesCount;
+        
+        this.certificateSourceText = ko.pureComputed(() => {
+            return this.isServerCertificate() ? "Use the server certificate" : "Provide your own certificate";
+        });
+        
         
         this.initValidation();
     }
@@ -66,17 +85,37 @@ class replicationAccessSinkModel extends replicationAccessBaseModel {
             }
         }
     }
-    
-    static empty(): replicationAccessSinkModel {
-        return new replicationAccessSinkModel("", null, [], []);
+
+    useServerCertificate(useServerCertificate: boolean) {
+        if (!useServerCertificate) {
+            this.isServerCertificate(false);
+            this.certificate(null);
+            return;
+        }
+
+        this.isServerCertificate(true);
+        this.certificate(this.serverCertificate());
+        
+        // return new getCertificatesCommand()
+        //     .execute()
+        //     .done(certificatesInfo => {
+        //
+        //         const serverCertificate = certificatesInfo.Certificates.find(cert => cert.Name === "Server Certificate");
+        //         const certModel = new replicationCertificateModel(serverCertificate.Certificate);
+        //         this.certificate(certModel);
+        //
+        //         this.isServerCertificate(true);
+        //     });
     }
 
     static clone(itemToClone: replicationAccessSinkModel): replicationAccessSinkModel {
         return new replicationAccessSinkModel(
             itemToClone.replicationAccessName(),
             itemToClone.certificate(),
+            itemToClone.serverCertificate(),
             itemToClone.hubToSinkPrefixes(),
-            itemToClone.sinkToHubPrefixes()
+            itemToClone.sinkToHubPrefixes(),
+            itemToClone.clusterNodesNumber
         );
     }
 }

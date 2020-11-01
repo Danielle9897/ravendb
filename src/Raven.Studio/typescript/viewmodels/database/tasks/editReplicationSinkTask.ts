@@ -17,9 +17,15 @@ import forge = require("forge/forge");
 import fileImporter = require("common/fileImporter");
 import popoverUtils = require("common/popoverUtils");
 import prefixPathModel = require("models/database/tasks/prefixPathModel");
+//import fileDownloader = require("common/fileDownloader");
+import endpoints = require("endpoints");
+import getCertificatesCommand = require("commands/auth/getCertificatesCommand");
+import clusterTopologyManager = require("common/shell/clusterTopologyManager");
 
 class editReplicationSinkTask extends viewModelBase {
 
+    // private clusterManager = clusterTopologyManager.default;
+    
     editedSinkTask = ko.observable<ongoingTaskReplicationSinkEditModel>();
     isAddingNewTask = ko.observable<boolean>(true);
     private taskId: number = null;
@@ -42,17 +48,43 @@ class editReplicationSinkTask extends viewModelBase {
     newConnectionString = ko.observable<connectionStringRavenEtlModel>();
 
     canDefineCertificates = location.protocol === "https:";
+    serverCertificateModel = ko.observable<replicationCertificateModel>();
+    exportCertificateUrl = endpoints.global.adminCertificates.adminCertificatesExport;
 
     constructor() {
         super();
-        this.bindToCurrentInstance("useConnectionString", "onTestConnectionRaven", 
-                                   "onConfigurationFileSelected", "certFileSelected", "removeCertificate");
+        this.bindToCurrentInstance("useConnectionString", "onTestConnectionRaven", "onConfigurationFileSelected",
+                                   "certFileSelected", "removeCertificate", "downloadServerCertificate");
+    }
+
+    canActivate(args: any) {
+        return $.when<any>(super.canActivate(args))
+            .then(() => {
+                const deferred = $.Deferred<canActivateResultDto>();
+
+                if (this.canDefineCertificates) {
+                    new getCertificatesCommand()
+                        .execute()
+                        .done(certificatesInfo => {
+                            const serverCertificate = certificatesInfo.Certificates.find(cert => cert.Name === "Server Certificate");
+                            this.serverCertificateModel(new replicationCertificateModel(serverCertificate.Certificate));
+                            deferred.resolve({can: true});
+                        })    
+                        .fail((response: JQueryXHR) => {
+                            deferred.resolve({ redirect: appUrl.forOngoingTasks(this.activeDatabase()) });
+                        });
+                } else {
+                    deferred.resolve({can: true});
+                }
+                
+                return deferred;
+            });
     }
 
     activate(args: any) { 
         super.activate(args);
         const deferred = $.Deferred<void>();
-
+        
         if (args.taskId) {
             // 1. Editing an existing task
             this.isAddingNewTask(false);
@@ -61,8 +93,15 @@ class editReplicationSinkTask extends viewModelBase {
             getOngoingTaskInfoCommand.forPullReplicationSink(this.activeDatabase(), this.taskId)
                 .execute()
                 .done((result: Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskPullReplicationAsSink) => {
-                    this.editedSinkTask(new ongoingTaskReplicationSinkEditModel(result));
-                    this.editedSinkTask().replicationAccess().certificateExtracted(true);
+                    
+                    this.editedSinkTask(new ongoingTaskReplicationSinkEditModel(result, this.serverCertificateModel()));
+                    const sinkAccess = this.editedSinkTask().replicationAccess();
+                    sinkAccess.certificateExtracted(true);
+                    
+                    if (this.canDefineCertificates && !result.CertificatePublicKey) {
+                        sinkAccess.useServerCertificate(true);
+                    }
+                    
                     deferred.resolve();
                 })
                 .fail(() => {
@@ -72,7 +111,7 @@ class editReplicationSinkTask extends viewModelBase {
         } else {
             // 2. Creating a new task
             this.isAddingNewTask(true);
-            this.editedSinkTask(ongoingTaskReplicationSinkEditModel.empty());
+            this.editedSinkTask(ongoingTaskReplicationSinkEditModel.empty(this.serverCertificateModel()));
             deferred.resolve();
         }
 
@@ -94,6 +133,27 @@ class editReplicationSinkTask extends viewModelBase {
                 this.ravenEtlConnectionStringsDetails(_.sortBy(connectionStrings, x => x.Name.toUpperCase()));
             });
     }
+
+    // private getServerInfo() {
+    //     return new getCertificatesCommand()
+    //         .execute()
+    //         .done(certificatesInfo => {
+    //             const serverCertificate = certificatesInfo.Certificates.find(cert => cert.Name === "Server Certificate");
+    //             this.serverCertificateModel = new replicationCertificateModel(serverCertificate.Certificate);
+    //            
+    //            // const sinkAccess = this.editedSinkTask().replicationAccess();
+    //            
+    //             //sinkAccess.serverCertificate(serverCertificateModel);
+    //             // sinkAccess.certificate(serverCertificateModel);
+    //             // sinkAccess.isServerCertificate(true);
+    //             //sinkAccess.numberOfNodes = this.clusterManager.nodesCount();
+    //            
+    //             // if (sinkAccess.certificate() && !sinkAccess.certificate().publicKey()) {
+    //             //     sinkAccess.certificate(serverCertificateModel);
+    //             //     sinkAccess.isServerCertificate(true);
+    //             // }
+    //         });
+    // }
 
     compositionComplete() {
         super.compositionComplete();
@@ -124,6 +184,7 @@ class editReplicationSinkTask extends viewModelBase {
                 model.allowReplicationFromHubToSink,
                 model.allowReplicationFromSinkToHub,
                 model.replicationAccess().certificate,
+                model.replicationAccess().isServerCertificate(),
                 model.replicationAccess().replicationAccessName,
                 model.replicationAccess().samePrefixesForBothDirections,
                 model.replicationAccess().hubToSinkPrefixes,
@@ -160,7 +221,7 @@ class editReplicationSinkTask extends viewModelBase {
         popoverUtils.longWithHover($("#hub-to-sink-info"),
             {
                 content:
-                    "<ul class='margin-bottom margin-bottom-xs padding'>" +
+                    "<ul class='no-margin padding'>" +
                         "<li><small>These prefixes define what <strong>documents the Sink allows the Hub to send</strong>.</small></li>" +
                         "<li><small>The documents will be sent from the Hub only if these paths are also allowed on the Hub task definition.</li>" +
                     "</ul>"
@@ -169,18 +230,28 @@ class editReplicationSinkTask extends viewModelBase {
         popoverUtils.longWithHover($("#sink-to-hub-info"),
             {
                 content:
-                    "<ul class='margin-bottom margin-bottom-xs padding'>" +
+                    "<ul class='no-margin padding'>" +
                         "<li><small>These prefixes define what documents are <strong>allowed to be sent from this Sink to the Hub</strong>.</small></li>" +
                         "<li><small>The documents will be sent to the Hub only if these paths are also allowed on the Hub task definition.</li>" +
                     "</ul>"
             });
 
-        popoverUtils.longWithHover($("#upload-certificate-info"),
+        popoverUtils.longWithHover($("#sink-certificate-info"),
             {
                 content:
-                    "<ul class='margin-bottom margin-bottom-xs padding padding-xs'>" +
-                        "<li><small>Upload your own .pfx file</small></li>" +
-                        "<li><small>Or - import the configuration file created on the Hub Task.</li>" +
+                    "<ul class='no-margin padding'>" +
+                        "<li><small>The certificate is used to authenticate the Sink when connecting to the Hub.</small></li>" +
+                        "<li><small>The Sink keeps both the <strong>public & private keys</strong>.</small></li>" +
+                        "<li><small>The Hub task must contain a matching public key.</small></li>" +
+                    "</ul>"
+            });
+        
+        popoverUtils.longWithHover($("#download-server-certificate"),
+            {
+                content:
+                    "<ul class='no-margin padding'>" +
+                    "<li><small>Download the cluster's server certificate(s) as a *.pfx file.</small></li>" +
+                    "<li><small>Only public keys are downloaded.</small></li>" +
                     "</ul>"
             });
     }
@@ -287,6 +358,7 @@ class editReplicationSinkTask extends viewModelBase {
     }
 
     onConfigurationFileSelected(fileInput: HTMLInputElement) {
+        this.editedSinkTask().replicationAccess().useServerCertificate(false);
         fileImporter.readAsText(fileInput, data => this.importConfigurationFile(data));
     }
     
@@ -339,7 +411,7 @@ class editReplicationSinkTask extends viewModelBase {
             this.createNewConnectionString(true);
             const connectionString = this.newConnectionString();
             connectionString.database(config.Database);
-            connectionString.connectionStringName("Replication from " + config.Database);
+            connectionString.connectionStringName("Connection string to " + config.Database);
             connectionString.topologyDiscoveryUrls(config.TopologyUrls.map(x => new discoveryUrl(x)));
             
             const model = this.editedSinkTask();
@@ -378,7 +450,7 @@ class editReplicationSinkTask extends viewModelBase {
             this.editedSinkTask().replicationAccess().selectedFileName(shortFileName);
 
             const certAsBase64 = forge.util.encode64(data);
-            this.editedSinkTask().replicationAccess().onCertificateSelected(certAsBase64, shortFileName);
+            this.editedSinkTask().replicationAccess().onCertificateSelected(certAsBase64, shortFileName); // todo second param is not used...
         });
     }
 
@@ -390,6 +462,12 @@ class editReplicationSinkTask extends viewModelBase {
         
         model.replicationAccess().selectedFileName(null);
         model.replicationAccess().selectedFilePassphrase(null);
+    }
+
+    downloadServerCertificate() {
+        const targetFrame = $("form#certificates_download_form");
+        targetFrame.attr("action", this.exportCertificateUrl);
+        targetFrame.submit();
     }
 }
 

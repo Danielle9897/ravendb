@@ -49,11 +49,18 @@ class replicationCertificateModel {
     static fromPublicKey(certificate: string) {
         return new replicationCertificateModel(certificate, null);
     }
-    
+
+    // parse from *.pfx
     static fromPkcs12(base64EncodedCertificate: string, password: string = undefined) {
         const publicKey = certificateUtils.extractCertificateFromPkcs12(base64EncodedCertificate, password);
         return new replicationCertificateModel(publicKey, base64EncodedCertificate, password);
     }
+    
+    // org
+    // static fromPkcs12(base64EncodedCertificate: string, password: string = undefined) {
+    //     const publicKey = certificateUtils.extractCertificateFromPkcs12(base64EncodedCertificate, password);
+    //     return new replicationCertificateModel(publicKey, base64EncodedCertificate, password);
+    // }
 }
 
 export = replicationCertificateModel;

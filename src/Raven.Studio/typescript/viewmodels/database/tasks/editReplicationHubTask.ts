@@ -57,7 +57,7 @@ class editReplicationHubTask extends viewModelBase {
     constructor() {
         super();
         
-        this.bindToCurrentInstance("generateCertificate", "importCertificate", "downloadCertificate", "removeCertificate",
+        this.bindToCurrentInstance("generateCertificate", "uploadCertificate", "downloadCertificate", "removeCertificate",
                                    "exportHubConfiguration", "exportAccessConfiguration",
                                    "cancelHubTaskOperation", "cancelReplicationAccessOperation",
                                    "addNewReplicationAccess", "editReplicationAccessItem", 
@@ -196,7 +196,11 @@ class editReplicationHubTask extends viewModelBase {
         super.compositionComplete();
         document.getElementById('taskName').focus();
         
-        $('.edit-pull-replication-hub-task [data-toggle="tooltip"]').tooltip(); 
+        $('.edit-pull-replication-hub-task [data-toggle="tooltip"]').tooltip();
+
+        // $("#upload-certificate").on("click", function () {
+        //     $(this).tooltip("hide");
+        // })
     }
 
     saveReplicationHubTask() {
@@ -358,11 +362,27 @@ class editReplicationHubTask extends viewModelBase {
     
     private initTooltips() {
         this.setupDisableReasons();
+
+        const uploadCertificateSelector = "#upload-certificate";
+        $(uploadCertificateSelector).on("click", function () {
+            $(this).tooltip("hide");
+        })
+        
+        popoverUtils.longWithHover($(uploadCertificateSelector),
+            {
+                content: "<small>Upload your own certificate (<strong>Public key</strong>)</small>",
+                trigger: "hover"
+            });
+        
+        popoverUtils.longWithHover($("#generate-certificate"),
+            {
+                content: "<small>RavenDB will generate a certificate for you (<strong>Public & private keys</strong>)</small>"
+            });
         
         popoverUtils.longWithHover($("#hub-to-sink-info"),
             {
                 content:
-                    "<ul class='margin-bottom margin-bottom-xs padding'>" +
+                    "<ul class='no-margin padding'>" +
                         "<li><small>These prefixes define what docments are allowed to be <strong>sent from the Hub.</strong></small></li>" +
                         "<li><small>You can <strong>further restrict this list</strong> when defining a Sink task that receives data from this Hub.</small></li>" +
                     "</ul>"
@@ -371,25 +391,90 @@ class editReplicationHubTask extends viewModelBase {
         popoverUtils.longWithHover($("#sink-to-hub-info"),
             {
                 content:
-                    "<ul class='margin-bottom margin-bottom-xs padding'>" +
+                    "<ul class='no-margin padding'>" +
                         "<li><small>These prefixes define what docments are allowed to be <strong>sent to this Hub.</strong></small></li>" +
                         "<li><small>You can <strong>further restrict this list</strong> when defining a Sink task that sends data to this Hub.</small></li>" +
                     "</ul>"
             });
     }
+    
+    // this doesn't work together.. !!!
+    // uploadCertificate(fileInput: HTMLInputElement) {
+    //     const accessItem = this.editedReplicationAccessItem();
+    //    
+    //     // if file is: cer, crt
+    //     fileImporter.readAsText(fileInput, data => {
+    //            
+    //         //this.certificateUploadedAsText(data);
+    //         try {                
+    //             const certificateModel = new replicationCertificateModel(data);
+    //             accessItem.certificate(certificateModel);
+    //         } catch ($ex1) {
+    //     
+    //             // if file is: pfx
+    //             fileImporter.readAsBinaryString(fileInput, data => {
+    //                    
+    //                 //this.certificateUploadedAsBinary(data);
+    //                 try {
+    //                     const certAsBase64 = forge.util.encode64(data);
+    //                     const certificateModel = replicationCertificateModel.fromPkcs12(certAsBase64);
+    //                     accessItem.certificate(certificateModel);
+    //                 } catch ($ex2) {
+    //                    
+    //                     messagePublisher.reportError("Unable to upload certificate", $ex2); // todo ???
+    //                 }
+    //             });
+    //         }
+    //     });
+    //
+    //     accessItem.usingExistingCertificate(true);
+    // }
 
-    importCertificate(fileInput: HTMLInputElement) {
-        fileImporter.readAsText(fileInput, data => this.certificateImported(data));
+    uploadCertificate(fileInput: HTMLInputElement) {
+        // for pfx
+        fileImporter.readAsBinaryString(fileInput, data => this.certificateUploadedAsBinary(data));
+        
+        // for cer, crt
+        //fileImporter.readAsText(fileInput, data => this.certificateUploadedAsText(data));
     }
 
-    certificateImported(cert: string) {
+    certificateUploadedAsText(publicKeyCert: string) {
+        const accessItem = this.editedReplicationAccessItem();
+        
         try {
-            this.editedReplicationAccessItem().certificate(new replicationCertificateModel(cert));
-            this.editedReplicationAccessItem().usingExistingCertificate(true);
-        } catch ($e) {
-            messagePublisher.reportError("Unable to import certificate", $e);
+            const certificateModel = new replicationCertificateModel(publicKeyCert);
+            accessItem.certificate(certificateModel);
+        } catch ($ex1) {
+            messagePublisher.reportError("Unable to upload certificate", $ex1);
         }
+        
+        accessItem.usingExistingCertificate(true);
     }
+
+    certificateUploadedAsBinary(data: string) {
+        const accessItem = this.editedReplicationAccessItem();
+        
+        try {
+            const certAsBase64 = forge.util.encode64(data);
+            const certificateModel = replicationCertificateModel.fromPkcs12(certAsBase64);
+            accessItem.certificate(certificateModel);
+
+        } catch ($ex2) { 
+            messagePublisher.reportError("Unable to upload certificate", $ex2);
+        }
+
+        accessItem.usingExistingCertificate(true);
+    }
+    
+    // org
+    // certificateUploaded(cert: string) {
+    //     try {
+    //         this.editedReplicationAccessItem().certificate(new replicationCertificateModel(cert));
+    //         this.editedReplicationAccessItem().usingExistingCertificate(true);
+    //     } catch ($e) {
+    //         messagePublisher.reportError("Unable to upload certificate", $e);
+    //     }
+    // }
     
     generateCertificate() {
         app.showBootstrapDialog(new generateReplicationCertificateConfirm())
