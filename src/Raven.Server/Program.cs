@@ -100,7 +100,7 @@ namespace Raven.Server
             if (Logger.IsInfoEnabled)
                 Logger.Info($"Logging to {configuration.Logs.Path} set to {configuration.Logs.Mode} level.");
 
-            MultiSourceNuGetFetcher.Instance.Initialize(configuration.Indexing.NuGetPackagesPath);
+            MultiSourceNuGetFetcher.Instance.Initialize(configuration.Indexing.NuGetPackagesPath, configuration.Indexing.NuGetPackageSourceUrl);
 
             LatestVersionCheck.Instance.Initialize(configuration.Updates);
 
