@@ -12,6 +12,7 @@ import getRevisionsConfigurationCommand = require("commands/database/documents/g
 import getRevisionsForConflictsConfigurationCommand = require("commands/database/documents/getRevisionsForConflictsConfigurationCommand");
 import enforceRevisionsConfigurationCommand = require("commands/database/settings/enforceRevisionsConfigurationCommand");
 import notificationCenter = require("common/notifications/notificationCenter");
+import popoverUtils = require("common/popoverUtils");
 
 class revisions extends viewModelBase {
 
@@ -265,11 +266,16 @@ class revisions extends viewModelBase {
     compositionComplete() {
         super.compositionComplete();
 
-        $(".conflicts-collection-info").tooltip({
-            title: "Revisions configuration for conflicted documents. By default revision for each conflicting item is created. Revision is also created after conflict resolution.",
-            container: "body"
-        });
-        
+        popoverUtils.longWithHover($(".conflicts-collection-info"),
+            {
+                content: `<ul class="margin-top margin-top-xs">
+                              <li> <small>This is the revision configuration for conflicted documents.</small></li>
+                              <li><small>By default, a revision is created for each conflicting item.</small></li>
+                              <li><small>A revision is also created for the document created by the conflict resolution.</small></li>
+                          </ul>`,
+                html: true
+            });
+
         this.setupDisableReasons();
     }
 
