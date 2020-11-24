@@ -1,6 +1,5 @@
 import app = require("durandal/app");
 import router = require("plugins/router");
-
 import appUrl = require("common/appUrl");
 import jsonUtil = require("common/jsonUtil");
 import messagePublisher = require("common/messagePublisher");
@@ -11,9 +10,9 @@ import getCompareExchangeValueCommand = require("commands/database/cmpXchg/getCo
 import saveCompareExchangeValueCommand = require("commands/database/cmpXchg/saveCompareExchangeValueCommand");
 import deleteCompareExchangeConfirm = require("viewmodels/database/documents/deleteCompareExchangeConfirm");
 import deleteCompareExchangeProgress = require("viewmodels/database/documents/deleteCompareExchangeProgress");
-
 import viewModelBase = require("viewmodels/viewModelBase");
 import eventsCollector = require("common/eventsCollector");
+import genUtils = require("common/generalUtils");
 
 class editCmpXchg extends viewModelBase {
 
@@ -121,7 +120,7 @@ class editCmpXchg extends viewModelBase {
           
         this.value.subscribe(value => {
             if (!_.isUndefined(value)) {
-                const valueText = this.stringify(value);
+                const valueText = genUtils.stringify(value);
                 this.valueText(valueText);
             }
         });
@@ -250,11 +249,6 @@ class editCmpXchg extends viewModelBase {
         }
     }
 
-    stringify(obj: any) {
-        const prettifySpacing = 4;
-        return JSON.stringify(obj, null, prettifySpacing);
-    }
-
     private loadValue(key: string): JQueryPromise<any> {
         this.isBusy(true);
 
@@ -323,7 +317,7 @@ class editCmpXchg extends viewModelBase {
         try {
             const editorText = this.valueEditor.getSession().getValue();
             const tempValue = JSON.parse(editorText);
-            const formatted = this.stringify(tempValue);
+            const formatted = genUtils.stringify(tempValue);
             this.valueText(formatted);
         } catch (e) {
             messagePublisher.reportError("Could not format json", undefined, undefined, false);
