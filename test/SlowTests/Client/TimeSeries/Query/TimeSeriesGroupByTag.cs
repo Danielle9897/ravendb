@@ -336,6 +336,8 @@ namespace SlowTests.Client.TimeSeries.Query
                             .ToList());
 
                     var result = query.First();
+                    
+                    WaitForUserToContinueTheTest(store);
 
                     Assert.Equal(6, result.Count);
 

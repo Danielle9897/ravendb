@@ -50,23 +50,71 @@ class timeSeriesQueryResult {
         }
         return _.without(keyWithOutRange, "Count"); 
     }
-    
+
     static detectValuesCount(dto: timeSeriesQueryResultDto): number {
         switch (timeSeriesQueryResult.detectResultType(dto)) {
             case "grouped":
-                const groupedValues = dto.Results as Array<timeSeriesQueryGroupedItemResultDto>;
-                const keys = timeSeriesQueryResult.detectGroupKeys(groupedValues);
+                const groupedResults = dto.Results as Array<timeSeriesQueryGroupedItemResultDto>;
+                const keys = timeSeriesQueryResult.detectGroupKeys(groupedResults);
+                
                 if (keys.length) {
+
+                    // org
+                    // const firstKey = keys[0];
+                    // return _.max(groupedResults.map(x => x[firstKey].length));
+                    // end org
+
                     const firstKey = keys[0];
-                    return _.max(groupedValues.map(x => x[firstKey].length));
+                    // The first key is "Key" and it can be:
+                    // 1. null (if no tag was entered in the group by) 2. string 3. array of strings
+
+                    const groupedResultsKeyInfo = groupedResults.map((x) => x[firstKey] ? x[firstKey].length : 0);
+                    // const groupedResultsKeyInfo = groupedResults.map((x) => x[firstKey] ? x[firstKey].length : 1); 
+                    return _.max(groupedResultsKeyInfo);
+
                 } else {
                     return 0;
+                    //return 1;
                 }
             case "raw":
                 const rawValues = dto.Results as Array<timeSeriesRawItemResultDto>;
                 return _.max(rawValues.map(x => x.Values.length));
         }
     }
+    
+    
+    
+    // static detectValuesCount(dto: timeSeriesQueryResultDto): number {
+    //     switch (timeSeriesQueryResult.detectResultType(dto)) {
+    //         case "grouped":
+    //             const groupedResults = dto.Results as Array<timeSeriesQueryGroupedItemResultDto>;
+    //             const keys = timeSeriesQueryResult.detectGroupKeys(groupedResults);
+    //             if (keys.length) {
+    //
+    //                 const firstKey = keys[0]; 
+    //                 // The first key is "Key" and it can be:
+    //                 // 1. null (if no tag was entered in the group by) 2. string 3. array of strings
+    //
+    //                 const groupedResultsKeyInfo = groupedResults.map((x) => {
+    //                     const keyContent = x[firstKey];
+    //                     if (keyContent && keyContent instanceof Array) {
+    //                         return keyContent.length;
+    //                     }
+    //                     return keyContent ? 1 : 0;
+    //                     //return 1;
+    //                 });
+    //
+    //                 return _.max(groupedResultsKeyInfo);
+    //
+    //             } else {
+    //                 //return 0;
+    //                 return 1;
+    //             }
+    //         case "raw":
+    //             const rawValues = dto.Results as Array<timeSeriesRawItemResultDto>;
+    //             return _.max(rawValues.map(x => x.Values.length));
+    //     }
+    // }
 }
 
 

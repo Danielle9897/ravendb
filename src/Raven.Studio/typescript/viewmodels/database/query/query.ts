@@ -669,6 +669,14 @@ class query extends viewModelBase {
     
     private getTimeSeriesColumns(grid: virtualGridController<any>, tab: timeSeriesTableDetails): virtualColumn[] {
         const valuesCount = timeSeriesQueryResult.detectValuesCount(tab.value);
+
+
+        // const maybeArrayPresenter: (columnName: string) => (dto: timeSeriesQueryGroupedItemResultDto | timeSeriesRawItemResultDto) => string | number
+        //     = (valuesCount === 1 || valuesCount === 0)
+        //     ? (columnName => dto => (dto as any)[columnName][0])
+        //     : (columnName => dto => "[" + (dto as any)[columnName].join(", ") + "]");
+        
+        
         const maybeArrayPresenter: (columnName: string) => (dto: timeSeriesQueryGroupedItemResultDto | timeSeriesRawItemResultDto) => string | number
             = valuesCount === 1
             ? (columnName => dto => (dto as any)[columnName][0])
@@ -686,6 +694,7 @@ class query extends viewModelBase {
                 
                 const aggregationColumns = groupKeys.map(key => {
                     return new textColumn<timeSeriesQueryGroupedItemResultDto>(grid, maybeArrayPresenter(key), key, (50 / groupKeys.length) + "%");
+                    // return new timeSeriesColumn<timeSeriesQueryGroupedItemResultDto>(grid, maybeArrayPresenter(key), key, (50 / groupKeys.length) + "%");
                 });
                 
                 return [
