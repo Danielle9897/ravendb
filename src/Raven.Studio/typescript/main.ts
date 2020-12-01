@@ -21,6 +21,8 @@ requirejs.config({
           "moment": "../lib/moment/moment",
           "plugins/bootstrapModal": "../App/plugins/bootstrapModal",
           "diff": "../lib/diff/index"
+          // "leaflet": "../lib/leaflet/dist/leaflet.js"
+          //"leaflet": "../lib/leaflet/dist/leaflet"
       }  
     },
 

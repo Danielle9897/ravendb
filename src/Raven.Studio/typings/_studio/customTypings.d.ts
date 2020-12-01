@@ -1,3 +1,6 @@
+/// Leaflet
+declare const L: any;
+
 /// QRCode
 declare const QRCode: any;
 

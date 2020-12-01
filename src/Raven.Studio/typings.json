@@ -27,6 +27,7 @@
     "toastr": "github:DefinitelyTyped/DefinitelyTyped/toastr/index.d.ts#daf9bd392f4c8469ddc8849ee198bbdd1e57c7f4",
     "typeahead": "github:DefinitelyTyped/DefinitelyTyped/typeahead/typeahead.d.ts#7de6c3dd94feaeb21f20054b9f30d5dabc5efabd",
     "webcola": "github:DefinitelyTyped/DefinitelyTyped/webcola/index.d.ts#e808e8e062e8a2d3a00d2826fe71a7792ad8cc33"
+    "leaflet": "registry:dt/leaflet#1.0.0+20170324151803"
   },
   "dependencies": {
     "diff": "github:DefinitelyTyped/DefinitelyTyped/diff/index.d.ts#90198235019d12c00b3ccca03a36cc3d1579d644"

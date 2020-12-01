@@ -38,6 +38,8 @@ import timeSeriesColumn = require("widgets/virtualGrid/columns/timeSeriesColumn"
 import timeSeriesPlotDetails = require("viewmodels/common/timeSeriesPlotDetails");
 import timeSeriesQueryResult = require("models/database/timeSeries/timeSeriesQueryResult");
 import popoverUtils = require("common/popoverUtils");
+//import leaflet = require("leaflet");
+
 
 type queryResultTab = "results" | "explanations" | "timings" | "graph";
 
@@ -644,6 +646,33 @@ class query extends viewModelBase {
         this.queryHasFocus(true);
         
         this.timingsGraph.syncLegend();
+        
+        //console.log("********** " + leaflet);
+
+        //let map = leaflet.map('mapid').setView([51.505, -0.09], 13);
+        let mymap = L.map('mapid').setView([51.505, -0.09], 13);
+
+        // L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpandmbXliNDBjZWd2M2x6bDk3c2ZtOTkifQ._QA7i5Mpkd_m30IGElHziw', {
+        //     maxZoom: 18,
+        //     attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors, ' +
+        //         '<a href="http://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+        //         'Imagery © <a href="http://mapbox.com">Mapbox</a>',
+        //     id: 'mapbox.streets'
+        // }).addTo(mymap);
+        
+        // L.tileLayer('http://{s}.tile.osm.org/{z}/{x}/{y}.png', {
+        //     attribution: '&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+        // }).addTo(mymap);
+        
+        // leaflet.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+        //     attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+        //     maxZoom: 18,
+        //     id: 'mapbox/streets-v11',
+        //     tileSize: 512,
+        //     zoomOffset: -1,
+        //     accessToken: 'your.mapbox.access.token'
+        // }).addTo(map);
+                
     }
     
     private getQueriedIndexInfo() {

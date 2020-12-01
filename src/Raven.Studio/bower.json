@@ -39,7 +39,8 @@
     "forge": "^0.6.49",
     "jszip": "^3.1.5",
     "jszip-utils": "^0.0.2",
-    "diff": "https://cdnjs.cloudflare.com/ajax/libs/jsdiff/4.0.1/diff.min.js"
+    "diff": "https://cdnjs.cloudflare.com/ajax/libs/jsdiff/4.0.1/diff.min.js",
+    "leaflet": "https://github.com/Leaflet/Leaflet.git#^1.7.1"
   },
   "resolutions": {
     "jquery": "^2.2.0",
