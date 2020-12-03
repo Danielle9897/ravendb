@@ -133,11 +133,14 @@
                 </div>
                 <div class="pull-right" role="group">
                     <div class="btn-group has-disable-reason" data-bind="attr: { 'data-original-title': deleteDocumentDisableReason }, visible: currentTab() === 'results'">
-                        <button type="button" class="btn btn-danger btn-sm" data-bind="enable: canDeleteDocumentsMatchingQuery, click: deleteDocsMatchingQuery">
+                        <button type="button" class="btn btn-danger btn-sm" data-bind="enable: canDeleteDocumentsMatchingQuery, click: deleteDocsMatchingQuery" title="Delete all documents matching the query">
                             <i class="icon-trash"></i> <span>Delete documents</span>
                         </button>
                     </div>
-                    <button class="btn btn-default btn-sm statistics" data-bind="click: openQueryStats, enable: queryStats, visible: currentTab() === 'results'">
+                    <button class="btn btn-default btn-sm" data-bind="click: plotResultsOnMap, visible: currentTab() === 'results' && isSpatialQuery()" title="View results locations on Map">
+                        <i class="icon-magic-wand"></i><span>View on Map</span>
+                    </button>
+                    <button class="btn btn-default btn-sm statistics" data-bind="click: openQueryStats, enable: queryStats, visible: currentTab() === 'results'" title="View query stats">
                         <i class="icon-stats"></i><span>Statistics</span>
                     </button>
                     <div class="btn-group" data-bind="visible: currentTab() === 'results'">
@@ -152,8 +155,8 @@
                             <li title="Export visible columns only"><a href="#" data-bind="click: exportCsvVisibleColumns"><i class="icon-csv-export"></i><span>Export visible columns only</span></a></li>
                         </ul>
                     </div>
-                    <div class="btn-group dropdown-right" data-bind="visible: !showTimeSeriesGraph()">
-                        <button class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
+                    <div class="btn-group dropdown-right" data-bind="visible: !showTimeSeriesGraph() && !showResultsOnMap()">
+                        <button class="btn btn-default btn-sm dropdown-toggle" type="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true" title="Select document fields to display in results">
                             <i class="icon-table"></i><span>Display</span>
                             <span class="caret"></span>
                         </button>
@@ -213,9 +216,15 @@
                 </div>
                 <div class="panel-body js-graph-container graph-container absolute-fill" data-bind="visible: currentTab() === 'graph'">
                 </div>
+                
                 <div class="panel-body absolute-fill js-time-series-graph-container" data-bind="if: showTimeSeriesGraph(), visible: showTimeSeriesGraph()">
                     <div class="absolute-fill flex-vertical" data-bind="compose: $root.currentTab"></div>
                 </div>
+
+                <div class="panel-body absolute-fill js-time-series-graph-container" data-bind="if: showResultsOnMap(), visible: showResultsOnMap()">
+                    <div class="absolute-fill flex-vertical" data-bind="compose: $root.currentTab"></div>
+                </div>
+                
             </div>
         </div>
         <div class="flex-window-head">
@@ -223,6 +232,17 @@
                     data-bind="css: { active: currentTab() === 'results'}, click: goToResultsTab">
                 Results &nbsp; <span class="label" data-bind="text: totalResultsForUi().toLocaleString() + (hasMoreUnboundedResults() ? '+' : ''), css: { 'label-primary': totalResultsForUi(), 'label-default': !totalResultsForUi() }"></span>
             </button>
+
+
+<!--            todo visible ??? active ???-->
+            
+            <button type="button" class="btn btn-sm" data-bind="click: $root.goToSpatialMapTab, css: { active: currentTab() === 'spatialMap' }, visible: true">
+                <span>Spatial Map</span> &nbsp; <span class="label" data-bind="text: totalResultsForUi().toLocaleString() + (hasMoreUnboundedResults() ? '+' : ''), css: { 'label-primary': totalResultsForUi(), 'label-default': !totalResultsForUi() }"></span>
+            </button>
+<!--            <button type="button" class="btn btn-sm" data-bind="click: $root.goToSpatialMapTab, css: { active: currentTab() instanceof spatialQueryMap }, visible: true">-->
+<!--                <span>Spatial Map</span> &nbsp; <span class="label label-primary" data-bind="text: 'todo..'"></span>-->
+<!--            </button>-->
+            
             <!-- ko foreach: includesCache -->
                 <button type="button" class="btn btn-sm" data-bind="click: $root.goToIncludesTab, css: { active: $parent.currentTab() === $data }">
                     <span data-bind="text: 'Includes (' + name + ')'"></span> &nbsp; <span class="label label-primary" data-bind="text: total().toLocaleString()"></span>
@@ -382,7 +402,6 @@
         </div>
     </div>
 </script>
-
 
 <script type="text/html" id="time-series-graph-tooltip">
     <div class="tooltip-inner" data-bind="visible: items.length">

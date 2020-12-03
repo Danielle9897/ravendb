@@ -33,6 +33,9 @@ namespace Raven.Server.Documents.Queries
 {
     public class QueryMetadata
     {
+        
+        // add a collection of spatial fields (long, lat)
+        
         internal static string SelectOutput = "__selectOutput";
 
         private readonly Dictionary<string, QueryFieldName> _aliasToName = new Dictionary<string, QueryFieldName>();

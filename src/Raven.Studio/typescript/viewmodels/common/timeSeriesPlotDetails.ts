@@ -972,7 +972,6 @@ class timeSeriesPlotDetails extends viewModelBase {
     }
 }
 
-
 class quantizedLineRenderer {
     
     private first = true;
