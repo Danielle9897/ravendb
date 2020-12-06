@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Raven.Client;
 using Raven.Client.Documents.Indexes;
+using Raven.Client.Documents.Indexes.Spatial;
 using Raven.Client.Documents.Operations;
 using Raven.Client.Documents.Operations.CompareExchange;
 using Raven.Client.Documents.Operations.Counters;
@@ -230,6 +231,20 @@ namespace Raven.Server.Json
             writer.WriteEndObject();
         }
 
+        public static void WriteSpatialPropertyResult(this AbstractBlittableJsonTextWriter writer, JsonOperationContext context, SpatialProperty result)
+        {
+            writer.WriteStartObject();
+
+            writer.WritePropertyName(nameof(result.LatitudeProperty));
+            writer.WriteString(result.LatitudeProperty);
+            writer.WriteComma();
+            
+            writer.WritePropertyName(nameof(result.LongitudeProperty));
+            writer.WriteString(result.LongitudeProperty);
+            
+            writer.WriteEndObject();
+        }
+        
         public static void WriteSuggestionResult(this AbstractBlittableJsonTextWriter writer, JsonOperationContext context, SuggestionResult result)
         {
             writer.WriteStartObject();
@@ -374,6 +389,7 @@ namespace Raven.Server.Json
 
         public static async Task<int> WriteDocumentQueryResultAsync(this AsyncBlittableJsonTextWriter writer, JsonOperationContext context, DocumentQueryResult result, bool metadataOnly, Action<AsyncBlittableJsonTextWriter> writeAdditionalData = null)
         {
+                
             writer.WriteStartObject();
 
             writer.WritePropertyName(nameof(result.TotalResults));
@@ -476,6 +492,37 @@ namespace Raven.Server.Json
                 writer.WriteComma();
                 writer.WritePropertyName(nameof(result.CompareExchangeValueIncludes));
                 await writer.WriteCompareExchangeValues(compareExchangeValues);
+            }
+            
+            // todo - write the results here !!!!!!
+            var spatialProperties = result.SpatialProperties;
+            if (spatialProperties != null)
+            {
+                writer.WriteComma();
+                
+                //writer.WritePropertyName(nameof(result.SpatialProperties));
+                //writer.WriteArray(nameof(result.SpatialProperties), spatialProperties);
+                
+                writer.WriteArray(context, nameof(result.SpatialProperties), spatialProperties, (w, c, spatialProperty) => w.WriteSpatialPropertyResult(c, spatialProperty));
+
+                ///
+                // writer.WriteStartObject();
+                // var first = true;
+                // foreach (var sp in result.SpatialProperties)
+                // {
+                //     if (first == false)
+                //         writer.WriteComma();
+                //     first = false;
+                //
+                //     writer.WritePropertyName(nameof(SpatialProperty.LatitudeProperty));
+                //     writer.WriteString(sp.LatitudeProperty);
+                //     writer.WriteComma();
+                //     writer.WritePropertyName(nameof(SpatialProperty.LongitudeProperty));
+                //     writer.WriteString(sp.LongitudeProperty);
+                // }
+                //
+                // writer.WriteEndObject();
+                ///
             }
 
             writeAdditionalData?.Invoke(writer);

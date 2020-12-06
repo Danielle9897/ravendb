@@ -37,6 +37,8 @@ import generalUtils = require("common/generalUtils");
 import timeSeriesColumn = require("widgets/virtualGrid/columns/timeSeriesColumn");
 import timeSeriesPlotDetails = require("viewmodels/common/timeSeriesPlotDetails");
 import timeSeriesQueryResult = require("models/database/timeSeries/timeSeriesQueryResult");
+import spatialMapLayerModel = require("models/database/query/spatialMapLayerModel");
+import spatialQueryMap = require("viewmodels/database/query/spatialQueryMap");
 import popoverUtils = require("common/popoverUtils");
 
 type queryResultTab = "results" | "explanations" | "timings" | "graph";
@@ -159,7 +161,8 @@ class query extends viewModelBase {
     fromCache = ko.observable<boolean>(false);
     originalRequestTime = ko.observable<number>();
     dirtyResult = ko.observable<boolean>();
-    currentTab = ko.observable<queryResultTab | highlightSection | perCollectionIncludes | timeSeriesPlotDetails | timeSeriesTableDetails>("results");
+    //currentTab = ko.observable<queryResultTab | highlightSection | perCollectionIncludes | timeSeriesPlotDetails | timeSeriesTableDetails>("results");
+    currentTab = ko.observable<queryResultTab | highlightSection | perCollectionIncludes | timeSeriesPlotDetails | timeSeriesTableDetails | spatialQueryMap>("results");
     totalResultsForUi = ko.observable<number>(0);
     hasMoreUnboundedResults = ko.observable<boolean>(false);
     graphTabIsDirty = ko.observable<boolean>(true);
@@ -178,12 +181,16 @@ class query extends viewModelBase {
     isCollectionQuery: KnockoutComputed<boolean>;
     isGraphQuery: KnockoutComputed<boolean>;
     isDynamicQuery: KnockoutComputed<boolean>;
-    isAutoIndex: KnockoutComputed<boolean>;
+    isAutoIndex: KnockoutComputed<boolean>;    
     
     showVirtualTable: KnockoutComputed<boolean>;
     showTimeSeriesGraph: KnockoutComputed<boolean>;
     showPlotButton: KnockoutComputed<boolean>;
-    
+
+    queryHasSpatialResults = ko.observable<boolean>();
+    spatialMap = ko.observable<spatialQueryMap>();
+    showResultsOnMap: KnockoutComputed<boolean>;
+        
     timeSeriesGraphs = ko.observableArray<timeSeriesPlotDetails>([]);
     timeSeriesTables = ko.observableArray<timeSeriesTableDetails>([]);
 
@@ -252,7 +259,7 @@ class query extends viewModelBase {
 
         this.bindToCurrentInstance("runRecentQuery", "previewQuery", "removeQuery", "useQuery", "useQueryItem", 
             "goToHighlightsTab", "goToIncludesTab", "goToGraphTab", "toggleResults", "goToTimeSeriesTab", "plotTimeSeries",
-            "closeTimeSeriesTab");
+            "closeTimeSeriesTab", "goToSpatialMapTab");
     }
 
     private initObservables() {
@@ -459,11 +466,14 @@ class query extends viewModelBase {
             }
         });
 
+        this.showResultsOnMap = ko.pureComputed(() => this.currentTab() instanceof spatialQueryMap);
+        
         this.showTimeSeriesGraph = ko.pureComputed(() => this.currentTab() instanceof timeSeriesPlotDetails);
         
         this.showVirtualTable = ko.pureComputed(() => {
             const currentTab = this.currentTab();
-            return currentTab !== 'timings' && currentTab !== 'graph' && !this.showTimeSeriesGraph();
+            //return currentTab !== 'timings' && currentTab !== 'graph' && !this.showTimeSeriesGraph();
+            return currentTab !== 'timings' && currentTab !== 'graph' && !this.showTimeSeriesGraph() && !this.showResultsOnMap();
         });
     }
 
@@ -901,7 +911,35 @@ class query extends viewModelBase {
                                 
                                 this.hasMoreUnboundedResults(itemsSoFar < totalFromQuery);
                             }
-                            this.totalResultsForUi(this.hasMoreUnboundedResults() ? itemsSoFar - 1 : itemsSoFar);
+                            this.totalResultsForUi(this.hasMoreUnboundedResults() ? itemsSoFar - 1 : itemsSoFar);                            
+                        }
+                        
+                        const spatialProperties = queryResults.additionalResultInfo.SpatialProperties
+                        if (spatialProperties && queryResults.items.length) {
+                            this.queryHasSpatialResults(true);
+                            
+                            // Each spatial map model will contain the layer of markers per spatial properties pair
+                            let spatialMapModels: spatialMapLayerModel[] = [];
+                            
+                            for (let i = 0; i < spatialProperties.length; i++) {
+                                const latitudeProperty = spatialProperties[i].LatitudeProperty;
+                                const longitudeProperty = spatialProperties[i].LongitudeProperty;
+                                
+                                let pointsArray: geoPoint[] = [];
+                                for (let i = 0; i < queryResults.items.length; i++) {
+                                    const item = queryResults.items[i];
+                                    const latitudeValue = _.get(item, latitudeProperty) as number;
+                                    const longitudeValue = _.get(item, longitudeProperty) as number;
+                                    const point: geoPoint = { latitude: latitudeValue, longitude: longitudeValue, popupContent: item };
+                                    pointsArray.push(point);
+                                }
+                                
+                                const layerModel = new spatialMapLayerModel(latitudeProperty, longitudeProperty, pointsArray);
+                                spatialMapModels.push(layerModel);
+                            }
+                            
+                            const spatialMapView = new spatialQueryMap(spatialMapModels);
+                            this.spatialMap(spatialMapView);
                         }
                         
                         const endQueryTime = new Date().getTime();
@@ -915,8 +953,8 @@ class query extends viewModelBase {
                             this.fromCache(false);
                         }
                         
-                        const emptyFieldsResult = queryForAllFields 
-                            && queryResults.totalResultCount > 0 
+                        const emptyFieldsResult = queryForAllFields
+                            && queryResults.totalResultCount > 0
                             && _.every(queryResults.items, x => x.getDocumentPropertyNames().length === 0);
                         
                         if (emptyFieldsResult) {
@@ -1167,6 +1205,21 @@ class query extends viewModelBase {
             });
         });
     }
+
+    plotResultsOnMap() {
+        // // create the model and view model here !!        
+        // // get info from query results... todo...
+        //
+        // let p2: geoPoint = { longitude: 47.00, latitude: 48.00, tooltipContent: "some text.." };
+        // let test: geoPoint[] = [p2];
+        // const f1 = new spatialQueryMapModel("parentProp", "longProp", "latProp", test)
+        //
+        // const spatialMapView = new spatialQueryMap([f1]);
+        // this.spatialMap(spatialMapView);
+
+        // here or in runQuery?
+        this.goToSpatialMapTab();
+    }
     
     plotTimeSeries() {
         const selection = this.gridController().getSelectedItems();
@@ -1348,9 +1401,23 @@ class query extends viewModelBase {
                 .done((result) => {
                     this.graphTabIsDirty(false);
                     this.graphQueryResults.draw(result);
-                });    
+                });
         }
     }
+
+    goToSpatialMapTab() {
+        this.currentTab(this.spatialMap());
+        //this.resultsExpanded(true);
+
+        // this.spatialMap().play();
+
+        // todo - this is not working when coming from clicking on the bottom tab ??? 
+        // fetcher ???
+
+        //this.columnsSelector.reset();
+        //this.refresh();
+    }
+
 
     goToTimeSeriesTab(tab: timeSeriesPlotDetails | timeSeriesTableDetails) {
         this.currentTab(tab);

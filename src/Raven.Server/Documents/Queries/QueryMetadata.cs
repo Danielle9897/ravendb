@@ -177,6 +177,8 @@ namespace Raven.Server.Documents.Queries
 
         public DateTime LastQueriedAt;
 
+        public List<SpatialProperty> SpatialResults;
+
         private void AddExistField(QueryFieldName fieldName, BlittableJsonReaderObject parameters)
         {
             IndexFieldNames.Add(GetIndexFieldName(fieldName, parameters));
@@ -2294,7 +2296,7 @@ namespace Raven.Server.Documents.Queries
 
                     fieldName = _metadata.ExtractFieldNameFromArgument(argument, withoutAlias, methodName, parameters, QueryText);
                 }
-                else
+                else // dynamic query case
                 {
                     if (!(arguments[0] is MethodExpression spatialExpression))
                         throw new InvalidQueryException($"Method {methodName}() expects first argument to be a method expression", QueryText, parameters);
@@ -2314,17 +2316,22 @@ namespace Raven.Server.Documents.Queries
                             });
                             break;
                         case MethodType.Spatial_Point:
+                            
                             if (spatialExpression.Arguments.Count != 2)
                                 throw new InvalidQueryException($"Method {methodName}() expects first argument to be a point() method with 2 arguments", QueryText, parameters);
 
-                            var latitude = _metadata.ExtractFieldNameFromArgument(spatialExpression.Arguments[0], withoutAlias, "point", parameters, QueryText).Value;
-                            var longitude = _metadata.ExtractFieldNameFromArgument(spatialExpression.Arguments[1], withoutAlias, "point", parameters, QueryText).Value;
+                            var latitudePropertyPath = _metadata.ExtractFieldNameFromArgument(spatialExpression.Arguments[0], withoutAlias, "point", parameters, QueryText).Value;
+                            var longitudePropertyPath = _metadata.ExtractFieldNameFromArgument(spatialExpression.Arguments[1], withoutAlias, "point", parameters, QueryText).Value;
 
                             fieldOptions = new AutoSpatialOptions(AutoSpatialOptions.AutoSpatialMethodType.Point, new List<string>
                             {
-                                latitude,
-                                longitude
+                                latitudePropertyPath,
+                                longitudePropertyPath
                             });
+                            
+                            // todo write to query metadata
+                            _metadata.SpatialResults ??= new List<SpatialProperty>();
+                            _metadata.SpatialResults.Add( new SpatialProperty(latitudePropertyPath, longitudePropertyPath));
                             break;
                         default:
                             throw new InvalidQueryException($"Method {methodName}() expects first argument to be a point() or wkt() method", QueryText, parameters);
@@ -2369,6 +2376,8 @@ namespace Raven.Server.Documents.Queries
                 }
 
                 _metadata.AddWhereField(fieldName, parameters, exact: _insideExact > 0, spatial: fieldOptions);
+               
+                
             }
 
             private void HandleSum(List<QueryExpression> arguments, BlittableJsonReaderObject parameters)

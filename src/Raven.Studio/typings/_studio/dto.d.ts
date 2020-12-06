@@ -742,3 +742,15 @@ interface sampleCode {
 }
 
 type OnlyStrings<T> = { [ P in keyof T]: T[P] extends string ? P : never }[keyof T & string];
+
+// interface geoPointNames {
+//     parentPropertyName: string;
+//     longitudeName: string;
+//     latitudeName: string;
+// }
+
+interface geoPoint {
+    latitude: number;
+    longitude: number;
+    popupContent: document;
+}
