@@ -175,6 +175,8 @@ select project(e)")]
 
 
                     Assert.Equal(1, s.Advanced.NumberOfRequests);
+                    
+                    WaitForUserToContinueTheTest(store);
 
                     if (employees[0].ReportsTo != null)
                         s.Load<Employee>(employees[0].ReportsTo);

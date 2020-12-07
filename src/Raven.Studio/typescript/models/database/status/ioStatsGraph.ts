@@ -227,7 +227,7 @@ class ioStatsGraph {
 
     private static readonly indexesString = "Indexes";
 
-    private static readonly meterTypes: Array<Sparrow.Server.Meters.IoMetrics.MeterType> = [ "JournalWrite", "DataFlush", "DataSync", "Compression" ];
+    private static readonly meterTypes: Array<Sparrow.Server.Meters.IoMetrics.MeterType> = [ "JournalWrite", "JournalWait", "DataFlush", "DataSync", "Compression" ];
 
     /* private observables */
 
@@ -314,6 +314,9 @@ class ioStatsGraph {
             low: undefined as string, high: undefined as string
         },
         "JournalWrite": {
+            low: undefined as string, high: undefined as string
+        },
+        "JournalWait": {
             low: undefined as string, high: undefined as string
         }
     };
@@ -699,6 +702,7 @@ class ioStatsGraph {
 
                     switch (recentItem.Type) {
                         case "JournalWrite":
+                        // case "JournalWait": // new
                         case "Compression":
                             yStartItem = ioStatsGraph.closedTrackHeight;
                             break;
@@ -707,6 +711,11 @@ class ioStatsGraph {
                             break;
                         case "DataSync":
                             yStartItem = ioStatsGraph.closedTrackHeight * 3;
+                            break;
+                            
+                        // try    
+                        case "JournalWait":
+                            yStartItem = ioStatsGraph.closedTrackHeight * 4;
                             break;
                     }
 
@@ -1036,9 +1045,12 @@ class ioStatsGraph {
 
         const yStartPerTypeCache = new Map<Sparrow.Server.Meters.IoMetrics.MeterType, number>();
         yStartPerTypeCache.set("JournalWrite", yStart + ioStatsGraph.closedTrackHeight + ioStatsGraph.itemMargin);
+        // yStartPerTypeCache.set("JournalWait", yStart + ioStatsGraph.closedTrackHeight + ioStatsGraph.itemMargin); // new
         yStartPerTypeCache.set("Compression", yStart + ioStatsGraph.closedTrackHeight + ioStatsGraph.itemMargin);
         yStartPerTypeCache.set("DataFlush", yStart + ioStatsGraph.closedTrackHeight + ioStatsGraph.itemMargin * 2 + ioStatsGraph.itemHeight);
         yStartPerTypeCache.set("DataSync", yStart + ioStatsGraph.closedTrackHeight + ioStatsGraph.itemMargin * 3 + ioStatsGraph.itemHeight * 2);
+
+        yStartPerTypeCache.set("JournalWait", yStart + ioStatsGraph.closedTrackHeight + ioStatsGraph.itemMargin * 4 + ioStatsGraph.itemHeight * 3); // try
 
         const visibleStartDateAsInt = visibleTimeFrame[0].getTime();
         const visibleEndDateAsInt = visibleTimeFrame[1].getTime();
@@ -1111,9 +1123,12 @@ class ioStatsGraph {
 
         const yStartPerTypeCache = new Map<Sparrow.Server.Meters.IoMetrics.MeterType, number>();
         yStartPerTypeCache.set("JournalWrite", yStart + ioStatsGraph.closedTrackHeight + ioStatsGraph.itemMargin);
+        // yStartPerTypeCache.set("JournalWait", yStart + ioStatsGraph.closedTrackHeight + ioStatsGraph.itemMargin);
         yStartPerTypeCache.set("Compression", yStart + ioStatsGraph.closedTrackHeight + ioStatsGraph.itemMargin);
         yStartPerTypeCache.set("DataFlush", yStart + ioStatsGraph.closedTrackHeight + ioStatsGraph.itemMargin * 2 + ioStatsGraph.itemHeight);
         yStartPerTypeCache.set("DataSync", yStart + ioStatsGraph.closedTrackHeight + ioStatsGraph.itemMargin * 3 + ioStatsGraph.itemHeight * 2);
+        
+        yStartPerTypeCache.set("JournalWait", yStart + ioStatsGraph.closedTrackHeight + ioStatsGraph.itemMargin * 4 + ioStatsGraph.itemHeight * 3); //try
 
         const visibleStartDateAsInt = visibleTimeFrame[0].getTime();
         const visibleEndDateAsInt = visibleTimeFrame[1].getTime();
@@ -1519,6 +1534,8 @@ class ioStatsGraph {
         switch (type) {
             case "JournalWrite":
                 return "Journal Write";
+            case "JournalWait":
+                return "Journal Wait";
             case "DataFlush":
                 return "Voron Data Flush";
             case "DataSync":
