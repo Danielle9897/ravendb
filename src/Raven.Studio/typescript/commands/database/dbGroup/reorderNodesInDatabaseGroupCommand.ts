@@ -16,7 +16,8 @@ class reorderNodesInDatabaseGroupCommand extends commandBase {
         const payload = {
             MembersOrder: this.nodesOrder,
             Fixed: this.fixedTopology
-        } as Raven.Client.ServerWide.Operations.ReorderDatabaseMembersOperation.Parameters;
+        // } as Raven.Client.ServerWide.Operations.ReorderDatabaseMembersOperation.Parameters;
+        };
         
         return this.post<void>(url, JSON.stringify(payload), null,  { dataType: undefined })
             .done(() => this.reportSuccess("Nodes order was successfully saved"))

@@ -14,18 +14,23 @@ class changeVectorUtils {
         if (!input) {
             return [];
         }
-        let tokens = input.split(",").map(x => {
-            const trimmedValue = _.trim(x);
-
-            const [tag, rest] = trimmedValue.split(":", 2);
-            const [etag, dbId] = rest.split("-", 2);
-
-            return {
-                tag: tag,
-                etag: etag,
-                dbId: dbId,
-                original: x
-            };
+        let tokens = input.split(",").map(cvEntry => {
+            
+            return changeVectorUtils.parseChangeVectorEntry(cvEntry);
+            
+            // todo - check if works well for the stats...
+            
+            // const trimmedValue = _.trim(x);
+            //
+            // const [tag, rest] = trimmedValue.split(":", 2);
+            // const [etag, dbId] = rest.split("-", 2);
+            //
+            // return {
+            //     tag: tag,
+            //     etag: etag,
+            //     dbId: dbId,
+            //     original: x
+            // };
         });
 
         tokens = _.sortBy(tokens, x => x.tag);
@@ -60,8 +65,25 @@ class changeVectorUtils {
         const tokens = changeVectorUtils.parse(input);
         return tokens.map(x => `${x.tag}:${x.etag}`).join(", ");
     }
-                              
     
+    static getDatabaseID(cvEntry: string) {
+        const tokens = changeVectorUtils.parseChangeVectorEntry(cvEntry);
+        return tokens.dbId;
+    }
+    
+    private static parseChangeVectorEntry(cvEntry: string) {
+        const trimmedValue = _.trim(cvEntry);
+
+        const [tag, rest] = trimmedValue.split(":", 2);
+        const [etag, dbId] = rest.split("-", 2);
+
+        return {
+            tag: tag,
+            etag: etag,
+            dbId: dbId,
+            original: cvEntry
+        };
+    }
 } 
 
 export = changeVectorUtils;

@@ -125,12 +125,21 @@ function getSettingsMenuItem(appUrls: computedAppUrls) {
         new separatorMenuItem(),
         new separatorMenuItem('Advanced'),
         new leafMenuItem({
-            route: ['databases/record', 'databases/advanced/databaseRecord'],
+            // route: ['databases/record', 'databases/advanced/databaseRecord'],
+            route: 'databases/advanced/databaseRecord',
             moduleId: 'viewmodels/database/advanced/databaseRecord',
             title: 'Database Record',
             nav: access.showDatabaseRecordMenuItem,
             css: 'icon-database-record',
             dynamicHash: appUrls.databaseRecord
+        }),
+        new leafMenuItem({
+            route: 'databases/advanced/databaseIDs',
+            moduleId: 'viewmodels/database/advanced/databaseIDs',
+            title: 'Database IDs',
+            nav: access.showDatabaseIDsMenuItem,
+            css: 'icon-settings',
+            dynamicHash: appUrls.databaseIDs
         })
     ];
 
