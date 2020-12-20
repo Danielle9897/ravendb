@@ -1,4 +1,5 @@
 ﻿using System;
+using Org.BouncyCastle.Crypto;
 using Raven.Client.Documents.Changes;
 using Sparrow.Collections;
 
@@ -19,6 +20,15 @@ namespace Raven.Server.TrafficWatch
         {
             ServerHttpTrace.TryRemove(connection);
             connection.Dispose();
+        }
+
+        // todo remove..
+        public static void Test()
+        {
+            foreach (var con in ServerHttpTrace)
+            {           
+                Disconnect(con); // this will close the ws
+            }
         }
 
         public static void DispatchMessage(TrafficWatchChange trafficWatchData)

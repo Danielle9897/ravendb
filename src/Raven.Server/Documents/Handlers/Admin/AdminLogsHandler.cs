@@ -61,9 +61,17 @@ namespace Raven.Server.Documents.Handlers.Admin
             NoContentStatus();
         }
 
+        [RavenAction("/admin/logs/watch-disc", "GET", AuthorizationStatus.Operator)]
+        public async Task Disc()
+        {
+            LoggingSource.Instance.Test();
+        }
+        
         [RavenAction("/admin/logs/watch", "GET", AuthorizationStatus.Operator)]
         public async Task RegisterForLogs()
         {
+            //await Task.Delay(5000);
+            
             using (var socket = await HttpContext.WebSockets.AcceptWebSocketAsync())
             {
                 var context = new LoggingSource.WebSocketContext();

@@ -190,8 +190,26 @@ namespace Sparrow.Logging
             SetupLogMode(logMode, path, retentionTime ?? TimeSpan.MaxValue, retentionSize ?? long.MaxValue, compress);
         }
 
+        public void Test()
+        {
+            if (_listeners != null && _listeners.IsEmpty == false)
+            {
+                RemoveWebSocket(_listeners.Keys.First(), "imitate closing ws"); // or iterate on all listeners..
+            }
+        }
+        
         public void SetupLogMode(LogMode logMode, string path, TimeSpan retentionTime, long retentionSize, bool compress)
         {
+            // if (logMode == LogMode.Operations)
+            // {
+            //     // EndLogging(); // test...
+            //     if (_listeners != null && _listeners.IsEmpty == false)
+            //     {
+            //         RemoveWebSocket(_listeners.Keys.First(), "imitate closing ws"); // or iterate on all listeners..
+            //         return;
+            //     }
+            // }
+
             lock (this)
             {
                 var copyLoggingThread = _loggingThread;

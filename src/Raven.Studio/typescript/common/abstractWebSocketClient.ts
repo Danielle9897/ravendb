@@ -1,5 +1,4 @@
 /// <reference path="../../typings/tsd.d.ts" />
-
 import database = require("models/resources/database");
 import appUrl = require("common/appUrl");
 
@@ -56,15 +55,12 @@ abstract class abstractWebSocketClient<T> {
         action.call(this);
     }
 
-    protected onClose(e: CloseEvent) {
-        // empty
-    }
-
     protected isJsonBasedClient() {
         return true;
     }
     
     private connectWebSocket(connectArgs: any) {
+        console.log("abstract - in connect web socket");
         let connectionOpened: boolean = false;
         
         const wsProtocol = window.location.protocol === "https:" ? "wss://" : "ws://";
@@ -90,17 +86,19 @@ abstract class abstractWebSocketClient<T> {
                 this.onError(e);
             }
         };
+        
         this.webSocket.onclose = (e: CloseEvent) => {
             this.onClose(e);
+            
             if (!e.wasClean) {
                 this.onError(e);
+            }
 
-                if (this.autoReconnect) {
-                    // Connection has closed uncleanly, so try to reconnect.
-                    this.connect(() => this.connectWebSocket(connectArgs));
-                }
+            if (this.autoReconnect) {
+                this.connect(() => this.connectWebSocket(connectArgs));
             }
         };
+        
         this.webSocket.onopen = () => {
             this.onOpen();
             connectionOpened = true;
@@ -109,12 +107,15 @@ abstract class abstractWebSocketClient<T> {
 
     protected onOpen() {
         console.log("Connected to WebSocket changes API (" + this.connectionDescription + ")");
-        
-        this.reconnect();
+        this.onConnectionEstablished();
         this.connectToWebSocketTask.resolve();
     }
 
-    protected reconnect() {
+    protected onConnectionEstablished() {
+        // empty by design
+    }
+
+    protected onClose(e: CloseEvent) {
         // empty by design
     }
 

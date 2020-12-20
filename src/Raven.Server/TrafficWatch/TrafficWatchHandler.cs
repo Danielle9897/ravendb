@@ -20,6 +20,13 @@ namespace Raven.Server.TrafficWatch
     {
         private static readonly Logger _logger = LoggingSource.Instance.GetLogger<TrafficWatchHandler>("Server");
 
+        // todo remove
+        [RavenAction("/admin/traffic-watch-disc", "GET", AuthorizationStatus.Operator)]
+        public async Task Disc()
+        {
+            TrafficWatchManager.Test(); // disconnect.. // close traffic watch ws
+        }
+        
         [RavenAction("/admin/traffic-watch", "GET", AuthorizationStatus.Operator)]
         public async Task TrafficWatchWebsockets()
         {
