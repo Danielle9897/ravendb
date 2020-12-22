@@ -2,7 +2,6 @@ import router = require("plugins/router");
 import app = require("durandal/app");
 import appUrl = require("common/appUrl");
 import viewModelBase = require("viewmodels/viewModelBase");
-
 import eventsCollector = require("common/eventsCollector");
 import deleteCompareExchangeConfirm = require("viewmodels/database/documents/deleteCompareExchangeConfirm");
 import deleteCompareExchangeProgress = require("viewmodels/database/documents/deleteCompareExchangeProgress");
@@ -26,7 +25,7 @@ class cmpXchg extends viewModelBase {
     private columnPreview = new columnPreviewPlugin<Raven.Server.Web.System.CompareExchangeHandler.CompareExchangeListItem>();
 
     spinners = {
-        delete: ko.observable<boolean>(false),
+        delete: ko.observable<boolean>(false)
     };
 
     constructor() {
@@ -50,6 +49,7 @@ class cmpXchg extends viewModelBase {
             }
             return selectedDocsCount;
         });
+        
         this.deleteEnabled = ko.pureComputed(() => {
             const deleteInProgress = this.spinners.delete();
             const selectedDocsCount = this.selectedItemsCount();
@@ -132,7 +132,7 @@ class cmpXchg extends viewModelBase {
         if (rawSelection.mode === "exclusive" && !rawSelection.excluded.length && !rawSelection.included.length) {
             // this is special case - user select all values, with out any exclusions, suggest deleting all cmpXchg values
             // (including items which wasn't downloaded yet)
-            this.confirmationMessage("Are you sure?", "Deleting <strong>ALL</strong> compare exchange values.", { html: true, buttons: ["Cancel", "Delete All"] })
+            this.confirmationMessage("Are you sure?", "Deleting <strong>ALL</strong> compare exchange items.", { html: true, buttons: ["Cancel", "Delete All"] })
                 .done(result => {
                     if (result.can) {
                         this.spinners.delete(true);
@@ -147,7 +147,6 @@ class cmpXchg extends viewModelBase {
                             })
                     }
                 })
-            
         } else {
             eventsCollector.default.reportEvent("cmpXchg", "delete");
 

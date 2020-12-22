@@ -24,7 +24,6 @@ class getCompareExchangeValuesCommand extends commandBase {
         const url = endpoints.databases.compareExchange.cmpxchg + this.urlEncodeArgs(args);
         return this.query(url, null, this.database, resultsSelector);
     }
-
 }
 
 export = getCompareExchangeValuesCommand;

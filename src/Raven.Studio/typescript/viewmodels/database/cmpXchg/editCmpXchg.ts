@@ -1,6 +1,5 @@
 import app = require("durandal/app");
 import router = require("plugins/router");
-
 import appUrl = require("common/appUrl");
 import jsonUtil = require("common/jsonUtil");
 import messagePublisher = require("common/messagePublisher");
@@ -11,84 +10,197 @@ import getCompareExchangeValueCommand = require("commands/database/cmpXchg/getCo
 import saveCompareExchangeValueCommand = require("commands/database/cmpXchg/saveCompareExchangeValueCommand");
 import deleteCompareExchangeConfirm = require("viewmodels/database/documents/deleteCompareExchangeConfirm");
 import deleteCompareExchangeProgress = require("viewmodels/database/documents/deleteCompareExchangeProgress");
-
+import compareExchangeWarningsConfirm = require("viewmodels/database/documents/compareExchangeWarningsConfirm");
 import viewModelBase = require("viewmodels/viewModelBase");
 import eventsCollector = require("common/eventsCollector");
 
-class editCmpXchg extends viewModelBase {
+type contentType = "Value" | "Metadata";
 
-    spinners = {
-        delete: ko.observable<boolean>(false)
-    };
+class editorInfo { // todo make model file ? compareExchangeEditorModel ?
+
+    type: contentType;
+    selector: string;
     
-    static valueEditorSelector = "#docEditor";
-
-    key = ko.observable<string>("");
-    value = ko.observable<any>();
-    valueText = ko.observable("");
-    loadedIndex = ko.observable<number>(0);
-
-    isCreatingNewValue = ko.observable(false);
-
-    globalValidationGroup = ko.validatedObservable({
-        key: this.key,
-        valueText: this.valueText
-    });
-
-    private valueEditor: AceAjax.Editor;
-
+    contentEditor: AceAjax.Editor;
+    
+    content = ko.observable<any>();
+    contentText = ko.observable<string>("");
+    
+    isContentCollapsed = ko.observable<boolean>(false);
     isNewLineFriendlyMode = ko.observable<boolean>(false);
-    autoCollapseMode = ko.observable<boolean>(false);
-    isSaving = ko.observable<boolean>(false);
-    isSaveEnabled: KnockoutComputed<boolean>;
-    displayExternalChange = ko.observable<boolean>(false);
     
-    constructor() {
-        super();
-        aceEditorBindingHandler.install();
+    constructor(type: contentType, selector: string, content: any) {
         this.initializeObservables();
         this.initValidation();
+
+        this.type = type;
+        this.selector = selector;
+        this.content(content);
     }
 
+    private initializeObservables() {
+        this.content.subscribe(content => {
+            if (!_.isUndefined(content)) {
+                const text = this.stringify(content);
+                this.contentText(text);
+            }
+        });
+
+        this.isNewLineFriendlyMode.subscribe(val => {
+            this.updateNewlineLayout(val); // ???
+        });
+    }
+
+    private initValidation() {
+        this.contentText.extend({
+            aceValidation: true
+        });
+    }
+    
+    initEditor() {
+        this.contentEditor = aceEditorBindingHandler.getEditorBySelection($(this.selector)); // called only upon composition complete...
+    }
+
+    private stringify(obj: any) {
+        const prettifySpacing = 4;
+        return JSON.stringify(obj, null, prettifySpacing);
+    }
+    
+    private updateNewlineLayout(unescapeNewline: boolean) {
+
+        if (unescapeNewline) {
+            this.contentText(documentHelpers.unescapeNewlinesAndTabsInTextFields(this.contentText()));
+            this.contentEditor.getSession().setMode('ace/mode/json_newline_friendly');
+        } else {
+            this.contentText(documentHelpers.escapeNewlinesAndTabsInTextFields(this.contentText()));
+            this.contentEditor.getSession().setMode('ace/mode/raven_document');
+            this.formatContent();
+        }
+    }
+
+    private formatContent() {
+        eventsCollector.default.reportEvent("cmpXchg", "format");
+        try {
+            const editorText = this.contentEditor.getSession().getValue();
+            const tempValue = JSON.parse(editorText);
+            const formatted = this.stringify(tempValue);
+            this.contentText(formatted);
+        } catch (e) {
+            messagePublisher.reportError("Could not format json", undefined, undefined, false);
+        }
+    }
+
+    focusOnEditor() {
+        this.contentEditor.focus();
+    }
+
+    toClipboard() {
+        copyToClipboard.copy(this.contentText(), `${this.type} has been copied to clipboard`);
+    }
+
+    toggleNewlineMode() {
+        this.isNewLineFriendlyMode.toggle();
+    }
+
+    toggleCollapseContent() {
+        if (this.isContentCollapsed()) {
+            this.unfoldContent();
+        } else {
+            this.collapseContent();
+        }
+    }
+
+    private collapseContent() {
+        this.foldAll();
+        this.isContentCollapsed(true);
+    }
+
+    private unfoldContent() {
+        this.contentEditor.getSession().unfold(null, true);
+        this.isContentCollapsed(false);
+    }
+
+    private foldAll() {
+        const AceRange = ace.require("ace/range").Range;
+        this.contentEditor.getSession().foldAll();
+        const folds = <any[]> this.contentEditor.getSession().getFoldsInRange(new AceRange(0, 0, this.contentEditor.getSession().getLength(), 0));
+        folds.map(f => this.contentEditor.getSession().expandFold(f));
+    }
+
+    tryRestoreSelection() {
+        const currentSelection = this.contentEditor.getSelectionRange();
+        this.updateNewlineLayout(this.isNewLineFriendlyMode());
+        this.contentEditor.selection.setRange(currentSelection, false);
+    }
+    
+    toDto() {
+        let dto: any;
+        
+        try {
+            if (this.isNewLineFriendlyMode()) {
+                dto = JSON.parse(documentHelpers.escapeNewlinesAndTabsInTextFields(this.contentText()));
+            } else {
+                dto = JSON.parse(this.contentText());
+            }
+        } catch (e) {
+            this.focusOnEditor();
+            
+            if (dto == undefined)
+                throw(`${this.type} content is not a legal JSON expression`);
+        }
+        
+        return dto;
+    }
+}
+
+class editCmpXchg extends viewModelBase {
+
+    cmpXchUrl = ko.pureComputed(() => this.appUrls.cmpXchg());
+
+    key = ko.observable<string>("");
+    loadedIndex = ko.observable<number>(0);
+    
+    newValueEditor: KnockoutObservable<editorInfo>; // todo rename later...
+    newMetadataEditor: KnockoutObservable<editorInfo>; // todo rename later...
+
+    isSaveEnabled: KnockoutComputed<boolean>;
+    isCreatingNewItem = ko.observable(false);
+
+    spinners = {
+        delete: ko.observable<boolean>(false),
+        save: ko.observable<boolean>(false)
+    };
+
+    displayExternalChange = ko.observable<boolean>(false);
+    globalValidationGroup: KnockoutValidationGroup;
+    
+    static valueEditorSelector = "#valueEditor";
+    static metadataEditorSelector = "#metadataEditor";
+    
+    hasMetadata = ko.observable<boolean>(false);
+
+    constructor() {
+        super();
+        this.bindToCurrentInstance("removeMetadata");        
+        aceEditorBindingHandler.install();
+    }
+    
     canActivate(args: any) {
         return $.when<any>(super.canActivate(args))
             .then(() => {
                 if (args && args.key) {
                     return this.activateByKey(args.key);
                 } else {
+                    this.isCreatingNewItem(true);
+                    this.createEditors();
                     return $.Deferred().resolve({ can: true });
                 }
             });
     }
-
-    activate(navigationArgs: { database: string, key: string }) {
-        super.activate(navigationArgs);
-
-        if (!navigationArgs || !navigationArgs.key) {
-            return this.editNewValue();
-        }
-    }
-
-    attached() {
-        super.attached();
-
-        this.isNewLineFriendlyMode.subscribe(val => {
-            this.updateNewlineLayout(val);
-        });
-    }
-
-    compositionComplete() {
-        super.compositionComplete();
-        this.valueEditor = aceEditorBindingHandler.getEditorBySelection($(editCmpXchg.valueEditorSelector));
-
-        // preload json newline friendly mode to avoid issues with document save
-        (ace as any).config.loadModule("ace/mode/json_newline_friendly");
-
-        this.focusOnEditor(); 
-    }
-
+    
     private activateByKey(key: string) {
         const canActivateResult = $.Deferred<canActivateResultDto>();
+
         this.loadValue(key)
             .done(() => {
                 canActivateResult.resolve({ can: true });
@@ -96,163 +208,152 @@ class editCmpXchg extends viewModelBase {
             .fail(() => {
                 canActivateResult.resolve({ redirect: appUrl.forCmpXchg(this.activeDatabase()) });
             });
+
         return canActivateResult;
+    }
+
+    activate(navigationArgs: { database: string, key: string }) {
+        super.activate(navigationArgs);
+
+        this.initializeObservables();
+        this.initValidation();
+    }
+
+    private initializeObservables(): void {
+        this.dirtyFlag = new ko.DirtyFlag([this.key,
+                                           this.hasMetadata,
+                                           this.newValueEditor().contentText,
+                                           this.newMetadataEditor().contentText],
+            false, jsonUtil.newLineNormalizingHashFunction);
+
+        this.isSaveEnabled = ko.pureComputed(() => {
+            const isSaving = this.spinners.save();
+            const isDirty = this.dirtyFlag().isDirty();
+
+            return !isSaving && isDirty;
+        });
     }
 
     private initValidation() {
         const rg1 = /^[^\\]*$/; // forbidden character - backslash
+
         this.key.extend({
-            required: true, 
+            required: true,
             validation: [
                 {
                     validator: (val: string) => rg1.test(val),
-                    message: "Can't use backslash"
+                    message: "Key Cannot contain a backslash"
                 }]
         });
 
-        this.valueText.extend({
-            required: true,
-            aceValidation: true
-        });
-    }
-
-    private initializeObservables(): void {
-        this.dirtyFlag = new ko.DirtyFlag([this.valueText, this.key], false, jsonUtil.newLineNormalizingHashFunction); 
-          
-        this.value.subscribe(value => {
-            if (!_.isUndefined(value)) {
-                const valueText = this.stringify(value);
-                this.valueText(valueText);
-            }
+        this.newValueEditor().contentText.extend({
+            required: true
         });
         
-        this.isSaveEnabled = ko.pureComputed(() => {
-            const isSaving = this.isSaving();
-            const isDirty = this.dirtyFlag().isDirty();
+        this.newMetadataEditor().contentText.extend({
+            required: {
+                onlyIf: () => this.hasMetadata()
+            }
+        });
 
-            return !isSaving && isDirty;
-        });         
+        this.globalValidationGroup = ko.validatedObservable({
+            key: this.key,
+            valueText: this.newValueEditor().contentText,
+            metadataText: this.newMetadataEditor().contentText
+        });
     }
 
-    updateNewlineLayout(unescapeNewline: boolean) {
-        const dirtyFlagValue = this.dirtyFlag().isDirty();
-        if (unescapeNewline) {
-            this.valueText(documentHelpers.unescapeNewlinesAndTabsInTextFields(this.valueText()));
-            this.valueEditor.getSession().setMode('ace/mode/json_newline_friendly');
-        } else {
-            this.valueText(documentHelpers.escapeNewlinesAndTabsInTextFields(this.valueText()));
-            this.valueEditor.getSession().setMode('ace/mode/raven_document');
-            this.formatValue();
-        }
+    compositionComplete() {
+        super.compositionComplete();
 
-        if (!dirtyFlagValue) {
-            this.dirtyFlag().reset();
-        }
+        // preload json newline friendly mode to avoid issues with document save
+        (ace as any).config.loadModule("ace/mode/json_newline_friendly");
+
+        // here I want to init new editors....        todo - check if can go somewhere else...
+        this.newValueEditor().initEditor();
+        this.newMetadataEditor().initEditor();
+
+        this.newValueEditor().focusOnEditor();
     }
 
-    private focusOnEditor() {
-        this.valueEditor.focus();
+    editNewItem(): void {
+        this.isCreatingNewItem(true);
+        this.createEditors();
     }
 
-    editNewValue(): void {
-        this.isCreatingNewValue(true);
-        this.value(undefined);
-    }
-
-    toClipboard() {
-        copyToClipboard.copy(this.valueText(), "Value has been copied to clipboard");
-    }
-
-    toggleNewlineMode() {
-        eventsCollector.default.reportEvent("cmpXchg", "toggle-newline-mode");
-        this.isNewLineFriendlyMode.toggle();
-    }
-
-    toggleAutoCollapse() {
-        eventsCollector.default.reportEvent("cmpXchg", "toggle-auto-collapse");
-        this.autoCollapseMode.toggle();
-        if (this.autoCollapseMode()) {
-            this.foldAll();
-        } else {
-            this.valueEditor.getSession().unfold(null, true);
-        }
-    }
-
-    foldAll() {
-        const AceRange = ace.require("ace/range").Range;
-        this.valueEditor.getSession().foldAll();
-        const folds = <any[]> this.valueEditor.getSession().getFoldsInRange(new AceRange(0, 0, this.valueEditor.getSession().getLength(), 0));
-        folds.map(f => this.valueEditor.getSession().expandFold(f));
-    }
-
-    saveDocument() {
+    saveCompareExchangeItem() {
         if (this.isValid(this.globalValidationGroup)) {
-            eventsCollector.default.reportEvent("cmpXchg", "save");
-            this.saveInternal();
+            $.when<boolean>(this.maybeConfirmWarnings())
+                .then((canSave: boolean) => {
+                    if (canSave) {
+                        eventsCollector.default.reportEvent("cmpXchg", "save");
+                        this.saveInternal();
+                    }
+                });
         }
+    }
+
+    private maybeConfirmWarnings(): JQueryPromise<boolean> | boolean {
+        const valueWarnings = this.newValueEditor().contentEditor.getSession().getAnnotations()
+            .filter((x: AceAjax.Annotation) => x.type === "warning");
+        
+        const metadataWarnings = this.newMetadataEditor().contentEditor.getSession().getAnnotations()
+            .filter((x: AceAjax.Annotation) => x.type === "warning");
+
+        if (valueWarnings.length + metadataWarnings.length) {
+            const viewModel = new compareExchangeWarningsConfirm(valueWarnings, metadataWarnings,
+                valueWarning => {
+                    // gotoLine is not zero based so we add 1
+                    this.newValueEditor().contentEditor.gotoLine(valueWarning.row + 1, valueWarning.column, true);
+                    this.newValueEditor().contentEditor.focus();
+                },
+                metadataWarning => {
+                    this.newMetadataEditor().contentEditor.gotoLine(metadataWarning.row + 1, metadataWarning.column, true);
+                    this.newMetadataEditor().contentEditor.focus();
+                });
+            
+            return app.showBootstrapDialog(viewModel);
+        }
+        
+        return true;
     }
 
     private saveInternal() {
-        let message = "";
-        let updatedDto: any;
+        let valueDto: any;
+        let metadataDto: any;
 
         try {
-            if (this.isNewLineFriendlyMode()) {
-                updatedDto = JSON.parse(documentHelpers.escapeNewlinesAndTabsInTextFields(this.valueText()));
-            } else {
-                updatedDto = JSON.parse(this.valueText());
+            valueDto = this.newValueEditor().toDto();
+            if (this.hasMetadata()) {
+                metadataDto = this.newMetadataEditor().toDto();
             }
         } catch (e) {
-            if (updatedDto == undefined) {
-                message = "The document data isn't a legal JSON expression!";
+            if (e.message) {
+                messagePublisher.reportError(e.message, undefined, undefined, false);
+                return;
             }
-            this.focusOnEditor();
         }
         
-        if (message) {
-            messagePublisher.reportError(message, undefined, undefined, false);
-            return;
-        }
-        
-        this.isSaving(true);
-        
-        new saveCompareExchangeValueCommand(this.activeDatabase(), this.key(), this.loadedIndex(), updatedDto)
+        // org        
+        // try {
+        //     if (this.isNewLineFriendlyMode()) {
+        //         updatedDto = JSON.parse(documentHelpers.escapeNewlinesAndTabsInTextFields(this.valueText()));
+        //     } else {
+        //         updatedDto = JSON.parse(this.valueText());
+        //     }
+        // } catch (e) {
+        //     if (updatedDto == undefined) {
+        //         message = "The document data isn't a legal JSON expression!";
+        //     }
+        //     this.focusOnEditor();
+        // }
+
+        this.spinners.save(true);
+
+        new saveCompareExchangeValueCommand(this.activeDatabase(), this.key(), this.loadedIndex(), valueDto, metadataDto)
             .execute()
             .done(saveResult => this.onValueSaved(saveResult))
-            .fail(() => this.isSaving(false));
-    }
-
-    private onValueSaved(saveResult: Raven.Client.Documents.Operations.CompareExchange.CompareExchangeResult<any>) {
-        if (saveResult.Successful) {
-            const savedDto = saveResult.Value.Object;
-            const currentSelection = this.valueEditor.getSelectionRange();
-            this.loadedIndex(saveResult.Index);
-            
-            this.value(savedDto);
-            this.dirtyFlag().reset();
-    
-            this.updateNewlineLayout(this.isNewLineFriendlyMode());
-    
-            // Try to restore the selection.
-            this.valueEditor.selection.setRange(currentSelection, false);
-            this.isSaving(false);
-    
-            this.updateUrl(this.key());
-    
-            this.dirtyFlag().reset(); //Resync Changes
-    
-            this.isCreatingNewValue(false);
-            messagePublisher.reportSuccess("Saved " + this.key());
-        } else {
-            messagePublisher.reportError("Failed to save " + this.key(), this.key() + " has index " + saveResult.Index + ", but save was called with index " + this.loadedIndex() + ".");
-            this.displayExternalChange(true);
-            this.isSaving(false);
-        }
-    }
-
-    stringify(obj: any) {
-        const prettifySpacing = 4;
-        return JSON.stringify(obj, null, prettifySpacing);
+            .fail(() => this.spinners.save(false));
     }
 
     private loadValue(key: string): JQueryPromise<any> {
@@ -263,39 +364,70 @@ class editCmpXchg extends viewModelBase {
 
         new getCompareExchangeValueCommand(db, key)
             .execute()
-            .done(value => {
-                this.value(value.Value.Object);
-                this.loadedIndex(value.Index);
-                this.key(value.Key);
-                
-                this.dirtyFlag().reset();
-                if (this.autoCollapseMode()) {
-                    this.foldAll();
-                }
-
-                loadTask.resolve(value.Value.Object);
-            }).fail((xhr: JQueryXHR) => {
-                this.dirtyFlag().reset();
-                messagePublisher.reportWarning("Could not find Compare Exchange Value with key: " + key);
-                loadTask.reject();
+            .done(cmpXchngItem => {
+                this.key(cmpXchngItem.Key);
+                this.loadedIndex(cmpXchngItem.Index);
+                this.createEditors(cmpXchngItem.Value.Object,cmpXchngItem.Value["@metadata"]);
+                loadTask.resolve(cmpXchngItem.Value.Object);
             })
-            .always(() => this.isBusy(false));
+            .fail(() => loadTask.reject())
+            .always(() => {
+                this.dirtyFlag().reset();
+                this.isBusy(false); 
+            });
 
         return loadTask;
     }
 
-    deleteValue() {
+    private onValueSaved(saveResult: Raven.Client.Documents.Operations.CompareExchange.CompareExchangeResult<any>) {
+        if (saveResult.Successful) {
+            this.loadedIndex(saveResult.Index);
+
+            const savedValueDto = saveResult.Value.Object;
+            this.newValueEditor().content(savedValueDto);
+
+            const savedMetadataDto = saveResult.Value['@metadata'];
+            this.newMetadataEditor().content(savedMetadataDto);
+
+            this.newValueEditor().tryRestoreSelection();
+            if (this.hasMetadata()) {
+                this.newMetadataEditor().tryRestoreSelection();
+            }
+
+            this.spinners.save(false);
+            this.updateUrl(this.key());
+            this.dirtyFlag().reset();
+            this.isCreatingNewItem(false);
+            
+            messagePublisher.reportSuccess(`Compare exchange item with key: ${this.key()} was saved successfully`);
+            router.navigate(appUrl.forCmpXchg(this.activeDatabase()));
+        } else {
+            this.displayExternalChange(true);
+            this.spinners.save(false);
+            messagePublisher.reportError(`Failed to save compare exchange item. Save was called with index: ${this.loadedIndex()},
+                                          but key: ${this.key()} has index: ${saveResult.Index}.`);
+        }
+    }
+    
+    private createEditors(valueObj: any = undefined, metadataObj: any = undefined) {
+        this.newValueEditor = ko.observable<editorInfo>(new editorInfo("Value", editCmpXchg.valueEditorSelector, valueObj));
+        this.newMetadataEditor = ko.observable<editorInfo>(new editorInfo("Metadata", editCmpXchg.metadataEditorSelector, metadataObj));
+
+        this.hasMetadata(!!metadataObj); // todo check this ...
+    }
+
+    deleteItem() {
         eventsCollector.default.reportEvent("cmpXchg", "delete");
-        
+
         const deleteDialog = new deleteCompareExchangeConfirm([this.key()]);
 
         app.showBootstrapDialog(deleteDialog)
             .done((deleting: boolean) => {
                 if (deleting) {
                     this.spinners.delete(true);
-                    
+
                     const deleteProgress = new deleteCompareExchangeProgress([{ Key: this.key(), Index: this.loadedIndex() }], this.activeDatabase());
-                 
+
                     deleteProgress.start()
                         .done(() => {
                             this.dirtyFlag().reset();
@@ -306,7 +438,7 @@ class editCmpXchg extends viewModelBase {
                 }
             });
     }
-    
+
     refresh() {
         eventsCollector.default.reportEvent("cmpXchg", "refresh");
         this.canContinueIfNotDirty("Refresh", "You have unsaved data. Are you sure you want to continue?")
@@ -318,23 +450,31 @@ class editCmpXchg extends viewModelBase {
             });
     }
 
-    formatValue() {
-        eventsCollector.default.reportEvent("cmpXchg", "format");
-        try {
-            const editorText = this.valueEditor.getSession().getValue();
-            const tempValue = JSON.parse(editorText);
-            const formatted = this.stringify(tempValue);
-            this.valueText(formatted);
-        } catch (e) {
-            messagePublisher.reportError("Could not format json", undefined, undefined, false);
-        }
-    }
-
     updateUrl(valueKey: string) {
         const editUrl = appUrl.forEditCmpXchg(valueKey, this.activeDatabase());
         router.navigate(editUrl, false);
     }
 
+    cloneCmpXch() {
+        eventsCollector.default.reportEvent("cmpXchg", "clone");
+        this.isCreatingNewItem(true);
+        this.key("");
+        this.globalValidationGroup.errors.showAllMessages(false);
+    }
+
+    addMetadata() {
+        eventsCollector.default.reportEvent("cmpXchg", "add-metadata");
+        if (!this.hasMetadata()) {
+            this.hasMetadata(true);
+            this.newMetadataEditor().contentText(null);
+        }
+    }
+
+    removeMetadata() {
+        eventsCollector.default.reportEvent("cmpXchg", "remove-metadata");
+        this.hasMetadata(false);
+        this.newMetadataEditor().contentText(null);
+    }
 }
 
 export = editCmpXchg;

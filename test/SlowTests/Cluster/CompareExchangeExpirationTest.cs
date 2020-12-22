@@ -55,7 +55,7 @@ namespace SlowTests.Cluster
                 {
                     var rnd = new Random(DateTime.Now.Millisecond);
                     var user = new User { Name = new string(Enumerable.Repeat(_chars, 10).Select(s => s[rnd.Next(s.Length)]).ToArray()) };
-                    var expiry = DateTime.Now.AddMinutes(2);
+                    var expiry = DateTime.Now.AddDays(1);
 
                     if (dateTimeFormat.Value == DateTimeKind.Utc)
                         expiry = expiry.ToUniversalTime();
@@ -67,6 +67,8 @@ namespace SlowTests.Cluster
                         result.Metadata[Constants.Documents.Metadata.Expires] = expiry.ToString(dateTimeFormat.Key);
                         await session.SaveChangesAsync();
                     }
+
+                    WaitForUserToContinueTheTest(store);
 
                     var res = await store.Operations.SendAsync(new GetCompareExchangeValueOperation<User>(key));
                     Assert.NotNull(res);

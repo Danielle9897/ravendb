@@ -7,13 +7,11 @@
             <h4 class="modal-title">Document warnings</h4>
         </div>
         <div class="modal-body">
-
-            Following warnings have been detected that might affect the data of the document:
-            
-            <table class="table">
+            The following detected warnings might affect the document data:
+            <table class="table margin-top margin-top-lg">
                 <thead>
                 <tr>
-                    <th>&nbsp;</th>
+                    <th> </th>
                     <th>Location</th>
                     <th>Description</th>
                 </tr>
@@ -24,12 +22,13 @@
                             <i class="icon-warning text-warning"></i>
                         </td>
                         <td nowrap="nowrap">
-                            <a href="#" class="text-warning" data-bind="click: $root.goTo.bind($root, $data)" title="Show warning in document editor">
-                                <span data-bind="text: 'Line: ' + row + ', Column: ' + column"></span>
+                            <a href="#" class="text-warning" data-bind="click: $root.goTo.bind($root, $data)" title="Go to warning in document editor">
+                                <span data-bind="text: $root.warningLocation($data)"></span>
                             </a>
                         </td>
                         <td>
-                            <span data-bind="text: text"></span>
+<!--                        <span data-bind="text: text"></span>-->
+                            <span data-bind="html: text"></span>
                         </td>
                     </tr>
                 </tbody>

@@ -14,9 +14,9 @@ class getCompareExchangeValueCommand extends commandBase {
         };
 
         const url = endpoints.databases.compareExchange.cmpxchg + this.urlEncodeArgs(args);
-        return this.query(url, null, this.database, x => x.Results[0]);
+        return this.query(url, null, this.database, x => x.Results[0])
+            .fail((response: JQueryXHR) => this.reportError("Failed to get the Compare Exchange Value for key:" + this.key, response.responseText, response.statusText));
     }
-
 }
 
 export = getCompareExchangeValueCommand;
