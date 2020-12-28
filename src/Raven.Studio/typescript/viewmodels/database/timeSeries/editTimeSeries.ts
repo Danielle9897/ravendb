@@ -242,14 +242,25 @@ class editTimeSeries extends viewModelBase {
         const possibleValuesCount = this.isRollupTimeSeries() ? 
             timeSeriesEntryModel.numberOfPossibleRollupValues : 
             timeSeriesEntryModel.numberOfPossibleValues;
-        
+
         const editTimeSeriesEntryDialog = new editTimeSeriesEntry(
             this.documentId(),
             this.activeDatabase(),
             this.timeSeriesName(),
-            this.getValuesNamesToUse(possibleValuesCount),
             item
         );
+        
+        editTimeSeriesEntryDialog.valuesNames(this.getValuesNamesToUse(possibleValuesCount));
+        
+        // const editTimeSeriesEntryDialog = new editTimeSeriesEntry(
+        //     this.documentId(),
+        //     this.activeDatabase(),
+        //     this.timeSeriesName(),
+        //     // this.getValuesNamesToUse(possibleValuesCount),
+        //     this.getValuesNamesToUse,
+        //     possibleValuesCount,
+        //     item
+        // );
         
         app.showBootstrapDialog(editTimeSeriesEntryDialog)
             .done((seriesName) => {
@@ -421,9 +432,25 @@ class editTimeSeries extends viewModelBase {
     
     createTimeSeries(createNew: boolean) {
         const tsNameToUse = createNew ? null : this.timeSeriesName();
-        const valuesNamesToUse = createNew ? [] : this.getValuesNamesToUse(timeSeriesEntryModel.numberOfPossibleValues);
+        //const valuesNamesToUse = this.getValuesNamesToUse(timeSeriesEntryModel.numberOfPossibleValues);
+        //const valuesNamesToUse = createNew ? [] : this.getValuesNamesToUse(timeSeriesEntryModel.numberOfPossibleValues);
         
-        const createTimeSeriesDialog = new editTimeSeriesEntry(this.documentId(), this.activeDatabase(), tsNameToUse, valuesNamesToUse);
+        // const createTimeSeriesDialog = new editTimeSeriesEntry(this.documentId(), 
+        //     this.activeDatabase(), tsNameToUse, valuesNamesToUse);
+
+        // const createTimeSeriesDialog = new editTimeSeriesEntry(this.documentId(),
+        //     this.activeDatabase(), tsNameToUse,
+        //     this.getValuesNamesToUse, timeSeriesEntryModel.numberOfPossibleValues);
+        
+        const createTimeSeriesDialog = new editTimeSeriesEntry(this.documentId(), this.activeDatabase(), tsNameToUse);
+
+        // createTimeSeriesDialog.valuesNames(valuesNamesToUse);
+        
+        // new - subscribe here...
+        createTimeSeriesDialog.model().name.subscribe(() => { 
+            const names = this.getValuesNamesToUse(timeSeriesEntryModel.numberOfPossibleValues);
+            createTimeSeriesDialog.valuesNames(names);
+        });
         
         app.showBootstrapDialog(createTimeSeriesDialog)
             .done((seriesName) => {

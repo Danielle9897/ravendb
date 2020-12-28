@@ -27,11 +27,22 @@ class editTimeSeriesEntry extends dialogViewModelBase {
     
     lockSeriesName: boolean;
     lockTimeStamp: boolean;
+
+    // valuesNames: string[];
+    valuesNames = ko.observableArray<string>([]);
     
-    constructor(private documentId: string, 
-                private db: database, 
+    // constructor(private documentId: string, 
+    //             private db: database, 
+    //             private timeSeriesName: string,
+    //             //private valuesNames: string[], // value name provider function (string) => string[] , subscribe on time series name and call this method.
+    //             private valueNamesProvider: (possibleValuesCount: number) => string[],
+    //             private possibleValuesCount: number,
+    //             private editDto?: Raven.Client.Documents.Session.TimeSeries.TimeSeriesEntry) {
+    //     super();
+
+    constructor(private documentId: string,
+                private db: database,
                 private timeSeriesName: string,
-                private valuesNames: string[],
                 private editDto?: Raven.Client.Documents.Session.TimeSeries.TimeSeriesEntry) {
         super();
         
@@ -60,17 +71,20 @@ class editTimeSeriesEntry extends dialogViewModelBase {
             const date = moment(model.timestamp());
             return date.local().format(editTimeSeriesEntry.localTimeFormat) + " (local)"
         });
+        
+        // new - but not here....
+        //this.model().name.subscribe(() => this.valuesNames(this.valueNamesProvider(this.possibleValuesCount)));
     }
 
     compositionComplete() {
         super.compositionComplete();
         this.setupDisableReasons(".edit-time-series-entry");
     }
-    
+
     getValueName(idx: number) {
-        if (this.valuesNames.length) {
+        if (this.valuesNames().length) {
             // for an existing timeseries
-            return this.valuesNames[idx];
+            return this.valuesNames()[idx];
         } else {
             // for a new timeseries
             const possibleValuesCount = timeSeriesEntryModel.numberOfPossibleValues;
@@ -78,6 +92,17 @@ class editTimeSeriesEntry extends dialogViewModelBase {
             return possibleValuesNames[idx];
         }
     }
+    // getValueName(idx: number) {
+    //     if (this.valuesNames.length) {
+    //         // for an existing timeseries
+    //         return this.valuesNames[idx];
+    //     } else {
+    //         // for a new timeseries
+    //         const possibleValuesCount = timeSeriesEntryModel.numberOfPossibleValues;
+    //         const possibleValuesNames = _.range(0, possibleValuesCount).map(idx => "Value #" + idx);
+    //         return possibleValuesNames[idx];
+    //     }
+    // }
     
     save() {
         const valid = this.model().isRollupEntry() ?
