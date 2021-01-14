@@ -33,7 +33,7 @@ namespace Raven.Server.Documents.ETL
 
         protected override async Task StartCollectingStats()
         {
-            Database.EtlLoader.BatchCompleted  += BatchCompleted;
+            Database.EtlLoader.BatchCompleted += BatchCompleted;
             Database.EtlLoader.ProcessAdded += ProcessAdded;
             Database.EtlLoader.ProcessRemoved += EtlProcessRemoved;
 
@@ -110,7 +110,6 @@ namespace Raven.Server.Documents.ETL
 
                 var etl = processes.FirstOrDefault(x => x.ConfigurationName.Equals(change.ConfigurationName, StringComparison.OrdinalIgnoreCase) &&
                                                     x.TransformationName.Equals(change.TransformationName, StringComparison.OrdinalIgnoreCase));
-
                 if (etl == null)
                     return;
                 
@@ -191,12 +190,12 @@ namespace Raven.Server.Documents.ETL
 
         private class EtlProcessAndPerformanceStatsList : HandlerAndPerformanceStatsList<EtlProcess, EtlStatsAggregator>
         {
+            public long TaskId { get; }
+            
             public EtlProcessAndPerformanceStatsList(EtlProcess etl) : base(etl)
             {
                 TaskId = etl.TaskId;
             }
-            
-            public long TaskId { get; }
         }
     }
 }

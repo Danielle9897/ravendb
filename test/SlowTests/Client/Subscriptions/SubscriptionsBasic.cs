@@ -69,6 +69,8 @@ namespace SlowTests.Client.Subscriptions
                 }
 
                 subscription.Run(x => docs.Signal(x.NumberOfItemsInBatch));
+                
+                WaitForUserToContinueTheTest(store);
 
                 Assert.True(docs.Wait(_reasonableWaitTime));
             }

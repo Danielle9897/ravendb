@@ -40,6 +40,7 @@ using Constants = Voron.Global.Constants;
 using Exception = System.Exception;
 using QueryParser = Raven.Server.Documents.Queries.Parser.QueryParser;
 
+
 namespace Raven.Server.Documents.TcpHandlers
 {
     public class SubscriptionConnection : IDisposable
@@ -82,6 +83,11 @@ namespace Raven.Server.Documents.TcpHandlers
         public SubscriptionOpeningStrategy Strategy => _options.Strategy;
 
         public readonly ConcurrentQueue<string> RecentSubscriptionStatuses = new ConcurrentQueue<string>();
+        
+        private SubscriptionStatsAggregator _lastStats;
+        private readonly ConcurrentQueue<SubscriptionStatsAggregator> _lastSubscriptionStats = new ConcurrentQueue<SubscriptionStatsAggregator>();
+        private int _statsId;
+        private SubscriptionStatsScope ScopedStats;
 
         public void AddToStatusDescription(string message)
         {
@@ -142,8 +148,7 @@ namespace Raven.Server.Documents.TcpHandlers
             AddToStatusDescription(message);
             if (_logger.IsInfoEnabled)
             {
-                _logger.Info(
-                    message);
+                _logger.Info(message);
             }
 
             // first, validate details and make sure subscription exists
@@ -466,6 +471,22 @@ namespace Raven.Server.Documents.TcpHandlers
 
         private IDisposable RegisterForNotificationOnNewDocuments()
         {
+            // record the connection event and raise notification so that aggregator is added to dictionary in the collector class
+            var statsAggregator = _lastStats = new SubscriptionStatsAggregator(Interlocked.Increment(ref _statsId), _lastStats);
+            AddPerformanceStats(statsAggregator);
+            
+            using (ScopedStats = statsAggregator.CreateScope().For("Subscription"))
+            {
+                ScopedStats.RecordClientConnect(Stats.ConnectedAt, ClientUri);
+            }
+            // using (ScopedStats = statsAggregator.CreateScope())
+            // {
+            //     ScopedStats.RecordClientConnect(Stats.ConnectedAt, ClientUri);
+            // }
+
+            // this will eventually call the GetLatestPerformanceStats and add to the dictionary in the collector
+            TcpConnection.DocumentDatabase.RaiseNotifications(Options.SubscriptionName);
+
             void RegisterNotification(DocumentChange notification)
             {
                 if (Client.Constants.Documents.Collections.AllDocumentsCollection.Equals(Subscription.Collection, StringComparison.OrdinalIgnoreCase) || 
@@ -546,7 +567,7 @@ namespace Raven.Server.Documents.TcpHandlers
 
         private async Task ProcessSubscriptionAsync()
         {
-            AddToStatusDescription("Starting to precess subscription");
+            AddToStatusDescription("Starting to process subscription");
             if (_logger.IsInfoEnabled)
             {
                 _logger.Info(
@@ -563,6 +584,8 @@ namespace Raven.Server.Documents.TcpHandlers
                 _startEtag = GetStartEtagForSubscription(SubscriptionState);
                 _filterAndProjectionScript = SetupFilterAndProjectionScript();
                 var useRevisions = Subscription.Revisions;
+                
+                // define a collector class
                 _documentsFetcher = new SubscriptionDocumentsFetcher(TcpConnection.DocumentDatabase, _options.MaxDocsPerBatch, SubscriptionId, TcpConnection.TcpClient.Client.RemoteEndPoint, Subscription.Collection, useRevisions, SubscriptionState, _filterAndProjectionScript);
 
                 while (CancellationTokenSource.IsCancellationRequested == false)
@@ -575,16 +598,19 @@ namespace Raven.Server.Documents.TcpHandlers
                         {
                             var sendingCurrentBatchStopwatch = Stopwatch.StartNew();
 
-                            var anyDocumentsSentInCurrentIteration = await TrySendingBatchToClient(docsContext, sendingCurrentBatchStopwatch);
-
-                            if (anyDocumentsSentInCurrentIteration == false)
+                            // start to send to client - take start time here
+                            // open aggregator & scope here
+                            var anyDocumentsSentInCurrentIteration = await TrySendingBatchToClient(docsContext, sendingCurrentBatchStopwatch, TcpConnection.DocumentDatabase);
+                            // take end time here (or inside method TrySendingBatchToClient)
+                            
+                            if (anyDocumentsSentInCurrentIteration == false) // nothing to send
                             {
                                 if (_logger.IsInfoEnabled)
                                 {
                                     _logger.Info(
                                         $"Did not find any documents to send for subscription {Options.SubscriptionName}");
                                 }
-                                AddToStatusDescription($"Acknowldeging docs processing progress without sending any documents to client. CV: {_lastChangeVector}");
+                                AddToStatusDescription($"Acknowledging docs processing progress without sending any documents to client. CV: {_lastChangeVector}");
                                 await TcpConnection.DocumentDatabase.SubscriptionStorage.AcknowledgeBatchProcessed(SubscriptionId,
                                     Options.SubscriptionName,
                                     // if this is a new subscription that we sent anything in this iteration,
@@ -639,8 +665,7 @@ namespace Raven.Server.Documents.TcpHandlers
         }
 
         private async Task<(Task<SubscriptionConnectionClientMessage> ReplyFromClientTask, string SubscriptionChangeVectorBeforeCurrentBatch)>
-            WaitForClientAck(Task<SubscriptionConnectionClientMessage> replyFromClientTask,
-            string subscriptionChangeVectorBeforeCurrentBatch)
+            WaitForClientAck(Task<SubscriptionConnectionClientMessage> replyFromClientTask, string subscriptionChangeVectorBeforeCurrentBatch)
         {
             SubscriptionConnectionClientMessage clientReply;
             while (true)
@@ -681,15 +706,29 @@ namespace Raven.Server.Documents.TcpHandlers
                         [nameof(SubscriptionConnectionServerMessage.Type)] = nameof(SubscriptionConnectionServerMessage.MessageType.Confirm)
                     });
 
+                    // record the ack event and raise notification so that aggregator is added to dictionary in collector class
+                    var statsAggregator = _lastStats = new SubscriptionStatsAggregator(Interlocked.Increment(ref _statsId), _lastStats);
+                    AddPerformanceStats(statsAggregator);
+                    
+                    // using (ScopedStats = statsAggregator.CreateScope())
+                    // {
+                    //     ScopedStats.RecordClientAcknowledge(Stats.LastAckReceivedAt, ClientUri);
+                    // }
+                    using (ScopedStats = statsAggregator.CreateScope().For("Subscription"))
+                    {
+                        ScopedStats.RecordClientAcknowledge(Stats.LastAckReceivedAt, ClientUri);
+                    }
+
+                    TcpConnection.DocumentDatabase.RaiseNotifications(Options.SubscriptionName);
                     break;
 
                 //precaution, should not reach this case...
                 case SubscriptionConnectionClientMessage.MessageType.DisposedNotification:
                     CancellationTokenSource.Cancel();
                     break;
+                
                 default:
-                    throw new ArgumentException("Unknown message type from client " +
-                                                clientReply.Type);
+                    throw new ArgumentException("Unknown message type from client " + clientReply.Type);
             }
 
             return (replyFromClientTask, subscriptionChangeVectorBeforeCurrentBatch);
@@ -701,12 +740,15 @@ namespace Raven.Server.Documents.TcpHandlers
         /// <param name="docsContext"></param>
         /// <param name="sendingCurrentBatchStopwatch"></param>
         /// <returns>Whether succeeded finding any documents to send</returns>
-        private async Task<bool> TrySendingBatchToClient(DocumentsOperationContext docsContext, Stopwatch sendingCurrentBatchStopwatch)
+        private async Task<bool> TrySendingBatchToClient(DocumentsOperationContext docsContext, Stopwatch sendingCurrentBatchStopwatch, DocumentDatabase database) // added param
         {
             AddToStatusDescription("Starting trying to sent docs to client");
 
             bool anyDocumentsSentInCurrentIteration = false;
             int docsToFlush = 0;
+            DateTime startBatchTime = DateTime.UtcNow;
+            long sizeOfDocsInBatch = 0;
+            
             using (var writer = new BlittableJsonTextWriter(docsContext, _buffer))
             {
                 using (docsContext.OpenReadTransaction())
@@ -714,6 +756,7 @@ namespace Raven.Server.Documents.TcpHandlers
                     IncludeDocumentsCommand includeDocumentsCommand = null;
                     IncludeCountersCommand includeCountersCommand = null;
                     IncludeTimeSeriesCommand includeTimeSeriesCommand = null;
+                    
                     if (_supportedFeatures.Subscription.Includes)
                         includeDocumentsCommand = new IncludeDocumentsCommand(TcpConnection.DocumentDatabase.DocumentsStorage, docsContext, Subscription.Includes, isProjection: _filterAndProjectionScript != null);
                     if (_supportedFeatures.Subscription.CounterIncludes && Subscription.CounterIncludes != null)
@@ -779,6 +822,9 @@ namespace Raven.Server.Documents.TcpHandlers
 
                         writer.WriteEndObject();
                         docsToFlush++;
+                        
+                        // calc size...
+                        sizeOfDocsInBatch += result.Doc.Data.Size;
 
                         TcpConnection._lastEtagSent = -1;
                         // perform flush for current batch after 1000ms of running or 1 MB
@@ -856,6 +902,22 @@ namespace Raven.Server.Documents.TcpHandlers
                     }
                 }
             }
+
+            if (docsToFlush > 0)
+            {
+                // record the batch event and raise notification so that aggregator is added to dictionary in the collector class
+                var statsAggregator = _lastStats = new SubscriptionStatsAggregator(Interlocked.Increment(ref _statsId), _lastStats);
+                AddPerformanceStats(statsAggregator);
+                ScopedStats = statsAggregator.CreateScope();
+
+                using (var stats = ScopedStats.For("Subscription"))
+                {
+                    stats.RecordBatchInfo(docsToFlush, sizeOfDocsInBatch, startBatchTime, DateTime.UtcNow, ClientUri);
+                }
+                    
+                TcpConnection.DocumentDatabase.RaiseNotifications(Options.SubscriptionName);
+            }
+
             return anyDocumentsSentInCurrentIteration;
         }
 
@@ -888,7 +950,7 @@ namespace Raven.Server.Documents.TcpHandlers
 
                 if (_logger.IsInfoEnabled)
                 {
-                    _logger.Info($"Subscription {Options.SubscriptionName} is sending a Hearbeat message to the client. Reason: {reason}");
+                    _logger.Info($"Subscription {Options.SubscriptionName} is sending a Heartbeat message to the client. Reason: {reason}");
                 }
             }
             catch (Exception ex)
@@ -1297,6 +1359,26 @@ namespace Raven.Server.Documents.TcpHandlers
                 Includes = includes?.ToArray(),
                 CounterIncludes = counterIncludes?.ToArray()
             };
+        }
+        
+        public SubscriptionPerformanceStats[] GetPerformanceStats() // the inner object
+        {
+            return _lastSubscriptionStats
+                .Select(x => x.ToPerformanceStats())
+                .ToArray();
+        }
+        
+        public SubscriptionStatsAggregator GetLatestPerformanceStats()
+        {
+            return _lastStats;
+        }
+        
+        private void AddPerformanceStats(SubscriptionStatsAggregator stats)
+        {
+            _lastSubscriptionStats.Enqueue(stats);
+
+            while (_lastSubscriptionStats.Count > 25)
+                _lastSubscriptionStats.TryDequeue(out stats); // why ???????????
         }
     }
 

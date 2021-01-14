@@ -110,8 +110,7 @@ namespace Raven.Server.Documents.ETL
         private CancellationTokenSource _cts;
         private readonly HashSet<string> _collections;
 
-        private readonly ConcurrentQueue<EtlStatsAggregator> _lastEtlStats =
-            new ConcurrentQueue<EtlStatsAggregator>();
+        private readonly ConcurrentQueue<EtlStatsAggregator> _lastEtlStats = new ConcurrentQueue<EtlStatsAggregator>();
 
         private Size _currentMaximumAllowedMemory = DefaultMaximumMemoryAllocation;
         private NativeMemory.ThreadStats _threadAllocations;
@@ -647,13 +646,13 @@ namespace Raven.Server.Documents.ETL
 
                     var loadLastProcessedEtag = state.GetLastProcessedEtagForNode(_serverStore.NodeTag);
 
-                    using (Statistics.NewBatch())
+                    using (Statistics.NewBatch()) // do like this
                     using (Database.DocumentsStorage.ContextPool.AllocateOperationContext(out DocumentsOperationContext context))
                     {
                         var statsAggregator = _lastStats = new EtlStatsAggregator(Interlocked.Increment(ref _statsId), _lastStats);
                         AddPerformanceStats(statsAggregator);
 
-                        using (var stats = statsAggregator.CreateScope())
+                        using (var stats = statsAggregator.CreateScope()) // ..... pass the stats whenever need to record smthng
                         {
                             try
                             {
@@ -835,7 +834,7 @@ namespace Raven.Server.Documents.ETL
             _lastEtlStats.Enqueue(stats);
 
             while (_lastEtlStats.Count > 25)
-                _lastEtlStats.TryDequeue(out stats);
+                _lastEtlStats.TryDequeue(out stats); // why ???????????
         }
 
         public override EtlPerformanceStats[] GetPerformanceStats()

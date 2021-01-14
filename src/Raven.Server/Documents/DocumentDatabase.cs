@@ -68,6 +68,8 @@ namespace Raven.Server.Documents
         private readonly DisposeOnce<SingleAttempt> _disposeOnce;
         private TestingStuff _forTestingPurposes;
 
+        public event Action<string> OnSubscriptionEvent; // todo - move to subscriptions storage ?
+        
         private readonly CancellationTokenSource _databaseShutdown = new CancellationTokenSource();
 
         private readonly object _idleLocker = new object();
@@ -1606,6 +1608,11 @@ namespace Raven.Server.Documents
 
                 return new DisposableAction(() => ActionToCallDuringDocumentDatabaseInternalDispose = null);
             }
+        }
+        
+        public void RaiseNotifications(string subscriptionName)
+        {
+            OnSubscriptionEvent?.Invoke(subscriptionName);
         }
     }
 

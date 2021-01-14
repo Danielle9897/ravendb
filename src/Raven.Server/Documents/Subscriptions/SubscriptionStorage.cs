@@ -53,7 +53,6 @@ namespace Raven.Server.Documents.Subscriptions
 
         public void Initialize()
         {
-
         }
 
         public async Task<long> PutSubscription(SubscriptionCreationOptions options, string raftRequestId, long? subscriptionId = null, bool? disabled = false, string mentor = null)
@@ -321,7 +320,33 @@ namespace Raven.Server.Documents.Subscriptions
 
         public IEnumerable<SubscriptionGeneralDataAndStats> GetAllRunningSubscriptions(TransactionOperationContext context, bool history, int start, int take)
         {
-
+        
+            foreach (var kvp in _subscriptionConnectionStates)
+            {
+                var subscriptionState = kvp.Value;
+        
+                var subscriptionStateConnection = subscriptionState.Connection;
+        
+                if (subscriptionStateConnection == null)
+                    continue;
+        
+                if (start > 0)
+                {
+                    start--;
+                    continue;
+                }
+        
+                if (take-- <= 0)
+                    yield break;
+        
+                var subscriptionData = GetSubscriptionFromServerStore(context, subscriptionStateConnection.Options.SubscriptionName);
+                GetRunningSubscriptionInternal(history, subscriptionData, subscriptionState);
+                yield return subscriptionData;
+            }
+        }
+        
+        public IEnumerable<string> GetAllRunningSubscriptionsNames(TransactionOperationContext context, int start, int take)
+        {
             foreach (var kvp in _subscriptionConnectionStates)
             {
                 var subscriptionState = kvp.Value;
@@ -339,10 +364,8 @@ namespace Raven.Server.Documents.Subscriptions
 
                 if (take-- <= 0)
                     yield break;
-
-                var subscriptionData = GetSubscriptionFromServerStore(context, subscriptionStateConnection.Options.SubscriptionName);
-                GetRunningSubscriptionInternal(history, subscriptionData, subscriptionState);
-                yield return subscriptionData;
+                
+                yield return subscriptionStateConnection.Options.SubscriptionName;
             }
         }
 

@@ -331,6 +331,10 @@ namespace TypingsGenerator
             scripter.AddType(typeof(LiveReplicationPerformanceCollector.OutgoingPerformanceStats));
             scripter.AddType(typeof(LiveReplicationPerformanceCollector.IncomingPerformanceStats));
 
+            // subscription stats
+            scripter.AddType(typeof(SubscriptionPerformanceStats));
+            scripter.AddType(typeof(SubscriptionStats));
+            
             // conflicts
             scripter.AddType(typeof(GetConflictsResult));
             scripter.AddType(typeof(ConflictResolverAdvisor.MergeResult));

@@ -87,7 +87,7 @@ namespace Raven.Server.Utils.Stats
             }
 
             ms.TryGetBuffer(out ArraySegment<byte> bytes);
-            await webSocket.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken);
+            await webSocket.SendAsync(bytes, WebSocketMessageType.Text, true, CancellationToken); // write to stream
 
             return true;
         }
@@ -119,11 +119,11 @@ namespace Raven.Server.Utils.Stats
             exceptionAggregator.ThrowIfNeeded();
         }
 
-        protected class HandlerAndPerformanceStatsList<THandler, TStatsAggregator>
+        protected class HandlerAndPerformanceStatsList<THandler, TStatsAggregator> // THandler is the sub process obj, TStatsAgg is the base event class...
         {
-            public readonly THandler Handler;
+            public readonly THandler Handler; // sub Obj Handler...
 
-            public readonly BlockingCollection<TStatsAggregator> Performance;
+            public readonly BlockingCollection<TStatsAggregator> Performance; // collection of object that represent the events....
 
             public HandlerAndPerformanceStatsList(THandler handler)
             {

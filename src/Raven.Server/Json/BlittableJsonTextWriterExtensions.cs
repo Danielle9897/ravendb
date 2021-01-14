@@ -21,6 +21,7 @@ using Raven.Server.Documents.Queries;
 using Raven.Server.Documents.Queries.Dynamic;
 using Raven.Server.Documents.Queries.Facets;
 using Raven.Server.Documents.Queries.Suggestions;
+using Raven.Server.Documents.Subscriptions;
 using Raven.Server.Utils;
 using Sparrow;
 using Sparrow.Json;
@@ -49,6 +50,85 @@ namespace Raven.Server.Json
             writer.WriteEndObject();
         }
 
+        public static void WriteSubscriptionPerformanceStats(this AbstractBlittableJsonTextWriter writer, JsonOperationContext context, IEnumerable<SubscriptionStats> subscriptionsStats)
+        {
+            writer.WriteStartObject();
+            
+            writer.WriteArray(context, "Results", subscriptionsStats, (w, c, subscriptionStats) =>
+            {
+                w.WriteStartObject();
+                
+                w.WritePropertyName(nameof(subscriptionStats.TaskId));
+                w.WriteInteger(subscriptionStats.TaskId);
+                w.WriteComma();
+
+                w.WritePropertyName(nameof(subscriptionStats.TaskName));
+                w.WriteString(subscriptionStats.TaskName);
+                w.WriteComma();
+
+                w.WriteArray(c, nameof(subscriptionStats.TaskStats), subscriptionStats.TaskStats, (wp, cp, statsInfo) =>
+                    wp.WriteSubscriptionPerformanceStats(cp, statsInfo));
+                
+                // w.WriteArray(c, nameof(subscriptionStats.TaskStats), subscriptionStats.TaskStats, (wp, cp, statsInfo) =>
+                // {
+                //     wp.WriteStartObject();
+                //
+                //     wp.WritePropertyName(nameof(statsInfo.Id));
+                //     wp.WriteInteger(statsInfo.Id);
+                //     wp.WriteComma();
+                //     
+                //     wp.WritePropertyName(nameof(statsInfo.ClientUri));
+                //     wp.WriteString(statsInfo.ClientUri);
+                //     wp.WriteComma();
+                //     
+                //     wp.WritePropertyName(nameof(statsInfo.InfoType));
+                //     wp.WriteString(statsInfo.InfoType.ToString());
+                //     wp.WriteComma();
+                //     
+                //     wp.WritePropertyName(nameof(statsInfo.Started));
+                //     wp.WriteDateTime(statsInfo.Started, true);
+                //     wp.WriteComma();
+                //
+                //     wp.WritePropertyName(nameof(statsInfo.Completed));
+                //     wp.WriteDateTime(statsInfo.Completed, true);
+                //     wp.WriteComma();
+                //     
+                //     switch (statsInfo.InfoType)
+                //     {
+                //         case SubscriptionInfoType.ClientConnected:
+                //             wp.WritePropertyName((nameof(statsInfo.ClientConnectedAtTime)));
+                //             wp.WriteDateTime(statsInfo.ClientConnectedAtTime, true);
+                //             break;
+                //     
+                //         case SubscriptionInfoType.BatchCompleted:
+                //             wp.WritePropertyName(nameof(statsInfo.NumberOfDocumentsInBatch));
+                //             wp.WriteInteger(statsInfo.NumberOfDocumentsInBatch);
+                //             wp.WriteComma();
+                //
+                //             wp.WritePropertyName(nameof(statsInfo.SizeOfDocumentsInBatch));
+                //             wp.WriteInteger(statsInfo.SizeOfDocumentsInBatch);
+                //             break;
+                //     
+                //         case SubscriptionInfoType.ClientAcknowledge:
+                //             wp.WritePropertyName((nameof(statsInfo.ClientAcknowledgeTime)));
+                //             wp.WriteDateTime(statsInfo.ClientAcknowledgeTime, true);
+                //             break;
+                //         
+                //         case SubscriptionInfoType.ClientDisconnected:
+                //             wp.WritePropertyName((nameof(statsInfo.ClientDisconnectedAtTime)));
+                //             wp.WriteDateTime(statsInfo.ClientAcknowledgeTime, true);
+                //             break;
+                //     }
+                //
+                //     wp.WriteEndObject();
+                // });
+
+                w.WriteEndObject();
+            });
+            
+            writer.WriteEndObject();
+        }
+        
         public static void WriteEtlTaskPerformanceStats(this AbstractBlittableJsonTextWriter writer, JsonOperationContext context, IEnumerable<EtlTaskPerformanceStats> stats)
         {
             writer.WriteStartObject();
@@ -745,6 +825,12 @@ namespace Raven.Server.Json
         {
             var djv = (DynamicJsonValue)TypeConverter.ToBlittableSupportedType(stats);
             writer.WriteObject(context.ReadObject(djv, "etl/performance"));
+        }
+        
+        public static void WriteSubscriptionPerformanceStats(this AbstractBlittableJsonTextWriter writer, JsonOperationContext context, SubscriptionPerformanceStats stats)
+        {
+            var djv = (DynamicJsonValue)TypeConverter.ToBlittableSupportedType(stats);
+            writer.WriteObject(context.ReadObject(djv, "subscription/performance"));
         }
 
         public static void WriteIndexQuery(this AbstractBlittableJsonTextWriter writer, JsonOperationContext context, IIndexQuery query)

@@ -73,8 +73,8 @@ namespace Raven.Server.Documents.TcpHandlers
         }
 
         private IEnumerable<(Document Doc, Exception Exception)> GetDocumentsToSend(DocumentsOperationContext docsContext,
-             IncludeDocumentsCommand includesCmd,
-            long startEtag)
+                                                                                    IncludeDocumentsCommand includesCmd,
+                                                                                    long startEtag)
         {
             int numberOfDocs = 0;
             long size = 0;

@@ -8,12 +8,13 @@ import generalUtils = require("common/generalUtils");
 import rangeAggregator = require("common/helpers/graph/rangeAggregator");
 import liveReplicationStatsWebSocketClient = require("common/liveReplicationStatsWebSocketClient");
 import liveEtlStatsWebSocketClient = require("common/liveEtlStatsWebSocketClient");
+import liveSubscriptionStatsWebSocketClient = require("common/liveSubscriptionStatsWebSocketClient");
 import messagePublisher = require("common/messagePublisher");
 import inProgressAnimator = require("common/helpers/graph/inProgressAnimator");
-
 import colorsManager = require("common/colorsManager");
 import etlScriptDefinitionCache = require("models/database/stats/etlScriptDefinitionCache");
 import fileImporter = require("common/fileImporter");
+
 
 type rTreeLeaf = {
     minX: number;
@@ -24,8 +25,8 @@ type rTreeLeaf = {
     arg: any;
 }
 
-type taskOperation = Raven.Client.Documents.Replication.ReplicationPerformanceOperation | Raven.Server.Documents.ETL.Stats.EtlPerformanceOperation;
-type performanceBaseWithCache = ReplicationPerformanceBaseWithCache | EtlPerformanceBaseWithCache;
+type taskOperation = Raven.Client.Documents.Replication.ReplicationPerformanceOperation | Raven.Server.Documents.ETL.Stats.EtlPerformanceOperation | Raven.Server.Documents.Subscriptions.SubscriptionPerformanceOperation;
+type performanceBaseWithCache = ReplicationPerformanceBaseWithCache | EtlPerformanceBaseWithCache | SubscriptionPerformanceBaseWithCache; // todo...
 type trackInfo = {
     name: string;
     type: ongoingTaskStatType;
@@ -36,6 +37,7 @@ type trackInfo = {
 type exportFileFormat = {
     Replication: Raven.Server.Documents.Replication.LiveReplicationPerformanceCollector.ReplicationPerformanceStatsBase<Raven.Client.Documents.Replication.ReplicationPerformanceBase>[];
     Etl: Raven.Server.Documents.ETL.Stats.EtlTaskPerformanceStats[];
+    Subscription: Raven.Server.Documents.Subscriptions.SubscriptionStats[];
 }
 
 type trackItemContext = {
@@ -236,6 +238,8 @@ class ongoingTasksStats extends viewModelBase {
 
     private liveViewReplicationClient = ko.observable<liveReplicationStatsWebSocketClient>();
     private liveViewEtlClient = ko.observable<liveEtlStatsWebSocketClient>();
+    private liveViewSubscriptionClient = ko.observable<liveSubscriptionStatsWebSocketClient>();
+    
     private autoScroll = ko.observable<boolean>(false);
     private clearSelectionVisible = ko.observable<boolean>(false); 
     
@@ -252,6 +256,7 @@ class ongoingTasksStats extends viewModelBase {
     // The live data from endpoint
     private replicationData: Raven.Server.Documents.Replication.LiveReplicationPerformanceCollector.ReplicationPerformanceStatsBase<Raven.Client.Documents.Replication.ReplicationPerformanceBase>[] = [];
     private etlData: Raven.Server.Documents.ETL.Stats.EtlTaskPerformanceStats[] = [];
+    private subscriptionsData: Raven.Server.Documents.Subscriptions.SubscriptionStats[] = [];
     
     private definitionsCache: etlScriptDefinitionCache;
 
@@ -323,7 +328,9 @@ class ongoingTasksStats extends viewModelBase {
             "ETL": undefined as string,
             "Extract": undefined as string,
             "Transform": undefined as string,
-            "Load" : undefined as string
+            "Load" : undefined as string,
+            "Subscription" : undefined as string,
+            
         }
     };
     
@@ -357,11 +364,13 @@ class ongoingTasksStats extends viewModelBase {
         this.loading = ko.pureComputed(() => {
             const replicationClient = this.liveViewReplicationClient();
             const etlClient = this.liveViewEtlClient();
+            const subscriptionClient = this.liveViewSubscriptionClient();
 
             const replicationLoading = replicationClient ? replicationClient.loading() : true;
             const etlLoading = etlClient ? etlClient.loading() : true;
+            const subscriptionLoading = subscriptionClient ? subscriptionClient.loading() : true;
             
-            return replicationLoading || etlLoading;
+            return replicationLoading || etlLoading || subscriptionLoading;
         });
     }
 
@@ -376,7 +385,7 @@ class ongoingTasksStats extends viewModelBase {
     deactivate() {
         super.deactivate();
 
-        if (this.liveViewReplicationClient() || this.liveViewEtlClient()) {
+        if (this.liveViewReplicationClient() || this.liveViewEtlClient() || this.liveViewSubscriptionClient()) {
             this.cancelLiveView();
         }
     }
@@ -407,7 +416,7 @@ class ongoingTasksStats extends viewModelBase {
     }
 
     private initCanvases() {
-        const metricsContainer = d3.select("#ongoingTasksStatsContainer"); 
+        const metricsContainer = d3.select("#ongoingTasksStatsContainer");
         this.canvas = metricsContainer
             .append("canvas")
             .attr("width", this.totalWidth + 1)
@@ -483,6 +492,7 @@ class ongoingTasksStats extends viewModelBase {
                 }
                 this.updatesPaused = true;
             });
+        
         selection
             .on("mouseup.hit", () => {
                 this.hitTest.onMouseUp();
@@ -574,13 +584,18 @@ class ongoingTasksStats extends viewModelBase {
             this.etlData = d;
             onDataUpdatedThrottle();
         }, this.dateCutoff));
+        this.liveViewSubscriptionClient(new liveSubscriptionStatsWebSocketClient(this.activeDatabase(), d => {
+            this.subscriptionsData = d;
+            onDataUpdatedThrottle();
+        }, this.dateCutoff));
     }
 
     private checkBufferUsage() {
         const replicationDataCount = _.sumBy(this.replicationData, x => x.Performance.length);
         const etlDataCount = _.sumBy(this.etlData, t => _.sumBy(t.Stats, s => s.Performance.length));
+        const subscriptionsDataCount = _.sumBy(this.subscriptionsData, x => x.TaskStats.length); 
         
-        const dataCount = replicationDataCount + etlDataCount;
+        const dataCount = replicationDataCount + etlDataCount + subscriptionsDataCount;
 
         const usage = Math.min(100, dataCount * 100.0 / ongoingTasksStats.bufferSize);
         this.bufferUsage(usage.toFixed(1));
@@ -639,10 +654,15 @@ class ongoingTasksStats extends viewModelBase {
             this.liveViewEtlClient().dispose();
             this.liveViewEtlClient(null);
         }
+
+        if (!!this.liveViewSubscriptionClient()) {
+            this.liveViewSubscriptionClient().dispose();
+            this.liveViewSubscriptionClient(null);
+        }
     }
 
     private draw(workData: workData[], maxConcurrentActions: number, resetFilter: boolean) {
-        this.hasAnyData(this.replicationData.length > 0 || this.etlData.length > 0);
+        this.hasAnyData(this.replicationData.length > 0 || this.etlData.length > 0 || this.subscriptionsData.length > 0);
 
         this.prepareBrushSection(workData, maxConcurrentActions);
         this.prepareMainSection(resetFilter);
@@ -771,11 +791,14 @@ class ongoingTasksStats extends viewModelBase {
 
     private findAndSetTaskNames() {
         this.replicationData = _.orderBy(this.replicationData, [x => x.Type, x => x.Description], ["desc", "asc"]);
+        
         this.etlData = _.orderBy(this.etlData, [x => x.EtlType, x => x.TaskName], ["asc", "asc"]);
         
         this.etlData.forEach(etl => {
             etl.Stats = _.orderBy(etl.Stats, [x => x.TransformationName], ["asc"]);
         });
+
+        this.subscriptionsData = _.orderBy(this.subscriptionsData, [x => x.TaskName], ["asc"]);
         
         const trackInfos = [] as trackInfo[];
         
@@ -808,6 +831,15 @@ class ongoingTasksStats extends viewModelBase {
                 openedHeight: openedHeight, 
                 closedHeight: closedHeight
             });
+        });
+
+        this.subscriptionsData.forEach(subscription => {
+            trackInfos.push({
+                name: subscription.TaskName,
+                type: "Subscription", // todo ???
+                openedHeight: ongoingTasksStats.openedReplicationTrackHeight,
+                closedHeight: ongoingTasksStats.closedReplicationTrackHeight
+            })
         });
         
         this.tracksInfo(trackInfos);
@@ -1041,6 +1073,9 @@ class ongoingTasksStats extends viewModelBase {
         this.etlData.forEach(x => {
             drawBackground(x.TaskName);
         });
+        this.subscriptionsData.forEach(x => {
+            drawBackground(x.TaskName);
+        });
 
         context.restore();
     }
@@ -1068,6 +1103,7 @@ class ongoingTasksStats extends viewModelBase {
                 const startDate = perfWithCache.StartedAsDate;
 
                 const x1 = xScale(startDate);
+                
                 const startDateAsInt = startDate.getTime();
 
                 const endDateAsInt = startDateAsInt + perf.DurationInMs;
@@ -1105,7 +1141,6 @@ class ongoingTasksStats extends viewModelBase {
                 const isOpened = _.includes(this.expandedTracks(), trackName);
                 drawTrack(trackName, this.yScale(trackName), isOpened, replicationTrack.Performance as performanceBaseWithCache[]);
             }
-            
         });
         
         this.etlData.forEach(etlItem => {
@@ -1130,6 +1165,14 @@ class ongoingTasksStats extends viewModelBase {
                 });
             }
         })
+
+        this.subscriptionsData.forEach(subscriptionTrack => { // todo...
+            const trackName = subscriptionTrack.TaskName;
+            if (_.includes(this.filteredTrackNames(), trackName)) {
+                const isOpened = _.includes(this.expandedTracks(), trackName);
+                drawTrack(trackName, this.yScale(trackName), isOpened, subscriptionTrack.TaskStats as performanceBaseWithCache[]); 
+            }
+        });
     }
     
     private drawScriptName(context: CanvasRenderingContext2D, yStart: number, taskInfo: previewEtlScriptItemContext) {
@@ -1201,6 +1244,8 @@ class ongoingTasksStats extends viewModelBase {
                 return "Raven ETL";
             case "Sql":
                 return "SQL ETL";
+            case "Subscription":
+                return "Subscription"
         }
         return "";
     }
@@ -1355,6 +1400,9 @@ class ongoingTasksStats extends viewModelBase {
                 || type === "IncomingPull"
                 || type === "IncomingPush";
             const isEtl = type === "Raven" || type === "Sql";
+            // todo...
+            const isSubscription = type === "Subscription";
+            
             const isRootItem = context.rootStats.Details === context.item;
             
             let sectionName = context.item.Name;
@@ -1542,7 +1590,8 @@ class ongoingTasksStats extends viewModelBase {
                 // maybe we imported old format let's try to convert
                 importedData = {
                     Replication: importedData as any, // we force casting here
-                    Etl: []
+                    Etl: [],
+                    Subscription: [] // todo... ???
                 }
             }
 
@@ -1552,6 +1601,7 @@ class ongoingTasksStats extends viewModelBase {
             } else {
                 this.replicationData = importedData.Replication;
                 this.etlData = importedData.Etl;
+                // todo...
 
                 this.fillCache();
                 this.prepareBrush(); 
@@ -1579,6 +1629,12 @@ class ongoingTasksStats extends viewModelBase {
                     liveEtlStatsWebSocketClient.fillCache(perfStat, etlTaskData.EtlType);
                 });
             })
+        });
+
+        this.subscriptionsData.forEach(subscriptionStat => {
+            subscriptionStat.TaskStats.forEach(subStat => {
+                liveSubscriptionStatsWebSocketClient.fillCache(subStat); // todo.. 
+            });
         });
     }
 
@@ -1654,7 +1710,8 @@ class ongoingTasksStats extends viewModelBase {
         const keysToIgnore: Array<keyof performanceBaseWithCache> = ["StartedAsDate", "CompletedAsDate"];
         const filePayload: exportFileFormat = {
             Replication: this.replicationData,
-            Etl: this.etlData
+            Etl: this.etlData,
+            Subscription: this.subscriptionsData // todo - to check
         };
         fileDownloader.downloadAsJson(filePayload, exportFileName + ".json", exportFileName, (key, value) => {
             if (_.includes(keysToIgnore, key)) {

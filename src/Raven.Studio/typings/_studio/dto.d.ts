@@ -341,7 +341,9 @@ interface IOMetricsRecentStatsWithCache extends Raven.Server.Utils.IoMetrics.IOM
     CompletedAsDate: Date; // used for caching
 }
 
-type ongoingTaskStatType = Raven.Server.Documents.Replication.LiveReplicationPerformanceCollector.ReplicationPerformanceType | Raven.Client.Documents.Operations.ETL.EtlType;
+type ongoingTaskStatType = Raven.Server.Documents.Replication.LiveReplicationPerformanceCollector.ReplicationPerformanceType | 
+                           Raven.Client.Documents.Operations.ETL.EtlType | 
+                           "Subscription"; /// todo - check this ... 
 
 interface ReplicationPerformanceBaseWithCache extends Raven.Client.Documents.Replication.ReplicationPerformanceBase {
     StartedAsDate: Date;
@@ -355,6 +357,13 @@ interface EtlPerformanceBaseWithCache extends Raven.Server.Documents.ETL.Stats.E
     StartedAsDate: Date;
     CompletedAsDate: Date;
     Type: Raven.Client.Documents.Operations.ETL.EtlType;
+    HasErrors: boolean;
+}
+
+interface SubscriptionPerformanceBaseWithCache extends Raven.Server.Documents.Subscriptions.SubscriptionPerformanceStats {
+    StartedAsDate: Date;
+    CompletedAsDate: Date;
+    Type: ongoingTaskStatType;
     HasErrors: boolean;
 }
 
