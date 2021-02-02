@@ -60,6 +60,10 @@ namespace Raven.Server.ServerWide.Commands.Subscriptions
                         items.DeleteByKey(valueNameLowered);
                     }
                 }
+
+                // todo - raise notification...here
+                //_db.RaiseSubscriptionTaskAddedNotification(options.Name);
+                
             }
         }
 

@@ -115,7 +115,8 @@ namespace Raven.Server.Documents.Replication
             var lastStats = _lastStats;
 
             return _lastReplicationStats
-                .Select(x => x == lastStats ? x.ToReplicationPerformanceLiveStatsWithDetails() : x.ToReplicationPerformanceStats())
+                .Select(x => x == lastStats ? 
+                    x.ToReplicationPerformanceLiveStatsWithDetails() : x.ToReplicationPerformanceStats())
                 .ToArray();
         }
 

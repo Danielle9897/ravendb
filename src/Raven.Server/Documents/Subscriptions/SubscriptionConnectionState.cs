@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Raven.Client.Documents.Subscriptions;
 using Raven.Client.Exceptions.Documents.Subscriptions;
 using Raven.Client.Util;
+using Raven.Server.Documents.Subscriptions.Stats;
 using Raven.Server.Documents.TcpHandlers;
 using Sparrow.Server;
 using Sparrow.Threading;
@@ -34,14 +35,10 @@ namespace Raven.Server.Documents.Subscriptions
 
         private SubscriptionConnection _currentConnection;
 
-
         private readonly ConcurrentQueue<SubscriptionConnection> _recentConnections = new ConcurrentQueue<SubscriptionConnection>();
         private readonly ConcurrentQueue<SubscriptionConnection> _rejectedConnections = new ConcurrentQueue<SubscriptionConnection>();
 
-
         public SubscriptionConnection Connection => _currentConnection;
-
-
 
         // we should have two locks: one lock for a connection and one lock for operations
         // remember to catch ArgumentOutOfRangeException for timeout problems
@@ -84,6 +81,10 @@ namespace Raven.Server.Documents.Subscriptions
             catch (SubscriptionException e)
             {
                 RegisterRejectedConnection(incomingConnection, e);
+                
+                // TODO: do we record here on a NEW scope ?
+                // TODO: call an event ?
+                
                 throw;
             }
 
@@ -98,11 +99,15 @@ namespace Raven.Server.Documents.Subscriptions
 
             return new DisposeOnce<SingleAttempt>(() =>
             {
+                Console.WriteLine("disposing subscription connection");
+                
                 while (_recentConnections.Count > 10)
                 {
                     _recentConnections.TryDequeue(out SubscriptionConnection _);
                 }
-                _recentConnections.Enqueue(incomingConnection);
+                
+                _recentConnections.Enqueue(incomingConnection); // write the new connection to the recent hisory
+
                 Interlocked.CompareExchange(ref _currentConnection, null, incomingConnection);
                 ConnectionInUse.Set();
             });
@@ -117,6 +122,7 @@ namespace Raven.Server.Documents.Subscriptions
             {
                 _rejectedConnections.TryDequeue(out SubscriptionConnection _);
             }
+            
             _rejectedConnections.Enqueue(connection);
         }
 

@@ -379,14 +379,14 @@ namespace Raven.Client.Documents.Subscriptions
         /// <summary>
         /// Delete a subscription.
         /// </summary>
-        public async Task DeleteAsync(string name, string database = null, CancellationToken token = default)
+        public async Task DeleteAsync(string subscriptionName, string database = null, CancellationToken token = default)
         {
             (_store as DocumentStoreBase).AssertInitialized();
             var requestExecutor = _store.GetRequestExecutor(database ?? _store.Database);
 
             using (requestExecutor.ContextPool.AllocateOperationContext(out JsonOperationContext jsonOperationContext))
             {
-                var command = new DeleteSubscriptionCommand(name);
+                var command = new DeleteSubscriptionCommand(subscriptionName);
                 await requestExecutor.ExecuteAsync(command, jsonOperationContext, sessionInfo: null, token: token).ConfigureAwait(false);
             }
         }
@@ -394,9 +394,9 @@ namespace Raven.Client.Documents.Subscriptions
         /// <summary>
         /// Delete a subscription.
         /// </summary>
-        public void Delete(string name, string database = null)
+        public void Delete(string subscriptionName, string database = null)
         {
-            AsyncHelpers.RunSync(() => DeleteAsync(name, database));
+            AsyncHelpers.RunSync(() => DeleteAsync(subscriptionName, database));
         }
 
         /// <summary>

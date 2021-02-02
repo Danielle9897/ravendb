@@ -1696,6 +1696,13 @@ namespace Raven.Server.ServerWide
                     (CommandBase)new DeleteSubscriptionCommand(dbName, taskName, raftRequestId) :
                     new DeleteOngoingTaskCommand(taskId, taskType, dbName, raftRequestId);
 
+            // // todo refactor..
+            // if (taskType == OngoingTaskType.Subscription)
+            // {
+            //     var db = DatabasesLandlord.TryGetOrCreateResourceStore(dbName).Result;
+            //     db.RaiseSubscriptionTaskRemovedNotification(taskName);
+            // }
+
             return SendToLeaderAsync(deleteTaskCommand);
         }
 

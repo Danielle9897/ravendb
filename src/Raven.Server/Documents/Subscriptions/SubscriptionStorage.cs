@@ -10,6 +10,7 @@ using Raven.Client.Exceptions.Documents.Subscriptions;
 using Raven.Client.Json.Serialization;
 using Raven.Client.ServerWide;
 using Raven.Client.Util;
+using Raven.Server.Documents.Subscriptions.Stats;
 using Raven.Server.Documents.TcpHandlers;
 using Raven.Server.Rachis;
 using Raven.Server.ServerWide;
@@ -78,6 +79,9 @@ namespace Raven.Server.Documents.Subscriptions
                 // updated existing subscription
                 return subscriptionId.Value;
             }
+
+            // raise notification here.. about new subscription
+            _db.RaiseSubscriptionTaskAddedNotification(options.Name);
 
             return etag;
         }
@@ -266,6 +270,7 @@ namespace Raven.Server.Documents.Subscriptions
             {
                 subscriptionConnectionState.RegisterRejectedConnection(subscriptionConnection, ex);
                 subscriptionConnection.ConnectionException = ex;
+                
                 try
                 {
                     subscriptionConnection.CancellationTokenSource.Cancel();
@@ -301,7 +306,7 @@ namespace Raven.Server.Documents.Subscriptions
                 yield return subscriptionGeneralData;
             }
         }
-
+        
         public string GetSubscriptionNameById(TransactionOperationContext serverStoreContext, long id)
         {
             foreach (var keyValue in ClusterStateMachine.ReadValuesStartingWith(serverStoreContext,
@@ -457,6 +462,19 @@ namespace Raven.Server.Documents.Subscriptions
                 LastBatchAckTime = @base.LastBatchAckTime;
                 LastClientConnectionTime = @base.LastClientConnectionTime;
                 Disabled = @base.Disabled;
+            }
+
+            //TODO: maybe join GetBatchPerformanceStats and GetConnectionPerformanceStats?
+            public SubscriptionBatchPerformanceStats[] GetBatchPerformanceStats()
+            {
+                //TODO: get stats from connection, recent connections and rejected connections
+                throw new NotImplementedException();
+            }
+
+            public SubscriptionConnectionPerformanceStats[] GetConnectionPerformanceStats()
+            {
+                //TODO: 
+                throw new NotImplementedException();
             }
         }
 

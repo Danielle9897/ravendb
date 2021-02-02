@@ -1331,6 +1331,10 @@ namespace Raven.Server.Web.System
                 {
                     (index, _) = await ServerStore.DeleteOngoingTask(id, taskName, type, Database.Name, $"{raftRequestId}/delete-ongoing-task");
                     await Database.RachisLogIndexNotifications.WaitForIndexNotification(index, ServerStore.Engine.OperationTimeout);
+                    
+                    // recore event....
+                    Database.RaiseSubscriptionTaskRemovedNotification(taskName);
+                    
                 }
                 finally
                 {
