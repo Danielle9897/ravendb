@@ -288,7 +288,9 @@ interface subscriptionItemTooltipInfo {
 
 interface subscriptionConnectionItemInfo extends subscriptionItemTooltipInfo {
     duration: number;
+    strategy: string;
     batchCount: number;
+    totalBatchSize: number;
     connectionId: number;
     exceptionText: string;
 }
@@ -297,7 +299,7 @@ interface subscriptionPendingItemInfo extends subscriptionItemTooltipInfo {
     duration: number;
 }
 
-interface subscriptionExceptionItemInfo extends subscriptionItemTooltipInfo {
+interface subscriptionErrorItemInfo extends subscriptionItemTooltipInfo {
     exceptionText: string;    
 }
 
@@ -385,7 +387,6 @@ interface EtlPerformanceBaseWithCache extends Raven.Server.Documents.ETL.Stats.E
 interface SubscriptionConnectionPerformanceStatsWithCache extends Raven.Server.Documents.Subscriptions.Stats.SubscriptionConnectionPerformanceStats {
     StartedAsDate: Date;
     CompletedAsDate: Date;
-    ConnectedAtAsDate: Date;
     Type: subscriptionType;
     HasErrors: boolean;
 }

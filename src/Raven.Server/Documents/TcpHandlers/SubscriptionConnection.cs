@@ -49,14 +49,18 @@ using QueryParser = Raven.Server.Documents.Queries.Parser.QueryParser;
 
 namespace Raven.Server.Documents.TcpHandlers
 {
+    public enum SubscriptionError
+    {
+        ConnectionRejected,
+        Error 
+    }
+    
     public class SubscriptionOperationScope
     {
-        // a Connection is composed of: PendingConnection + ActualConnection
-        // a Batch is composed of: SendDocuments + Ack
-        public const string PendingConnection = "PendingConnection";
-        public const string ActualConnection = "ActualConnection";
-        public const string SendDocuments = "SendDocuments";
-        public const string Ack = "Ack";
+        public const string ConnectionPending = "ConnectionPending";
+        public const string ConnectionActive = "ConnectionActive";
+        public const string BatchSendDocuments = "BatchSendDocuments";
+        public const string BatchWaitForAcknowledge = "BatchWaitForAcknowledge";
     }
     
     public class SubscriptionConnection : IDisposable
@@ -77,8 +81,9 @@ namespace Raven.Server.Documents.TcpHandlers
         private readonly Logger _logger;
         public readonly SubscriptionConnectionStats Stats;
 
-        private SubscriptionConnectionStatsScope _parentConnectionScope;
-        private SubscriptionConnectionStatsScope _actualConnectionScope;
+        private SubscriptionConnectionStatsScope _connectionScope;
+        private SubscriptionConnectionStatsScope _pendingConnectionScope;
+        private SubscriptionConnectionStatsScope _activeConnectionScope;
         
         private static int _connectionStatsId;
         private int _connectionStatsIdForConnection;
@@ -179,7 +184,8 @@ namespace Raven.Server.Documents.TcpHandlers
             }
         }
 
-        public async Task InitAsync()
+        // private async Task InitAsync(SubscriptionConnectionStatsScope pendingScope)
+        private async Task InitAsync()
         {
             await ParseSubscriptionOptionsAsync();
 
@@ -219,35 +225,51 @@ namespace Raven.Server.Documents.TcpHandlers
 
             var random = new Random();
 
-            _parentConnectionScope.RecordConnectionInfo(SubscriptionState, ClientUri);
-            
-            using (_parentConnectionScope.For(SubscriptionOperationScope.PendingConnection))
-            {
-                do
-                {
-                    try
-                    {
-                        DisposeOnDisconnect = await _connectionState.RegisterSubscriptionConnection(this, timeout);
-                        shouldRetry = false;
-                    }
-                    catch (TimeoutException)
-                    {
-                        if (timeout == InitialConnectionTimeout && _logger.IsInfoEnabled)
-                        {
-                            _logger.Info(
-                                $"Subscription Id {SubscriptionId} from IP {TcpConnection.TcpClient.Client.RemoteEndPoint} starts to wait until previous connection from {_connectionState.Connection?.TcpConnection.TcpClient.Client.RemoteEndPoint} is released");
-                        }
+            _connectionScope.RecordConnectionInfo(SubscriptionState, ClientUri, _options.Strategy);
 
-                        timeout = TimeSpan.FromMilliseconds(Math.Max(250, (long)_options.TimeToWaitBeforeConnectionRetry.TotalMilliseconds / 2) + random.Next(15, 50));
-                        await SendHeartBeat(
-                            $"Client from IP {TcpConnection.TcpClient.Client.RemoteEndPoint} waiting for subscription that is serving IP {_connectionState.Connection?.TcpConnection.TcpClient.Client.RemoteEndPoint} to be released");
-                        shouldRetry = true;
-                    }
-                } while (shouldRetry);
+            // todo remove 
+            {
+                Thread.Sleep(3 * 1000);
             }
+                
+            do
+            {
+                try
+                {
+                    DisposeOnDisconnect = await _connectionState.RegisterSubscriptionConnection(this, timeout);
+                    shouldRetry = false;
+                }
+                catch (TimeoutException)
+                {
+                    if (timeout == InitialConnectionTimeout && _logger.IsInfoEnabled)
+                    {
+                        _logger.Info(
+                            $"Subscription Id {SubscriptionId} from IP {TcpConnection.TcpClient.Client.RemoteEndPoint} starts to wait until previous connection from {_connectionState.Connection?.TcpConnection.TcpClient.Client.RemoteEndPoint} is released");
+                    }
+
+                    timeout = TimeSpan.FromMilliseconds(Math.Max(250, (long)_options.TimeToWaitBeforeConnectionRetry.TotalMilliseconds / 2) + random.Next(15, 50));
+                    await SendHeartBeat(
+                        $"Client from IP {TcpConnection.TcpClient.Client.RemoteEndPoint} waiting for subscription that is serving IP {_connectionState.Connection?.TcpConnection.TcpClient.Client.RemoteEndPoint} to be released");
+                    shouldRetry = true;
+                    
+                    _connectionScope.RecordException(SubscriptionError.ConnectionRejected, "time out exception..."); // todo try...
+                }
+                //
+                // catch (SubscriptionInUseException e)
+                // {
+                //     _connectionScope.RecordException(SubscriptionError.ConnectionRejected, e.Message);
+                //     shouldRetry = false; // try...
+                // }
+                
+            } while (shouldRetry);
+            
+            // pendingScope.Dispose();
+            _pendingConnectionScope.Dispose();
 
             try
             {
+                _activeConnectionScope = _connectionScope.For(SubscriptionOperationScope.ConnectionActive);
+                
                 // refresh subscription data (change vector may have been updated, because in the meanwhile, another subscription could have just completed a batch)
                 SubscriptionState = await TcpConnection.DocumentDatabase.SubscriptionStorage.AssertSubscriptionConnectionDetails(SubscriptionId, _options.SubscriptionName);
 
@@ -260,11 +282,6 @@ namespace Raven.Server.Documents.TcpHandlers
                     [nameof(SubscriptionConnectionServerMessage.Status)] = nameof(SubscriptionConnectionServerMessage.ConnectionStatus.Accepted)
                 });
 
-                Stats.ConnectedAt = DateTime.UtcNow;
-                
-                _actualConnectionScope = _parentConnectionScope.For(SubscriptionOperationScope.ActualConnection);
-                _parentConnectionScope.RecordConnectedAt(Stats.ConnectedAt);
-                
                 await TcpConnection.DocumentDatabase.SubscriptionStorage.UpdateClientConnectionTime(SubscriptionState.SubscriptionId,
                     SubscriptionState.SubscriptionName, SubscriptionState.MentorNode);
             }
@@ -315,7 +332,9 @@ namespace Raven.Server.Documents.TcpHandlers
                         using (connection)
                         {
                             connection._lastConnectionStats = new SubscriptionConnectionStatsAggregator(_connectionStatsId, null);
-                            connection._parentConnectionScope = connection._lastConnectionStats.CreateScope();
+                            connection._connectionScope = connection._lastConnectionStats.CreateScope();
+
+                            connection._pendingConnectionScope = connection._connectionScope.For(SubscriptionOperationScope.ConnectionPending);
 
                             try
                             {
@@ -328,8 +347,14 @@ namespace Raven.Server.Documents.TcpHandlers
 
                                 try
                                 {
+                                    // await connection.InitAsync(connection._pendingConnectionScope);
                                     await connection.InitAsync();
                                     await connection.ProcessSubscriptionAsync();
+                                }
+                                catch (SubscriptionInvalidStateException e)
+                                {
+                                    connection._pendingConnectionScope.Dispose();
+                                    throw e;
                                 }
                                 finally
                                 {
@@ -339,9 +364,13 @@ namespace Raven.Server.Documents.TcpHandlers
                                     }
                                 }
                             }
+                            catch (SubscriptionInUseException e)
+                            {
+                                connection._connectionScope.RecordException(SubscriptionError.ConnectionRejected, e.Message);
+                            }
                             catch (Exception e)
                             {
-                                connection._parentConnectionScope.RecordException(e.Message);
+                                connection._connectionScope.RecordException(SubscriptionError.Error, e.Message);
                                 
                                 var errorMessage = $"Failed to process subscription {connection.SubscriptionId} / from client {remoteEndPoint}";
                                 connection.AddToStatusDescription($"{errorMessage}. Sending response to client");
@@ -577,7 +606,7 @@ namespace Raven.Server.Documents.TcpHandlers
             }
             catch (EndOfStreamException e)
             {
-                throw new RavenException("No reply from the subscription client.", e);
+                throw new SubscriptionConnectionDownException("No reply from the subscription client.", e);
             }
             catch (IOException)
             {
@@ -634,7 +663,7 @@ namespace Raven.Server.Documents.TcpHandlers
                     
                     var inProgressBatchStats = _lastBatchStats = new SubscriptionBatchStatsAggregator(Interlocked.Increment(ref _batchStatsId), _lastBatchStats);
                     
-                    using (var batchParentScope = inProgressBatchStats.CreateScope())
+                    using (var batchScope = inProgressBatchStats.CreateScope())
                     {
                         try
                         {
@@ -643,7 +672,7 @@ namespace Raven.Server.Documents.TcpHandlers
                             {
                                 var sendingCurrentBatchStopwatch = Stopwatch.StartNew();
 
-                                var anyDocumentsSentInCurrentIteration = await TrySendingBatchToClient(docsContext, sendingCurrentBatchStopwatch, batchParentScope, inProgressBatchStats);
+                                var anyDocumentsSentInCurrentIteration = await TrySendingBatchToClient(docsContext, sendingCurrentBatchStopwatch, batchScope, inProgressBatchStats);
 
                                 if (anyDocumentsSentInCurrentIteration == false) 
                                 {
@@ -663,7 +692,7 @@ namespace Raven.Server.Documents.TcpHandlers
 
                                     subscriptionChangeVectorBeforeCurrentBatch = _lastChangeVector ?? SubscriptionState.ChangeVectorForNextBatchStartingPoint;
 
-                                    UpdateBatchPerformanceStats(false);
+                                    UpdateBatchPerformanceStats(0, false);
                                     
                                     if (sendingCurrentBatchStopwatch.ElapsedMilliseconds > 1000)
                                         await SendHeartBeat("Didn't find any documents to send and more then 1000ms passed");
@@ -685,17 +714,17 @@ namespace Raven.Server.Documents.TcpHandlers
                                 }
                             }
 
-                            using (batchParentScope.For(SubscriptionOperationScope.Ack))
+                            using (batchScope.For(SubscriptionOperationScope.BatchWaitForAcknowledge))
                             {
                                 (replyFromClientTask, subscriptionChangeVectorBeforeCurrentBatch) =
                                     await WaitForClientAck(replyFromClientTask, subscriptionChangeVectorBeforeCurrentBatch);
                             }
                             
-                            UpdateBatchPerformanceStats();
+                            UpdateBatchPerformanceStats(batchScope.GetBatchSize());
                         }
                         catch (Exception e)
                         {
-                            batchParentScope.RecordException(e.Message);
+                            batchScope.RecordException(e.Message);
                             throw;
                         }
                     }
@@ -705,13 +734,13 @@ namespace Raven.Server.Documents.TcpHandlers
             }
         }
 
-        private void UpdateBatchPerformanceStats(bool anyDocumentsSent = true)
+        private void UpdateBatchPerformanceStats(long batchSize, bool anyDocumentsSent = true)
         {
             _lastBatchStats.Complete();
 
             if (anyDocumentsSent)
             {
-                _parentConnectionScope.RecordBatchCompleted();
+                _connectionScope.RecordBatchCompleted(batchSize);
                 
                 AddBatchPerformanceStatsToBatchesHistory(_lastBatchStats);
                 TcpConnection.DocumentDatabase.SubscriptionStorage.RaiseNotificationForBatchEnded(_options.SubscriptionName, _lastBatchStats);
@@ -800,14 +829,14 @@ namespace Raven.Server.Documents.TcpHandlers
         /// <param name="sendingCurrentBatchStopwatch"></param>
         /// <returns>Whether succeeded finding any documents to send</returns>
         private async Task<bool> TrySendingBatchToClient(DocumentsOperationContext docsContext, Stopwatch sendingCurrentBatchStopwatch, 
-            SubscriptionBatchStatsScope batchParentScope, SubscriptionBatchStatsAggregator batchStatsAggregator)
+            SubscriptionBatchStatsScope batchScope, SubscriptionBatchStatsAggregator batchStatsAggregator)
         {
             AddToStatusDescription("Start trying to send docs to client");
             bool anyDocumentsSentInCurrentIteration = false;
             
-            using (batchParentScope.For(SubscriptionOperationScope.SendDocuments))
+            using (batchScope.For(SubscriptionOperationScope.BatchSendDocuments))
             {
-                batchParentScope.RecordBatchInfo(_connectionState.Connection.SubscriptionId, _connectionState.SubscriptionName, _connectionState.Connection._connectionStatsIdForConnection, batchStatsAggregator.Id);
+                batchScope.RecordBatchInfo(_connectionState.Connection.SubscriptionId, _connectionState.SubscriptionName, _connectionState.Connection._connectionStatsIdForConnection, batchStatsAggregator.Id);
                 
                 int docsToFlush = 0;
                 
@@ -883,7 +912,7 @@ namespace Raven.Server.Documents.TcpHandlers
 
                             writer.WriteEndObject();
                             docsToFlush++;
-                            batchParentScope.RecordDocumentInfo(result.Doc.Data.Size);
+                            batchScope.RecordDocumentInfo(result.Doc.Data.Size);
 
                             TcpConnection._lastEtagSent = -1;
                             // perform flush for current batch after 1000ms of running or 1 MB
@@ -911,7 +940,7 @@ namespace Raven.Server.Documents.TcpHandlers
                                 includeDocumentsCommand.Fill(includedDocuments);
                                 await writer.WriteIncludesAsync(docsContext, includedDocuments);
                                 
-                                batchParentScope.RecordIncludedDocumentsInfo(includedDocuments.Count, includedDocuments.Select(x => x.Data.Size).Sum());
+                                batchScope.RecordIncludedDocumentsInfo(includedDocuments.Count, includedDocuments.Select(x => x.Data.Size).Sum());
                                 
                                 writer.WriteEndObject();
                             }
@@ -931,7 +960,7 @@ namespace Raven.Server.Documents.TcpHandlers
                                 writer.WritePropertyName(docsContext.GetLazyStringForFieldWithCaching(IncludedCounterNamesSegment));
                                 writer.WriteIncludedCounterNames(includeCountersCommand.CountersToGetByDocId);
 
-                                batchParentScope.RecordIncludedCountersInfo(includeCountersCommand.Results.Sum(x => x.Value.Count));
+                                batchScope.RecordIncludedCountersInfo(includeCountersCommand.Results.Sum(x => x.Value.Count));
                                 
                                 writer.WriteEndObject();
                             }
@@ -947,7 +976,7 @@ namespace Raven.Server.Documents.TcpHandlers
                                 writer.WritePropertyName(docsContext.GetLazyStringForFieldWithCaching(TimeSeriesIncludesSegment));
                                 writer.WriteTimeSeries(includeTimeSeriesCommand.Results);
                                 
-                                batchParentScope.RecordIncludedTimeSeriesInfo(includeTimeSeriesCommand.Results.Sum(x => 
+                                batchScope.RecordIncludedTimeSeriesInfo(includeTimeSeriesCommand.Results.Sum(x =>
                                     x.Value.Sum(y => y.Value.Sum(z => z.Entries.Length))));
                                 
                                 writer.WriteEndObject();
@@ -1136,8 +1165,8 @@ namespace Raven.Server.Documents.TcpHandlers
 
                 RecentSubscriptionStatuses?.Clear();
                 
-                _actualConnectionScope.Dispose();
-                _parentConnectionScope.Dispose();
+                _activeConnectionScope.Dispose();
+                _connectionScope.Dispose();
             }
         }
 
@@ -1425,7 +1454,8 @@ namespace Raven.Server.Documents.TcpHandlers
         {
             _lastBatchesStats.Enqueue(batchStats); // add to batches history
 
-            while (_lastBatchesStats.Count > 25)
+            // while (_lastBatchesStats.Count > 25)
+            while (_lastBatchesStats.Count > 2)
                 _lastBatchesStats.TryDequeue(out batchStats);
         }
     }

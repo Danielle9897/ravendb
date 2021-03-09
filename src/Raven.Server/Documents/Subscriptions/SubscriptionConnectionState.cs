@@ -75,7 +75,16 @@ namespace Raven.Server.Documents.Subscriptions
                     }
                 }
             }
-            catch (SubscriptionException e)
+            
+            //todo - try... not sure about this..
+            catch (TimeoutException e)
+            {
+                var temp = new SubscriptionInUseException("from time out...");
+                RegisterRejectedConnection(incomingConnection, temp);
+                throw;
+            }
+            
+            catch (SubscriptionException e) //todo - should register also for timeout exception ?
             {
                 RegisterRejectedConnection(incomingConnection, e);
                 throw;

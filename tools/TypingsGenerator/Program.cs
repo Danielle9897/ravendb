@@ -204,7 +204,7 @@ namespace TypingsGenerator
             scripter.AddType(typeof(DatabaseChanged));
             scripter.AddType(typeof(ClusterTopologyChanged));
             scripter.AddType(typeof(DatabaseStatsChanged));
-            scripter.AddType(typeof(PerformanceHint));
+            scripter.AddType(typeof(PerformanceHint));SubscriptionError
             scripter.AddType(typeof(PagingPerformanceDetails));
             scripter.AddType(typeof(HugeDocumentsDetails));
             scripter.AddType(typeof(HugeDocumentInfo));
@@ -213,6 +213,7 @@ namespace TypingsGenerator
             // subscriptions
             scripter.AddType(typeof(SubscriptionConnectionStats));
             scripter.AddType(typeof(SubscriptionWorkerOptions));
+            scripter.AddType(typeof(SubscriptionError));
             scripter.AddType(typeof(SubscriptionTryout));
 
             // changes
