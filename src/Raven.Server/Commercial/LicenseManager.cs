@@ -1311,7 +1311,7 @@ namespace Raven.Server.Commercial
             throw GenerateLicenseLimit(LimitType.SqlEtl, message);
         }
         
-        public void AssertCanAddParquetEtl()
+        public void AssertCanAddOlapEtl()
         {
             // todo
         }
