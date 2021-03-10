@@ -1411,7 +1411,8 @@ namespace Raven.Server.ServerWide
             nameof(DatabaseRecord.SinkPullReplications),
             nameof(DatabaseRecord.HubPullReplications),
             nameof(DatabaseRecord.RavenEtls),
-            nameof(DatabaseRecord.SqlEtls)
+            nameof(DatabaseRecord.SqlEtls),
+            nameof(DatabaseRecord.OlapEtls)
         };
 
         private unsafe List<string> AddDatabase(ClusterOperationContext context, BlittableJsonReaderObject cmd, long index, Leader leader)
