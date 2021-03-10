@@ -1311,6 +1311,12 @@ namespace Raven.Server.Commercial
             throw GenerateLicenseLimit(LimitType.SqlEtl, message);
         }
         
+        public void AssertCanAddS3Etl()
+        {
+            // todo
+        }
+
+        
         public bool CanUseMonitoringEndpoints(bool withNotification)
         {
             if (IsValid(out _) == false)
