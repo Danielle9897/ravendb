@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
 using Raven.Client.Documents.Operations.Backups;
