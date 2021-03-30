@@ -119,6 +119,8 @@ namespace Raven.Server.Commercial
         public bool HasRavenEtl => GetValue<bool>("ravenEtl");
 
         public bool HasSqlEtl => GetValue<bool>("sqlEtl");
+        
+        public bool HasOlapEtl => GetValue<bool>("olapEtl");
 
         public bool HasSnmpMonitoring => GetValue<bool>("snmp");
         
@@ -182,6 +184,7 @@ namespace Raven.Server.Commercial
                 [nameof(HasDelayedExternalReplication)] = HasDelayedExternalReplication,
                 [nameof(HasRavenEtl)] = HasRavenEtl,
                 [nameof(HasSqlEtl)] = HasSqlEtl,
+                [nameof(HasOlapEtl)] = HasOlapEtl,
                 [nameof(HasSnmpMonitoring)] = HasSnmpMonitoring,
                 [nameof(HasMonitoringEndpoints)] = HasMonitoringEndpoints,
                 [nameof(DistributedCluster)] = DistributedCluster,

@@ -307,12 +307,18 @@ namespace Raven.Client.Documents.Operations.OngoingTasks
         }
 
         public OlapEtlConfiguration Configuration { get; set; }
+        // public bool KeepFilesOnDisk { get; set; }
+        // public string CustomPrefix { get; set; }
+        // public int? MaxItemsInRow { get; set; }
 
         public override DynamicJsonValue ToJson()
         {
             var json = base.ToJson();
 
             json[nameof(Configuration)] = Configuration?.ToJson();
+            // json[nameof(KeepFilesOnDisk)] = KeepFilesOnDisk;
+            // json[nameof(CustomPrefix)] = CustomPrefix;
+            // json[nameof(MaxItemsInRow)] = MaxItemsInRow;
 
             return json;
         }

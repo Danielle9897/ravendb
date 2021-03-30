@@ -884,6 +884,7 @@ namespace Raven.Server.Web.System
                             NodeTag = tag,
                             NodeUrl = clusterTopology.GetUrlFromTag(tag)
                         },
+                        ConnectionStringDefined = true, // todo - Aviv ?
                         ConnectionStringName = olapEtl.ConnectionStringName,
                         Error = error
                     };
@@ -1031,6 +1032,35 @@ namespace Raven.Server.Web.System
                                     NodeUrl = clusterTopology.GetUrlFromTag(sqlNode)
                                 },
                                 Error = sqlEtlError
+                            });
+                            break;
+                        
+                        case OngoingTaskType.OlapEtl:
+
+                            var olapEtl = name != null ?
+                                record.OlapEtls.Find(x => x.Name.Equals(name, StringComparison.OrdinalIgnoreCase))
+                                : record.OlapEtls?.Find(x => x.TaskId == key);
+
+                            if (olapEtl == null)
+                            {
+                                HttpContext.Response.StatusCode = (int)HttpStatusCode.NotFound;
+                                break;
+                            }
+                            
+                            await WriteResult(context, new OngoingTaskOlapEtlDetails
+                            {
+                                TaskId = olapEtl.TaskId,
+                                TaskName = olapEtl.Name,
+                                MentorNode = olapEtl.MentorNode,
+                                Configuration = olapEtl,
+                                TaskState = GetEtlTaskState(olapEtl),
+                                TaskConnectionStatus = GetEtlTaskConnectionStatus(record, olapEtl, out var olapNode, out var olapEtlError),
+                                ResponsibleNode = new NodeId
+                                {
+                                    NodeTag = olapNode,
+                                    NodeUrl = clusterTopology.GetUrlFromTag(olapNode)
+                                },
+                                Error = olapEtlError
                             });
                             break;
 

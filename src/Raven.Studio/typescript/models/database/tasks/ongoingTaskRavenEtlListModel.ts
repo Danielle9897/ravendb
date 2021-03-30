@@ -6,12 +6,12 @@ import appUrl = require("common/appUrl");
 class ongoingTaskRavenEtlListModel extends abstractOngoingTaskEtlListModel {
     destinationDB = ko.observable<string>();
     destinationURL = ko.observable<string>();
-    connectionStringName = ko.observable<string>();
+    // connectionStringName = ko.observable<string>();
     topologyDiscoveryUrls = ko.observableArray<string>([]);
 
     connectionStringDefined: KnockoutComputed<boolean>;
 
-    connectionStringsUrl: string;
+    //connectionStringsUrl: string;
     
     constructor(dto: Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskRavenEtlListView) {
         super();

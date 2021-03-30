@@ -47,12 +47,13 @@ namespace Raven.Client.Documents.Smuggler
         SqlConnectionStrings = 1 << 8,
         RavenEtls = 1 << 9,
         SqlEtls = 1 << 10,
-        Client = 1 << 11,
-        Sorters = 1 << 12,
-        SinkPullReplications = 1 << 13,
-        HubPullReplications = 1 << 14,
-        TimeSeries = 1 << 15,
-        DocumentsCompression = 1 << 16,
-        Analyzers = 1 << 17,
+        OlapEtls = 1 << 11,
+        Client = 1 << 12,
+        Sorters = 1 << 13,
+        SinkPullReplications = 1 << 14,
+        HubPullReplications = 1 << 15,
+        TimeSeries = 1 << 16,
+        DocumentsCompression = 1 << 17,
+        Analyzers = 1 << 18
     }
 }
