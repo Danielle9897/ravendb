@@ -829,3 +829,5 @@ type widgetType = Raven.Server.Dashboard.Cluster.ClusterDashboardNotificationTyp
 type databaseAccessLevel = `Database${Raven.Client.ServerWide.Operations.Certificates.DatabaseAccess}`;
 type securityClearance = Raven.Client.ServerWide.Operations.Certificates.SecurityClearance;
 type accessLevel = databaseAccessLevel | securityClearance;
+
+type commandLineType = "PowerShell" | "Cmd" | "Bash";
