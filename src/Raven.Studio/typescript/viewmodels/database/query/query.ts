@@ -125,6 +125,8 @@ class query extends viewModelBase {
     static readonly SortTypes: querySortType[] = ["Ascending", "Descending", "Range Ascending", "Range Descending"];
 
     static lastQueryNotExecuted = new Map<string, string>();
+
+    static readonly maxSpatialResultsToFetch = 5000;
     
     autoOpenGraph: boolean = false;
 
@@ -196,6 +198,7 @@ class query extends viewModelBase {
     dirtyResult = ko.observable<boolean>();
     currentTab = ko.observable<queryResultTab | highlightSection | perCollectionIncludes | timeSeriesPlotDetails | timeSeriesTableDetails | spatialQueryMap>("results");
     totalResultsForUi = ko.observable<number>(0);
+    hasMoreResults = ko.observable<boolean>(false);
     hasMoreUnboundedResults = ko.observable<boolean>(false);
     graphTabIsDirty = ko.observable<boolean>(true);
 
@@ -222,7 +225,13 @@ class query extends viewModelBase {
     isSpatialQuery = ko.observable<boolean>();
     spatialMap = ko.observable<spatialQueryMap>();
     showMapView: KnockoutComputed<boolean>;
-    totalNumberOfMarkers = ko.observable<number>(0);
+    numberOfMarkers = ko.observable<number>(0);
+    //spatialTabVisited = ko.observable<number>(0); // todo.. rename...
+    loadMoreCounter = ko.observable<number>(0);
+    spatialResultsOnMapText: KnockoutComputed<string>;
+    hasMoreSpatialResultsForMap = ko.observable<boolean>(false);    
+    //keepMarkers = ko.observableArray<spatialMarkersLayerModel>([]);
+    allResultsItems = ko.observableArray<document>([]); // try ..
         
     timeSeriesGraphs = ko.observableArray<timeSeriesPlotDetails>([]);
     timeSeriesTables = ko.observableArray<timeSeriesTableDetails>([]);
@@ -240,7 +249,6 @@ class query extends viewModelBase {
     rawJsonUrl = ko.observable<string>();
     csvUrl = ko.observable<string>();
 
-    isLoading = ko.observable<boolean>(false);
     containsAsterixQuery: KnockoutComputed<boolean>; // query contains: *.* ?
 
     queriedIndex: KnockoutComputed<string>;
@@ -259,6 +267,11 @@ class query extends viewModelBase {
     showFanOutWarning = ko.observable<boolean>(false);
 
     $downloadForm: JQuery;
+    
+    spinners = {
+        isLoadingSpatialResults: ko.observable<boolean>(false),
+        isLoading: ko.observable<boolean>(false)
+    };
 
     /*TODO
     isTestIndex = ko.observable<boolean>(false);
@@ -292,7 +305,7 @@ class query extends viewModelBase {
 
         this.bindToCurrentInstance("runRecentQuery", "previewQuery", "removeQuery", "useQuery", "useQueryItem", 
             "goToHighlightsTab", "goToIncludesTab", "goToGraphTab", "toggleResults", "goToTimeSeriesTab", "plotTimeSeries",
-            "closeTimeSeriesTab", "goToSpatialMapTab");
+            "closeTimeSeriesTab", "goToSpatialMapTab", "loadNextSpatialResultsToMap");
     }
 
     private initObservables() {
@@ -452,7 +465,7 @@ class query extends viewModelBase {
             eventsCollector.default.reportEvent("query", "toggle-cache");
         });
 
-        this.isLoading.extend({ rateLimit: 100 });
+        this.spinners.isLoading.extend({ rateLimit: 100 });
 
         const criteria = this.criteria();
 
@@ -506,6 +519,21 @@ class query extends viewModelBase {
         this.showVirtualTable = ko.pureComputed(() => {
             const currentTab = this.currentTab();
             return currentTab !== 'timings' && currentTab !== 'graph' && !this.showTimeSeriesGraph() && !this.showMapView();
+        });
+
+        // todo...
+        this.spatialResultsOnMapText = ko.pureComputed(() => { 
+           if (this.spatialTabVisited() === 1 && this.hasMoreSpatialResultsForMap()) {
+               return `Showing first ${query.maxSpatialResultsToFetch.toLocaleString()} results on map`
+           } 
+           
+           if (this.spatialTabVisited() > 1) {
+               const start = (this.spatialTabVisited() - 1) * query.maxSpatialResultsToFetch + 1;
+               const end = start + this.numberOfMarkers() - 1;
+               return `Showing ${start.toLocaleString()} - ${end.toLocaleString()} results on map`;
+           } 
+           
+           return "";
         });
     }
 
@@ -635,6 +663,34 @@ class query extends viewModelBase {
                totalResultCount: allExplanations.length
            });
         });
+        
+        // this.spatialFetcher(() => {
+        //    
+        //     const command = new queryCommand(this.activeDatabase(), 0, query.maxSpatialResultsToFetch, this.criteria().clone(), !this.cacheEnabled());
+        //    
+        //     this.spinners.isLoadingSpatialResults(true);
+        //     this.showMaxSpatialResultsWarning(false);
+        //    
+        //     command.execute()
+        //         .always(() => {
+        //             this.spinners.isLoadingSpatialResults(false);
+        //         })
+        //         .done((queryResults: pagedResultExtended<document>) => {
+        //             if (queryResults.items.length >= query.maxSpatialResultsToFetch) {
+        //                 this.showMaxSpatialResultsWarning(true);
+        //             }
+        //             this.onSpatialLoaded(queryResults);
+        //         })
+        //         .fail(() => {
+        //             // todo ???
+        //         });
+        //    
+        //     // todo ???
+        //     return $.when({
+        //         items: [] as document[],
+        //         totalResultCount: 0
+        //     });
+        // });
         
         this.columnsSelector.init(grid,
             (s, t, c) => this.effectiveFetcher()(s, t),
@@ -851,6 +907,8 @@ class query extends viewModelBase {
         if (!this.isValid(this.criteria().validationGroup)) {
             return;
         }
+
+        this.allResultsItems([]); // try...
         
         this.timeSeriesGraphs([]);
         this.timeSeriesTables([]);
@@ -877,7 +935,7 @@ class query extends viewModelBase {
         const disableCache = !this.cacheEnabled();
 
         if (criteria.queryText()) {
-            this.isLoading(true);
+            this.spinners.isLoading(true);
 
             const database = this.activeDatabase();
 
@@ -895,7 +953,7 @@ class query extends viewModelBase {
             } catch (error) {
                 // it may throw when unable to compute query parameters, etc.
                 messagePublisher.reportError("Unable to run the query", error.message, null, false);
-                this.isLoading(false);
+                this.spinners.isLoading(false);
                 return;
             }
 
@@ -908,7 +966,7 @@ class query extends viewModelBase {
                 
                 const resultsTask = $.Deferred<pagedResultExtended<document>>();
                 const queryForAllFields = criteriaForFetcher.showFields();
-                                
+                
                 // Note: 
                 // When server response is '304 Not Modified' then the browser cached data contains duration time from the 'first' execution
                 // If we ask browser to report the 304 state then 'response content' is empty 
@@ -917,16 +975,20 @@ class query extends viewModelBase {
                 
                 command.execute()
                     .always(() => {
-                        this.isLoading(false);
+                        this.spinners.isLoading(false);
                     })
                     .done((queryResults: pagedResultExtended<document>) => {
-                        this.hasMoreUnboundedResults(false);
+                        this.hasMoreResults(false);
+                        this.hasMoreUnboundedResults(false);                        
                         
                         if (queryResults.items.length < take + 1) {
                             // we get less items than requested. I assume the distinct operation was used. 
                             // let's try to handle that. I assuming that we reach the end of results.
                             queryResults.totalResultCount = skip + queryResults.items.length;
                             queryResults.additionalResultInfo.TotalResults = queryResults.totalResultCount;
+                            
+                        } else {
+                            this.hasMoreResults(true); // todo - is it not needed now ?
                         }
 
                         const totalFromQuery = queryResults.totalResultCount || 0;
@@ -1017,7 +1079,7 @@ class query extends viewModelBase {
                             this.onHighlightingsLoaded(queryResults.highlightings);
                             this.onExplanationsLoaded(queryResults.explanations);
                             this.onTimingsLoaded(queryResults.timings);
-                            this.onSpatialLoaded(queryResults);
+                            this.onSpatialLoaded(queryResults, skip + totalSkippedResults);
                         }
                         
                         this.saveRecentQueryToStorage(criteriaDto, optionalSavedQueryName);
@@ -1256,66 +1318,115 @@ class query extends viewModelBase {
             });
         });
     }
-    
-    private onSpatialLoaded(queryResults: pagedResultExtended<document>) {
+
+    private onSpatialLoaded(queryResults: pagedResultExtended<document>, skip: number): void {
         this.isSpatialQuery(false);
-        let markersCount = 0;
         
+
         const spatialProperties = queryResults.additionalResultInfo.SpatialProperties;
         if (spatialProperties && queryResults.items.length) {
             this.isSpatialQuery(true);
-
-            // Each spatial markers model will contain the layer of markers per spatial properties pair
-            const spatialMarkersLayers: spatialMarkersLayerModel[] = [];
-            const spatialCirclesLayer: spatialCircleModel[] = [];
-            const spatialPolygonsLayer: spatialPolygonModel[] = [];
-
-            for (let i = 0; i < spatialProperties.length; i++) {
-                const latitudeProperty = spatialProperties[i].LatitudeProperty;
-                const longitudeProperty = spatialProperties[i].LongitudeProperty;
-
-                let pointsArray: geoPointInfo[] = [];
-                for (let i = 0; i < queryResults.items.length; i++) {
-                    const item = queryResults.items[i];
-                    const flatItem = generalUtils.flattenObj(item, "");
-                    
-                    const latitudeValue = _.get(flatItem, latitudeProperty) as number;
-                    const longitudeValue = _.get(flatItem, longitudeProperty) as number;
-                    
-                    if (latitudeValue != null && longitudeValue != null) {
-                        const point: geoPointInfo = { Latitude: latitudeValue, Longitude: longitudeValue, PopupContent: item };
-                        pointsArray.push(point);
-                        markersCount++;
-                    }
-                }
-
-                const layer = new spatialMarkersLayerModel(latitudeProperty, longitudeProperty, pointsArray);
-                spatialMarkersLayers.push(layer);
-            }
-
-            this.totalNumberOfMarkers(markersCount);
-
-            const spatialShapes = queryResults.additionalResultInfo.SpatialShapes;
-            for (let i = 0; i < spatialShapes.length; i++) {
-                const shape = spatialShapes[i];
-                switch (shape.Type) {
-                    case "Circle": {
-                        const circle = new spatialCircleModel(shape as Raven.Server.Documents.Indexes.Spatial.Circle);
-                        spatialCirclesLayer.push(circle);
-                    }
-                        break;
-                    case "Polygon": {
-                        const polygon = new spatialPolygonModel(shape as Raven.Server.Documents.Indexes.Spatial.Polygon);
-                        spatialPolygonsLayer.push(polygon);
-                    }
-                        break;
-                }
-            }
-            
-            const spatialMapView = new spatialQueryMap(spatialMarkersLayers, spatialCirclesLayer, spatialPolygonsLayer);
-            this.spatialMap(spatialMapView);
+            this.spatialTabVisited(0);
         }
     }
+    // private onSpatialLoaded1(queryResults: pagedResultExtended<document>, skip: number): void {
+    //     this.isSpatialQuery(false);
+    //     this.showMaxSpatialResultsWarning(false);
+    //
+    //     const spatialProperties = queryResults.additionalResultInfo.SpatialProperties;
+    //     if (spatialProperties && queryResults.items.length) {
+    //         this.isSpatialQuery(true);
+    //
+    //         if (this.hasMoreResults()) {
+    //             this.spinners.isLoadingSpatialResults(true);
+    //
+    //             const command = new queryCommand(this.activeDatabase(), skip, query.maxSpatialResultsToFetch, this.criteria().clone(), !this.cacheEnabled());
+    //             command.execute()
+    //                 .always(() => {
+    //                     this.spinners.isLoadingSpatialResults(false);
+    //                 })
+    //                 .done((queryResults: pagedResultExtended<document>) => {
+    //                     if (queryResults.items.length >= query.maxSpatialResultsToFetch) {
+    //                         this.showMaxSpatialResultsWarning(true);
+    //                     }
+    //
+    //                     this.populateSpatialMap(queryResults, spatialProperties);
+    //                 })
+    //                 .fail(() => {
+    //                     // todo ???
+    //                 });
+    //         } else {
+    //             this.populateSpatialMap(queryResults, spatialProperties);
+    //         }
+    //     }
+    // }
+    
+
+    
+    
+    // org:
+    // private onSpatialLoaded(queryResults: pagedResultExtended<document>) {
+    //     this.isSpatialQuery(false);
+    //     let markersCount = 0;
+    //    
+    //     const spatialProperties = queryResults.additionalResultInfo.SpatialProperties;
+    //     if (spatialProperties && queryResults.items.length) {
+    //         this.isSpatialQuery(true);
+    //
+    //         // Each spatial markers model will contain the layer of markers per spatial properties pair
+    //         const spatialMarkersLayers: spatialMarkersLayerModel[] = [];
+    //         const spatialCirclesLayer: spatialCircleModel[] = [];
+    //         const spatialPolygonsLayer: spatialPolygonModel[] = [];
+    //
+    //         for (let i = 0; i < spatialProperties.length; i++) {
+    //             const latitudeProperty = spatialProperties[i].LatitudeProperty;
+    //             const longitudeProperty = spatialProperties[i].LongitudeProperty;
+    //
+    //             let pointsArray: geoPointInfo[] = [];
+    //             for (let i = 0; i < queryResults.items.length; i++) {
+    //                 const item = queryResults.items[i];
+    //                 const flatItem = generalUtils.flattenObj(item, "");
+    //                
+    //                 const latitudeValue = _.get(flatItem, latitudeProperty) as number;
+    //                 const longitudeValue = _.get(flatItem, longitudeProperty) as number;
+    //                
+    //                 if (latitudeValue != null && longitudeValue != null) {
+    //                     const point: geoPointInfo = { Latitude: latitudeValue, Longitude: longitudeValue, PopupContent: item };
+    //                     pointsArray.push(point);
+    //                     markersCount++;
+    //                 }
+    //             }
+    //
+    //             const layer = new spatialMarkersLayerModel(latitudeProperty, longitudeProperty, pointsArray);
+    //             spatialMarkersLayers.push(layer);
+    //         }
+    //
+    //         this.totalNumberOfMarkers(this.hasMoreResults() ? markersCount.toLocaleString() + '+' : markersCount.toLocaleString());
+    //        
+    //         // org
+    //         //this.totalNumberOfMarkers(markersCount);
+    //
+    //         const spatialShapes = queryResults.additionalResultInfo.SpatialShapes;
+    //         for (let i = 0; i < spatialShapes.length; i++) {
+    //             const shape = spatialShapes[i];
+    //             switch (shape.Type) {
+    //                 case "Circle": {
+    //                     const circle = new spatialCircleModel(shape as Raven.Server.Documents.Indexes.Spatial.Circle);
+    //                     spatialCirclesLayer.push(circle);
+    //                 }
+    //                     break;
+    //                 case "Polygon": {
+    //                     const polygon = new spatialPolygonModel(shape as Raven.Server.Documents.Indexes.Spatial.Polygon);
+    //                     spatialPolygonsLayer.push(polygon);
+    //                 }
+    //                     break;
+    //             }
+    //         }
+    //        
+    //         const spatialMapView = new spatialQueryMap(spatialMarkersLayers, spatialCirclesLayer, spatialPolygonsLayer);
+    //         this.spatialMap(spatialMapView);
+    //     }
+    // }
     
     plotTimeSeries() {
         const selection = this.gridController().getSelectedItems();
@@ -1498,7 +1609,104 @@ class query extends viewModelBase {
     }
 
     goToSpatialMapTab() {
-        this.currentTab(this.spatialMap());
+        if (!this.showMapView()) {
+            this.loadNextSpatialResultsToMap();
+        }
+    }
+    
+    loadNextSpatialResultsToMap() { // todo - rename to more ?
+        this.spinners.isLoadingSpatialResults(true);
+
+        const command = new queryCommand(this.activeDatabase(), this.loadMoreCounter() * query.maxSpatialResultsToFetch, query.maxSpatialResultsToFetch + 1, this.criteria().clone(), !this.cacheEnabled());
+        command.execute()
+            .always(() => {
+                this.spinners.isLoadingSpatialResults(false);
+            })
+            .done((queryResults: pagedResultExtended<document>) => {
+                const spatialProperties = queryResults.additionalResultInfo.SpatialProperties;
+                this.populateSpatialMap(queryResults, spatialProperties);
+                this.currentTab(this.spatialMap());
+                this.loadMoreCounter(this.loadMoreCounter() + 1); // todo can rename to spatial data loaded... 
+            })
+            .fail(() => {
+                // todo ???
+            });
+    }
+
+    private populateSpatialMap(queryResults: pagedResultExtended<document>, spatialProperties: any): void {
+        // Each spatial markers model will contain the layer of markers per spatial properties pair 
+        const spatialMarkersLayers: spatialMarkersLayerModel[] = [];
+        const spatialCirclesLayer: spatialCircleModel[] = [];
+        const spatialPolygonsLayer: spatialPolygonModel[] = [];
+
+        let markersCount = 0;
+        this.hasMoreSpatialResultsForMap(false);
+
+        if (queryResults.items.length === query.maxSpatialResultsToFetch + 1) {
+            queryResults.items.length--;
+            this.hasMoreSpatialResultsForMap(true);
+        }
+
+        if (this.loadMoreCounter() === 0) {
+            this.allResultsItems(queryResults.items);
+        } else {
+            this.allResultsItems.push(...queryResults.items);
+        }
+
+        for (let i = 0; i < spatialProperties.length; i++) {
+            const latitudeProperty = spatialProperties[i].LatitudeProperty;
+            const longitudeProperty = spatialProperties[i].LongitudeProperty;
+
+            let pointsArray: geoPointInfo[] = [];
+            for (let i = 0; i < this.allResultsItems().length; i++) {
+                const item = this.allResultsItems()[i];
+                const flatItem = generalUtils.flattenObj(item, "");
+
+                const latitudeValue = _.get(flatItem, latitudeProperty) as number;
+                const longitudeValue = _.get(flatItem, longitudeProperty) as number;
+
+                if (latitudeValue != null && longitudeValue != null) {
+                    const point: geoPointInfo = { Latitude: latitudeValue, Longitude: longitudeValue, PopupContent: item };
+                    pointsArray.push(point);
+                    markersCount++;
+                }
+            }
+
+            const layer = new spatialMarkersLayerModel(latitudeProperty, longitudeProperty, pointsArray);
+            spatialMarkersLayers.push(layer);
+        }
+
+        this.numberOfMarkers(markersCount);
+
+        const spatialShapes = queryResults.additionalResultInfo.SpatialShapes;
+        for (let i = 0; i < spatialShapes.length; i++) {
+            const shape = spatialShapes[i];
+            switch (shape.Type) {
+                case "Circle": {
+                    const circle = new spatialCircleModel(shape as Raven.Server.Documents.Indexes.Spatial.Circle);
+                    spatialCirclesLayer.push(circle);
+                }
+                    break;
+                case "Polygon": {
+                    const polygon = new spatialPolygonModel(shape as Raven.Server.Documents.Indexes.Spatial.Polygon);
+                    spatialPolygonsLayer.push(polygon);
+                }
+                    break;
+            }
+        }
+
+        //const spatialMapView = new spatialQueryMap(this.keepMarkers(), spatialCirclesLayer, spatialPolygonsLayer);
+        //this.spatialMap(spatialMapView);
+        
+        // if (this.spatialTabVisited() === 0) {
+        //     const spatialMapView = new spatialQueryMap(spatialMarkersLayers, spatialCirclesLayer, spatialPolygonsLayer);
+        //     this.spatialMap(spatialMapView);
+        // } else {
+        //     this.spatialMap().addMarkersToMap(spatialMarkersLayers);   
+        // }
+        
+        const spatialMapView = new spatialQueryMap(spatialMarkersLayers, spatialCirclesLayer, spatialPolygonsLayer);
+        this.spatialMap(spatialMapView);
     }
 
     goToTimeSeriesTab(tab: timeSeriesPlotDetails | timeSeriesTableDetails) {
