@@ -1,5 +1,8 @@
-<form data-bind="submit: saveDocument, css: { 'diff': inDiffMode }" class="edit-document" autocomplete="off">
+<form data-bind="submit: saveDocument, css: { 'diff': inDiffMode, 'properties-pin-toggle-pinned': pinProperties() }" class="edit-document" autocomplete="off">
+    
     <div class="docEditor flex-window flex-grow content-margin">
+<!--<div class="docEditor flex-window flex-grow content-margin" data-bind="css: { 'properties-pin-toggle-pinned': pinProperties() }">-->
+        
         <div class="flex-window-head">
             <div class="flex-horizontal copy-area">
                 <div class="flex-grow">
@@ -190,7 +193,44 @@
         </div>
         <div class="panel document-properties flex-window-head copy-area">
             <div class="panel-body">
-                <h3 class="margin-none">Properties</h3>
+                
+ <!-- 4 try -->
+<!--                <h3 class="margin-none flex-horizontal">-->
+<!--                    <span>Properties</span>-->
+<!--                    <span class="flex-separator"></span>-->
+<!--                    <button data-bind="click: pinProperties.toggle.bind(pinProperties), css: { 'pinned': pinProperties() }"  class="properties-pin-toggle">-->
+<!--                        <i data-bind="visible: pinProperties"class="icon-pinned"></i>-->
+<!--                        <i data-bind="visible: !pinProperties()" class="icon-pin"></i>-->
+<!--                    </button>-->
+<!--                </h3>-->
+                
+<!-- 3 try -->
+            <h3 class="margin-none flex-horizontal">
+                <span>Properties</span>
+                <span class="flex-separator"></span>
+                <button data-bind="click: pinProperties.toggle.bind(pinProperties), css: { 'pinned': pinProperties() }" class="properties-pin-toggle">
+                    <i class="icon-pinned"></i><i class="icon-pin"></i>
+                </button>
+            </h3>
+                
+<!-- 2 try -->
+<!--                <h3 class="margin-none flex-horizontal">-->
+<!--                    <span>Properties</span>-->
+<!--                    <span class="flex-separator"></span>-->
+<!--                    <i class="icon-pin margin-bottom margin-bottom-xs"></i>-->
+<!--                </h3>-->
+
+<!-- 1 try -->
+<!--                <div class="flex-horizontal">-->
+<!--                    <h3 class="margin-none">Properties <i class="icon-pin"></i></h3>-->
+<!--                    <div class="flex-separator"></div>-->
+<!--                    <i class="icon-pin"></i>-->
+<!--                </div>-->
+                
+<!-- org-->
+<!--                <h3 class="margin-none">Properties</h3>-->
+                
+                
                 <hr class="small" />
                 <dl class="dl-horizontal small" data-bind="with: metadata">
                     <div data-bind="visible: !$root.isCreatingNewDocument()">

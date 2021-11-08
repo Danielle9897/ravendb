@@ -17,7 +17,7 @@ class studioConfiguration extends viewModelBase {
     activate(args: any) {
         super.activate(args);
      
-        return studioSettings.default.globalSettings(true)
+        return studioSettings.default.getGlobalSettings(true)
             .done((settings: globalSettings) => {
                 this.model = new studioConfigurationModel({
                     Environment: settings.environment.getValue(),
@@ -41,7 +41,7 @@ class studioConfiguration extends viewModelBase {
     saveConfiguration() {
         this.spinners.save(true);
         
-        studioSettings.default.globalSettings()
+        studioSettings.default.getGlobalSettings()
             .done(settings => {
                 const model = this.model;
                 

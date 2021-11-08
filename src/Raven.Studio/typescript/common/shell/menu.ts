@@ -190,7 +190,7 @@ class menu {
 
         $(this.menuResizeElement).on("mousedown.menuResize", e => this.handleResize(e));
 
-        studioSettings.default.globalSettings()
+        studioSettings.default.getGlobalSettings()
             .done(settings => {
                 const widthFromSettings = settings.menuWidth.getValue();
                 this.width(widthFromSettings);
@@ -220,7 +220,7 @@ class menu {
             this.width(width);
             document.documentElement.style.setProperty('--menu-width', requestedWidth.toString() + 'px');
 
-            studioSettings.default.globalSettings()
+            studioSettings.default.getGlobalSettings()
                 .done(settings => {
                     settings.menuWidth.setValue(this.width());
                 });

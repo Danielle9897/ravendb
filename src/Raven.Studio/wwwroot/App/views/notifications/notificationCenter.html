@@ -1,4 +1,9 @@
 <div id="notification-center" class="flex-vertical" data-bind="css: { 'show-notifications': notificationCenter.showNotifications() }, with: notificationCenter">
+    
+<!--<div id="notification-center" class="flex-vertical" -->
+<!--     data-bind="css: { 'show-notifications': notificationCenter.showNotifications(), 'pin-toggle-pinned': notificationCenter.pinNotifications() && notificationCenter.showNotifications() },-->
+<!--                with: notificationCenter">-->
+    
     <div class="notification-actions flex-horizontal flex-stretch-items" data-bind="if: includeInDom">
         <div class="flex-horizontal flex-stretch-items">
             <button data-bind="click: _.partial(filterBySeverity, null), css: { active: !severityFilter() }"
@@ -16,7 +21,16 @@
         </div>
         <button data-bind="click: dismissAll" class="dismiss"><i class="icon-dismiss-all"></i> Dismiss all</button>
         <div class="flex-grow"></div>
-        <button data-bind="{ click: pinNotifications.toggle.bind(pinNotifications), css: { 'pinned': pinNotifications() } }" class="notifications-pin-toggle"><i class="icon-pin"></i><i class="icon-pinned"></i></button>
+        
+        
+        <button data-bind="click: pinNotifications.toggle.bind(pinNotifications), css: { 'pinned': pinNotifications() }" class="pin-toggle">
+            <i class="icon-pin"></i><i class="icon-pinned"></i>
+        </button>
+<!--        <button data-bind="{ click: pinNotifications.toggle.bind(pinNotifications), css: { 'pinned': pinNotifications() } }" class="notifications-pin-toggle">-->
+<!--            <i class="icon-pin"></i><i class="icon-pinned"></i>-->
+<!--        </button>-->
+        
+        
     </div>
     <div class="padding" data-bind="visible: noNewNotifications">
         <i class="icon-xl icon-empty-set text-muted"></i>

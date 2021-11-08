@@ -107,31 +107,29 @@ body:not(.setup-shell) {
             }
         }
 
-
-
-        .notifications-pin-toggle {
-            background-color: transparent;
-            display: inline-block;
-            cursor: pointer;
-            height: 30px;
-            min-width: 30px;
-            border: none;
-            text-align: center;
-
-            i {
-                display: block;
-                top: 0;
-            }
-
-            .icon-pinned {
-                display: none;
-                color: @brand-primary;
-            }
-
-            &:hover i {
-                color: @text-emphasis;
-            }
-        }
+        //.notifications-pin-toggle {
+        //    background-color: transparent;
+        //    display: inline-block;
+        //    cursor: pointer;
+        //    height: 30px;
+        //    min-width: 30px;
+        //    border: none;
+        //    text-align: center;
+        //
+        //    i {
+        //        display: block;
+        //        top: 0;
+        //    }
+        //
+        //    .icon-pinned {
+        //        display: none;
+        //        color: @brand-primary;
+        //    }
+        //
+        //    &:hover i {
+        //        color: @text-emphasis;
+        //    }
+        //}
 
         &.pin-notifications {
             #notification-center {
@@ -155,7 +153,6 @@ body:not(.setup-shell) {
                 transform: translateX(0%);
             }
 
-
             &.pin-notifications {
                 grid-template-rows: auto @navbar-height 1fr auto auto;
                 grid-template-columns: var(--menu-width) 1fr @right-panel-width;
@@ -175,14 +172,100 @@ body:not(.setup-shell) {
                     }
                 }
 
-                .notifications-pin-toggle {
-                    .icon-pinned {
-                        display: block;
-                    }
+                //.notifications-pin-toggle {
+                //    .icon-pinned {
+                //        display: block;
+                //    }
+                //
+                //    .icon-pin {
+                //        display: none;
+                //    }
+                //}
+            }
+        }
+        
+        /////////////////////////
+        .pin-toggle {
+            background-color: transparent;
+            display: inline-block;
+            cursor: pointer;
+            height: 30px;
+            min-width: 30px;
+            border: none;
+            text-align: center;
 
-                    .icon-pin {
-                        display: none;
-                    }
+            i {
+                display: block;
+                top: 0;
+            }
+
+            .icon-pinned {
+                display: none;
+                color: @brand-primary;
+            }
+
+            &:hover i {
+                color: @text-emphasis;
+            }
+        }
+        
+        // want some new class to replace these 2...
+        &.pin-toggle-pinned {
+            //&.show-notifications {
+            //    &.pin-notifications {
+            .pin-toggle {
+                
+                .icon-pinned {
+                    display: block;
+                    color: yellow; // todo - test remove...
+                }
+
+                .icon-pin {
+                    display: none;
+                }
+            }
+        }
+         ////////////////////
+        
+        .properties-pin-toggle {
+            background-color: transparent;
+            display: inline-block;
+            cursor: pointer;
+            height: 30px;
+            min-width: 30px;
+            border: none;
+            text-align: center;
+            color: green;
+
+            i {
+                display: block;
+                top: 0;
+            }
+
+            .icon-pinned {
+                display: none;
+                color: @brand-primary;
+            }
+
+            &:hover i {
+                color: @text-emphasis;
+            }
+        }
+        
+        .properties-pin-toggle-pinned {
+            background-color: lightblue;
+            
+            .properties-pin-toggle {
+                
+                background-color: pink;
+                
+                .icon-pinned {
+                    display: block;
+                    color: orange; // todo remove...
+                }
+
+                .icon-pin {
+                    display: none;
                 }
             }
         }

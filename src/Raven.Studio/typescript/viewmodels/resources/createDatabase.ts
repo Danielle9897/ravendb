@@ -112,7 +112,7 @@ class createDatabase extends dialogViewModelBase {
     }
 
     activate() {
-        const getStudioSettingsTask = studioSettings.default.globalSettings()
+        const getStudioSettingsTask = studioSettings.default.getGlobalSettings()
             .then(settings => {
                 this.defaultReplicationFactor(settings.replicationFactor.getValue());
             });

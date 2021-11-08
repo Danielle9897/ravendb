@@ -157,6 +157,9 @@ class editDocument extends viewModelBase {
     collapseDocsWhenOpening = ko.observable<boolean>(false);
     isDocumentCollapsed = ko.observable<boolean>(false);
     forceFold: boolean = false;
+
+    // new
+    pinProperties = ko.observable<boolean>(false);
     
     constructor() {
         super();
@@ -220,7 +223,7 @@ class editDocument extends viewModelBase {
 
         this.connectedDocuments.compositionComplete();
         
-        studioSettings.default.globalSettings()
+        studioSettings.default.getGlobalSettings()
             .done((settings: globalSettings) => {
                 if (settings.collapseDocsWhenOpening.getValue()) {
                     this.collapseDocsWhenOpening(true);

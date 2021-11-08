@@ -9,7 +9,7 @@ class detectBrowser {
         const isBrowserSupported = detectBrowser.isBrowserSupported();
 
         if (this.infoPersistedInSettings) {
-            studioSettings.default.globalSettings()
+            studioSettings.default.getGlobalSettings()
                 .done(settings => {
                     if (settings.dontShowAgain.shouldShow("UnsupportedBrowser")) {
                         this.showBrowserAlert(!isBrowserSupported);
@@ -29,7 +29,7 @@ class detectBrowser {
 
     continueWithCurrentBrowser(): void {
         if (this.infoPersistedInSettings && this.dontShowBrowserAlertAgain()) {
-            studioSettings.default.globalSettings()
+            studioSettings.default.getGlobalSettings()
                 .done(settings => settings.dontShowAgain.ignore("UnsupportedBrowser"));
         }
         

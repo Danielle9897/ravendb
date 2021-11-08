@@ -172,7 +172,7 @@ class about extends viewModelBase {
 
     canForceUpdate = ko.pureComputed(() => {
         return this.licenseType() !== 'Developer' && this.licenseType() !== 'Community';
-    });
+    }); // show always -- true
     
     licenseAttribute(name: keyof Raven.Server.Commercial.LicenseStatus) {
         return ko.pureComputed(() => {

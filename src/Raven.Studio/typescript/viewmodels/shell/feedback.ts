@@ -67,7 +67,7 @@ class feedback extends dialogViewModelBase {
             this.moduleId(instruction.config.moduleId);
         }
 
-        studioSettings.default.globalSettings()
+        studioSettings.default.getGlobalSettings()
             .done(settings => this.globalSettings = settings);
     }
 

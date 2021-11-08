@@ -206,13 +206,13 @@ class shell extends viewModelBase {
                     .connectServerWideNotificationCenter();
 
                 // load global settings
-                studioSettings.default.globalSettings()
+                studioSettings.default.getGlobalSettings()
                     .done((settings: globalSettings) => this.onGlobalConfiguration(settings));
                 
                 studioSettings.default.registerOnSettingChangedHandler(name => true, (name: string, setting: studioSetting<any>) => {
                     // if any remote configuration was changed, then force reload
                     if (setting.saveLocation === "remote") {
-                        studioSettings.default.globalSettings()
+                        studioSettings.default.getGlobalSettings()
                             .done(settings => this.onGlobalConfiguration(settings));
                     }
                 });
@@ -226,7 +226,7 @@ class shell extends viewModelBase {
                 this.notificationCenter.setupGlobalNotifications(changesContext.default.serverNotifications());
                 
                 const serverWideClient = changesContext.default.serverNotifications();
-                serverWideClient.watchReconnect(() => studioSettings.default.globalSettings(true));
+                serverWideClient.watchReconnect(() => studioSettings.default.getGlobalSettings(true));
 
                 this.connectToRavenServer();
                 
@@ -439,7 +439,7 @@ class shell extends viewModelBase {
     private initAnalytics(buildVersionResult: [serverBuildVersionDto]) {
         if (eventsCollector.gaDefined()) {
             
-            studioSettings.default.globalSettings()
+            studioSettings.default.getGlobalSettings()
                 .done(settings => {
                     const shouldTraceUsageMetrics = settings.sendUsageStats.getValue();
                     if (_.isUndefined(shouldTraceUsageMetrics)) {

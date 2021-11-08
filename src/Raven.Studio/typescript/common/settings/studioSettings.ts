@@ -40,7 +40,8 @@ class studioSettings {
         return settings.load();
     }
 
-    globalSettings(forceRefresh = false): JQueryPromise<globalSettings> {
+    //globalSettings
+    getGlobalSettings(forceRefresh = false): JQueryPromise<globalSettings> {
         if (forceRefresh && this.globalSettingsCached && this.globalSettingsCached.state() !== "pending") {
             this.globalSettingsCached = null;
         }
@@ -56,7 +57,7 @@ class studioSettings {
 
     init(currentDatabaseSettings: KnockoutObservable<databaseSettings>) {
         window.addEventListener("storage", e => {
-            this.globalSettings()
+            this.getGlobalSettings()
                 .done(global => {
                     if (e.key === global.storageKey && e.newValue) {
                         this.onSettingsChanged(global, JSON.parse(e.newValue));

@@ -208,6 +208,7 @@ class notificationCenter {
                 this.alertCountAnimation(false);
             }
         });
+        
         this.noNewNotifications = ko.pureComputed(() => {
             return this.totalItemsCount() === 0;
         });
@@ -230,17 +231,21 @@ class notificationCenter {
         });
 
         this.pinNotifications.subscribe((pinned: boolean) => {
-            studioSettings.default.globalSettings()
+            studioSettings.default.getGlobalSettings()
                 .done(settings => {
                     settings.pinnedNotifications.setValue(pinned);
                 });
         });
 
-        studioSettings.default.globalSettings()
+        studioSettings.default.getGlobalSettings()
             .done(settings => {
                 const pinnedNotificationsFromSettings = settings.pinnedNotifications.getValue();
                 this.pinNotifications(pinnedNotificationsFromSettings);
             });
+        
+        if (this.pinNotifications()) {
+            this.showNotifications(true);
+        }
     }
     
     setupGlobalNotifications(serverWideClient: serverNotificationCenterClient) {
