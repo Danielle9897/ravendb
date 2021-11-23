@@ -148,16 +148,41 @@ class storageReport extends viewModelBase {
         const dataFile = report.DataFile;
 
         const storageItem = new storageReportItem("Datafile", "data", false, dataFile.AllocatedSpaceInBytes);
+        
         storageItem.lazyLoadChildren = true;
+        //storageItem.lazyLoadChildren = false;
 
         return storageItem;
     }
 
+    // try:
+    // private mapDetailedReport(report: Voron.Debugging.DetailedStorageReport, d: storageReportItem, withDetails: boolean) {
+    //     d.lazyLoadChildren = false;
+    //    
+    //     if (!withDetails) {
+    //         d.lazyLoadChildren = true;
+    //     }
+    //
+    //     const tables = this.mapTables(report.Tables);
+    //
+    //     // const trees = this.mapTrees(report.Trees, "Trees"); // org
+    //     const trees = this.mapTrees(report.Trees, "Trees", true); // ???
+    //
+    //     const freeSpace = new storageReportItem("Free", "free", false, report.DataFile.FreeSpaceInBytes, []);
+    //     const preallocatedBuffers = this.mapPreAllocatedBuffers(report.PreAllocatedBuffers);
+    //
+    //     d.internalChildren = [tables, trees, freeSpace, preallocatedBuffers];
+    // }
+    
+    // org:
     private mapDetailedReport(report: Voron.Debugging.DetailedStorageReport, d: storageReportItem) {
         d.lazyLoadChildren = false;
 
         const tables = this.mapTables(report.Tables);
-        const trees = this.mapTrees(report.Trees, "Trees");
+
+        // const trees = this.mapTrees(report.Trees, "Trees"); // org
+        const trees = this.mapTrees(report.Trees, "Trees", true); // ???
+
         const freeSpace = new storageReportItem("Free", "free", false, report.DataFile.FreeSpaceInBytes, []);
         const preallocatedBuffers = this.mapPreAllocatedBuffers(report.PreAllocatedBuffers);
 
@@ -222,10 +247,10 @@ class storageReport extends viewModelBase {
     }
 
     private mapTable(table: Voron.Data.Tables.TableReport): storageReportItem {
-        const structure = this.mapTrees(table.Structure, "Structure");
+        const structure = this.mapTrees(table.Structure, "Structure", true);
 
         const data = new storageReportItem("Table Data", "table_data", false, table.DataSizeInBytes, []);
-        const indexes = this.mapTrees(table.Indexes, "Indexes");
+        const indexes = this.mapTrees(table.Indexes, "Indexes", false);
 
         const preAllocatedBuffers = this.mapPreAllocatedBuffers(table.PreAllocatedBuffers);
 
@@ -243,22 +268,45 @@ class storageReport extends viewModelBase {
         return tableItem;
     }
 
-    private mapTrees(trees: Voron.Debugging.TreeReport[], name: string): storageReportItem {
-        const mappedTrees = trees.map(x => this.mapTree(x));
+    // private mapTrees(trees: Voron.Debugging.TreeReport[], name: string): storageReportItem {
+    private mapTrees(trees: Voron.Debugging.TreeReport[], name: string, withDetails: boolean): storageReportItem {
+        const mappedTrees = trees.map(x => this.mapTree(x, withDetails));
         const mappedTreesGrouped = this.groupChildren(mappedTrees);
         
-        return new storageReportItem(name, name.toLowerCase(), false, trees.reduce((p, c) => p + c.AllocatedSpaceInBytes, 0), mappedTreesGrouped);
-    }
-
-    private mapTree(tree: Voron.Debugging.TreeReport): storageReportItem {
-        const children = (tree.Streams && tree.Streams.Streams) ? this.mapStreams(tree.Streams.Streams) : [];
+        // org:
+        // return new storageReportItem(name, name.toLowerCase(), false, trees.reduce((p, c) => p + c.AllocatedSpaceInBytes, 0), mappedTreesGrouped);
         
-        const item = new storageReportItem(tree.Name, "tree", true, tree.AllocatedSpaceInBytes, children);
-        
-        item.pageCount = tree.PageCount;
-        item.numberOfEntries = tree.NumberOfEntries;
+        // try:
+        const item = new storageReportItem(name, name.toLowerCase(), false, trees.reduce((p, c) => p + c.AllocatedSpaceInBytes, 0), mappedTreesGrouped);
+        //item.lazyLoadChildren = true;
+        item.withDetails = withDetails; // ??? todo..
         return item;
     }
+
+    // try:
+    private mapTree(tree: Voron.Debugging.TreeReport, withDetails: boolean = false): storageReportItem {
+        const children = (tree.Streams && tree.Streams.Streams) ? this.mapStreams(tree.Streams.Streams) : [];
+
+        const item = new storageReportItem(tree.Name, "tree", true, tree.AllocatedSpaceInBytes, children);
+
+        item.pageCount = tree.PageCount;
+        item.numberOfEntries = tree.NumberOfEntries;
+
+        //item.withDetails = withDetails; // try
+        
+        return item;
+    }
+    // org:
+    // private mapTree(tree: Voron.Debugging.TreeReport): storageReportItem {
+    //     const children = (tree.Streams && tree.Streams.Streams) ? this.mapStreams(tree.Streams.Streams) : [];
+    //    
+    //     const item = new storageReportItem(tree.Name, "tree", true, tree.AllocatedSpaceInBytes, children);
+    //    
+    //     item.pageCount = tree.PageCount;
+    //     item.numberOfEntries = tree.NumberOfEntries;
+    //    
+    //     return item;
+    // }
 
     private mapStreams(treeStreams: Array<Voron.Debugging.StreamDetails>): storageReportItem[] {
         const mappedTreeStreams = treeStreams.map(x => this.mapStream(x));
@@ -494,17 +542,29 @@ class storageReport extends viewModelBase {
     } 
 
     private loadDetailedReport(d: storageReportItem): JQueryPromise<detailedStorageReportItemDto> {
-        if (!d.lazyLoadChildren) {
-            return;
+        // if (!d.lazyLoadChildren) { // not needed becasue verified onClick... 
+        //     return;
+        // }
+        
+        // try:
+        const withDetails = d.withDetails;
+        
+        if (d.withDetails) {
+            d = d.parent;
         }
-
-        const env = d.parent;
-
+        
+        let env = d.parent;
+     
+        // try..
+        // while (env.type !== 'documents') { // while not one of the 4 types...
+        //     env = env.parent;
+        // }
+        
         const showLoaderTimer = setTimeout(() => {
             this.showLoader(true);
         }, 100);
-
-        return new getEnvironmentStorageReportCommand(this.activeDatabase(), env.name, _.capitalize(env.type))
+        
+        return new getEnvironmentStorageReportCommand(this.activeDatabase(), env.name, _.capitalize(env.type), withDetails)
             .execute()
             .done((envReport) => {
                 this.mapDetailedReport(envReport.Report, d);
@@ -516,14 +576,31 @@ class storageReport extends viewModelBase {
                     clearTimeout(showLoaderTimer);
                 }
             });
+        
+        // org:
+        // return new getEnvironmentStorageReportCommand(this.activeDatabase(), env.name, _.capitalize(env.type))
+        //     .execute()
+        //     .done((envReport) => {
+        //         this.mapDetailedReport(envReport.Report, d);
+        //     })
+        //     .always(() => {
+        //         if (this.showLoader()) {
+        //             this.showLoader(false);
+        //         } else {
+        //             clearTimeout(showLoaderTimer);
+        //         }
+        //     });
     }
 
     onClick(d: storageReportItem, goingIn: boolean) {
         if (this.transitioning || this.node() === d) {
             return;
         }
-
-        if (d.lazyLoadChildren) {
+        
+        //if (d.lazyLoadChildren) { // org
+        //if (d.lazyLoadChildren && d.withDetails) { // try..
+        
+        if (d.lazyLoadChildren || d.withDetails) { // try..
             const requestExecution = protractedCommandsDetector.instance.requestStarted(500);
 
             this.loadDetailedReport(d)
@@ -544,7 +621,11 @@ class storageReport extends viewModelBase {
         if (!d.internalChildren || !d.internalChildren.length) {
             return;
         }
-
+        
+        // org:
+        
+        // why internal children is empty for attachments on the 1'st time but full in 2'nd time ? todo..
+        
         const prev = this.node();
         this.node(d);
         this.draw(goingIn, prev);
