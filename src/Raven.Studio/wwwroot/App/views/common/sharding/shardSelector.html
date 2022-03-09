@@ -1,10 +1,10 @@
-<div class="modal-dialog" role="document">
-    <div class="modal-content">
+<div class="modal-dialog" role="document" style="z-index:100;">
+    <div class="modal-content padding">
         <div class="modal-header">
-            <h4 class="modal-title">Select Shard</h4>
+            <h3 class="modal-title">Select Shard</h3>
         </div>
         <div class="modal-body">
-            <div class="flex-horizontal">
+            <div class="flex-horizontal margin-bottom">
                 <div class="btn-group">
                     <button type="button" class="btn btn-default set-size dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
                         <span data-bind="text: $root.form.shard().shardName"></span> <span class="caret"></span>
@@ -28,24 +28,22 @@
                         </li>
                     </ul>
                 </div>
-
-                <div>
+                <div title="Click to view selected shard">
                     <a href="#" class="btn btn-primary" data-bind="click: shardSelected, attr: { href: targetHref, target: targetIsLocal() ? undefined : '_blank' }">
-                        View <i class="arrow-right"></i>
+                        View <i class="icon-arrow-right margin-left-sm"></i>
                     </a>
                 </div>
             </div>
-
             <div class="checkbox" data-bind="visible: forcePin">
                 <input id="pinShardForced" type="checkbox" checked disabled />
                 <label for="pinShardForced">
-                    Pin
+                    Pin to URL
                 </label>
             </div>
             <div class="checkbox" data-bind="visible: !forcePin()">
                 <input id="pinShard" type="checkbox" data-bind="checked: form.pin" />
                 <label for="pinShard">
-                    Pin
+                    Pin to URL
                 </label>
             </div>
         </div>

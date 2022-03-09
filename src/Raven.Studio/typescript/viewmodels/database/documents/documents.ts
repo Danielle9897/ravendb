@@ -31,10 +31,15 @@ import recentQueriesStorage = require("common/storage/savedQueriesStorage");
 import queryUtil = require("common/queryUtil");
 import endpoints = require("endpoints");
 import moment = require("moment");
+import shardedDatabase from "models/resources/shardedDatabase";
+import shardViewModelBase from "viewmodels/shardViewModelBase";
+import { shardingTodo } from "common/developmentHelper";
+import database = require("models/resources/database");
 
 import { highlight, languages } from "prismjs";
 
-class documents extends viewModelBase {
+// class documents extends viewModelBase {
+class documents extends shardViewModelBase {
     
     view = require("views/database/documents/documents.html");
 
@@ -66,8 +71,9 @@ class documents extends viewModelBase {
         copy: ko.observable<boolean>(false)
     };
 
-    constructor() {
-        super();
+    // constructor() {
+    constructor(db: database) {
+        super(db);
 
         this.columnsSelector.configureColumnsPersistence(() => {
             if (this.currentCollection().isAllDocuments) {
@@ -75,7 +81,7 @@ class documents extends viewModelBase {
                 return null;
             }
             
-            const dbName = this.activeDatabase().name;
+            const dbName = this.db.name;
             const collectionName = this.currentCollection().name;
             
             return dbName + ".[" + collectionName + "]";
@@ -221,10 +227,10 @@ class documents extends viewModelBase {
                                       if (this.currentCollection().isAllDocuments) {
                                           return [
                                               new checkedColumn(true),
-                                              new hyperlinkColumn<document>(grid, document.createDocumentIdProvider(), x => appUrl.forEditDoc(x.getId(), this.activeDatabase()), "Id", "300px"),
+                                              new hyperlinkColumn<document>(grid, document.createDocumentIdProvider(), x => appUrl.forEditDoc(x.getId(), this.db), "Id", "300px"),
                                               new textColumn<document>(grid, x => changeVectorUtils.formatChangeVectorAsShortString(x.__metadata.changeVector()), "Change Vector", "200px"),
                                               new textColumn<document>(grid, x => generalUtils.formatUtcDateAsLocal(x.__metadata.lastModified()), "Last Modified", "300px"),
-                                              new hyperlinkColumn<document>(grid, x => x.getCollection(), x => appUrl.forDocuments(x.getCollection(), this.activeDatabase()), "Collection", "200px"),
+                                              new hyperlinkColumn<document>(grid, x => x.getCollection(), x => appUrl.forDocuments(x.getCollection(), this.db), "Collection", "200px"),
                                               new flagsColumn(grid)
                                           ];
                                       } else {
@@ -238,7 +244,7 @@ class documents extends viewModelBase {
 
         this.currentCollection.subscribe(this.onCollectionSelected, this);
 
-        const fullDocumentsProvider = new documentPropertyProvider(this.activeDatabase());
+        const fullDocumentsProvider = new documentPropertyProvider(this.db);
 
         this.columnPreview.install(".documents-grid", ".js-documents-preview", 
             (doc: document, column: virtualColumn, e: JQueryEventObject, onValue: (context: any, valueToCopy?: string) => void) => {
@@ -264,7 +270,7 @@ class documents extends viewModelBase {
     }
 
     private getDocumentsProvider() {
-        return new documentBasedColumnsProvider(this.activeDatabase(), this.gridController(),
+        return new documentBasedColumnsProvider(this.db, this.gridController(),
             { showRowSelectionCheckbox: true, enableInlinePreview: false, showSelectAllCheckbox: true, showFlags: true });
     }
     
@@ -273,7 +279,7 @@ class documents extends viewModelBase {
     }
 
     private onCollectionSelected(newCollection: collection) {
-        this.updateUrl(appUrl.forDocuments(newCollection.name, this.activeDatabase()));
+        this.updateUrl(appUrl.forDocuments(newCollection.name, this.db));
         this.columnsSelector.reset();
         this.gridController().reset();
         this.setCurrentAsNotDirty();
@@ -281,7 +287,7 @@ class documents extends viewModelBase {
 
     newDocument(docs: documents, $event: JQueryEventObject) {
         eventsCollector.default.reportEvent("document", "new");
-        const url = appUrl.forNewDoc(this.activeDatabase());
+        const url = appUrl.forNewDoc(this.db);
         if ($event.ctrlKey) {
             window.open(url);
         } else {
@@ -291,7 +297,7 @@ class documents extends viewModelBase {
 
     newDocumentInCollection(docs: documents, $event: JQueryEventObject) {
         eventsCollector.default.reportEvent("document", "new-in-collection");
-        const url = appUrl.forNewDoc(this.activeDatabase(), this.currentCollection().name);
+        const url = appUrl.forNewDoc(this.db, this.currentCollection().name);
         if ($event.ctrlKey) {
             window.open(url);
         } else {
@@ -306,7 +312,7 @@ class documents extends viewModelBase {
         }
 
         if (selection.mode === "inclusive") {
-            const deleteDocsDialog = new deleteDocuments(selection.included.map(x => x.getId()), this.activeDatabase());
+            const deleteDocsDialog = new deleteDocuments(selection.included.map(x => x.getId()), this.db);
 
             app.showBootstrapDialog(deleteDocsDialog)
                 .done((deleting: boolean) => {
@@ -328,11 +334,11 @@ class documents extends viewModelBase {
                         this.spinners.delete(true);
 
                         const collectionName = this.currentCollection().name === collection.allDocumentsCollectionName ? "@all_docs" : this.currentCollection().name;
-                        new deleteCollectionCommand(collectionName, this.activeDatabase(), excludedIds)
+                        new deleteCollectionCommand(collectionName, this.db, excludedIds)
                             .execute()
                             .done((result: operationIdDto) => {
                                 // Show progress details with the 'Delete by Collection' dialog
-                                notificationCenter.instance.openDetailsForOperationById(this.activeDatabase(), result.OperationId); 
+                                notificationCenter.instance.openDetailsForOperationById(this.db, result.OperationId); 
 
                                 notificationCenter.instance.databaseOperationsWatch.monitorOperation(result.OperationId)
                                     .done(() => {
@@ -371,7 +377,7 @@ class documents extends viewModelBase {
 
         // get fresh copy of those documents, as grid might have incomplete information due to custom columns
         // or too long data
-        new getDocumentsWithMetadataCommand(selectedItems.map(x => x.getId()), this.activeDatabase())
+        new getDocumentsWithMetadataCommand(selectedItems.map(x => x.getId()), this.db)
             .execute()
             .done((results: Array<document>) => {
                 const prettifySpacing = 4;
@@ -415,7 +421,7 @@ class documents extends viewModelBase {
 
         $("input[name=ExportOptions]").val(JSON.stringify(payload));
 
-        const url = appUrl.forDatabaseQuery(this.activeDatabase()) + endpoints.databases.streaming.streamsQueries + appUrl.urlEncodeArgs(args);
+        const url = appUrl.forDatabaseQuery(this.db) + endpoints.databases.streaming.streamsQueries + appUrl.urlEncodeArgs(args);
         this.$downloadForm.attr("action", url);
         this.$downloadForm.submit();
     }
@@ -430,7 +436,7 @@ class documents extends viewModelBase {
         query.recentQuery(true);
 
         const queryDto = query.toStorageDto();
-        recentQueriesStorage.saveAndNavigate(this.activeDatabase(), queryDto);
+        recentQueriesStorage.saveAndNavigate(this.db, queryDto);
     }
 }
 

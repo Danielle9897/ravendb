@@ -9,8 +9,10 @@ import accessManager = require("common/shell/accessManager");
 import popoverUtils = require("common/popoverUtils");
 import shardedDatabase from "models/resources/shardedDatabase";
 import { shardingTodo } from "common/developmentHelper";
+import shardViewModelBase from "viewmodels/shardViewModelBase";
 
-class studioConfiguration extends viewModelBase {
+// class studioConfiguration extends viewModelBase {
+class studioConfiguration extends shardViewModelBase {
 
     view = require("views/database/settings/studioConfiguration.html");
 
