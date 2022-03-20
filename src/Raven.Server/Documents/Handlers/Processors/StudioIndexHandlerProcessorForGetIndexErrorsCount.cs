@@ -41,6 +41,7 @@ internal class StudioIndexHandlerProcessorForGetIndexErrorsCount : AbstractStudi
 
         var indexErrorsCounts = indexes.Select(x => new GetIndexErrorsCountCommand.IndexErrorsCount
         {
+            
             Name = x.Name,
             NumberOfErrors = x.GetErrorCount()
         }).ToArray();
