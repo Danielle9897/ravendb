@@ -55,6 +55,7 @@ using Raven.Server.Config;
 using Raven.Server.Dashboard;
 using Raven.Server.Dashboard.Cluster;
 using Raven.Server.Dashboard.Cluster.Notifications;
+using Raven.Server.Documents.Commands;
 using Raven.Server.Documents.ETL;
 using Raven.Server.Documents.ETL.Providers.ElasticSearch.Test;
 using Raven.Server.Documents.ETL.Providers.OLAP;
@@ -278,6 +279,7 @@ namespace TypingsGenerator
             scripter.AddType(typeof(IndexProgress));
             scripter.AddType(typeof(IndexesProgress));
             scripter.AddType(typeof(IndexErrors));
+            scripter.AddType(typeof(GetIndexErrorsCountCommand.IndexErrorsCount));
             scripter.AddType(typeof(StudioTasksHandler.FormattedExpression));
             scripter.AddType(typeof(StudioIndexHandler.IndexTypeInfo));
             scripter.AddType(typeof(AdminIndexHandler.DumpIndexResult));

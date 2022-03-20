@@ -31,23 +31,39 @@ namespace Raven.Server.Web.Studio
             {
                 using (var json = await context.ReadForMemoryAsync(RequestBodyStream(), "map"))
                 {
-                    var indexDefinition = JsonDeserializationServer.IndexDefinition(json);
-
-                    var indexType = indexDefinition.DetectStaticIndexType();
-                    var indexSourceType = indexDefinition.DetectStaticIndexSourceType();
-
                     await using (var writer = new AsyncBlittableJsonTextWriter(context, ResponseBodyStream()))
                     {
                         writer.WriteStartObject();
                         writer.WritePropertyName(nameof(IndexTypeInfo.IndexType));
-                        writer.WriteString(indexType.ToString());
+                        writer.WriteString("Map");
                         writer.WriteComma();
                         writer.WritePropertyName(nameof(IndexTypeInfo.IndexSourceType));
-                        writer.WriteString(indexSourceType.ToString());
+                        writer.WriteString("Documents");
                         writer.WriteEndObject();
                     }
                 }
             }
+            // using (ContextPool.AllocateOperationContext(out DocumentsOperationContext context))
+            // {
+            //     using (var json = await context.ReadForMemoryAsync(RequestBodyStream(), "map"))
+            //     {
+            //         var indexDefinition = JsonDeserializationServer.IndexDefinition(json);
+            //
+            //         var indexType = indexDefinition.DetectStaticIndexType();
+            //         var indexSourceType = indexDefinition.DetectStaticIndexSourceType();
+            //
+            //         await using (var writer = new AsyncBlittableJsonTextWriter(context, ResponseBodyStream()))
+            //         {
+            //             writer.WriteStartObject();
+            //             writer.WritePropertyName(nameof(IndexTypeInfo.IndexType));
+            //             writer.WriteString(indexType.ToString());
+            //             writer.WriteComma();
+            //             writer.WritePropertyName(nameof(IndexTypeInfo.IndexSourceType));
+            //             writer.WriteString(indexSourceType.ToString());
+            //             writer.WriteEndObject();
+            //         }
+            //     }
+            // }
         }
 
         public class IndexTypeInfo
