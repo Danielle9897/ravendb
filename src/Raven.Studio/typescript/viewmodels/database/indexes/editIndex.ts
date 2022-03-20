@@ -774,13 +774,41 @@ class editIndex extends viewModelBase {
                 this.resetDirtyFlag();
                 router.navigate(appUrl.forIndexes(db, this.editedIndex().name()));
             });
+        
         /* TODO
-        return new detectIndexTypeCommand(indexDto, db)
+        // temp stuff
+        if (db.name.endsWith("$0") || db.name.endsWith("$1")) {
+            db.name = db.name.substring(0, db.name.length - 2);
+        }
+        // end temp stuff
+
+        indexDto.SourceType = "Documents";
+        return new saveIndexDefinitionCommand(indexDto, false, db)
             .execute()
             .then((typeInfo) => {
                 indexDto.SourceType = typeInfo.IndexSourceType;
                 
             });*/
+
+//// queston from merge ?
+//            .done((savedIndexName) => {
+//                this.resetDirtyFlag();
+//                router.navigate(appUrl.forIndexes(db, this.editedIndex().name()));
+//            });
+//// end question from merge
+
+        
+        // return new detectIndexTypeCommand(indexDto, db)
+        //     .execute()
+        //     .then((typeInfo) => {
+        //         indexDto.SourceType = typeInfo.IndexSourceType;
+        //         return new saveIndexDefinitionCommand(indexDto, typeInfo.IndexType === "JavaScriptMap" || typeInfo.IndexType === "JavaScriptMapReduce", db)
+        //             .execute()
+        //             .done((savedIndexName) => {
+        //                 this.resetDirtyFlag();
+        //                 router.navigate(appUrl.forIndexes(db, this.editedIndex().name()));
+        //             });
+        //     });
     }
     
     private resetDirtyFlag() {
