@@ -879,3 +879,13 @@ interface columnPreviewFeature {
     install($tooltip: JQuery, valueProvider: () => any, elementProvider: () => any, containerSelector: string): void;
     syntax(column: virtualColumn, escapedValue: any, element: any): void;
 }
+
+interface indexErrorsCount {
+    Name: string;
+    Errors: IndexingErrorCount[];
+}
+
+interface IndexingErrorCount {
+    Action: string;
+    NumberOfErrors: nubmer;
+}

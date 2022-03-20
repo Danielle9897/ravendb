@@ -43,6 +43,7 @@ function getIndexesMenuItem(appUrls: computedAppUrls) {
         }),
         new leafMenuItem({
             route: 'databases/indexes/indexErrors',
+            shardingMode: "allShardsOnly",
             moduleId: require('viewmodels/database/indexes/indexErrors'),
             title: 'Index Errors',
             nav: true,

@@ -761,19 +761,33 @@ class editIndex extends viewModelBase {
             indexDto.Name = indexDto.Name.substr(index.SideBySideIndexPrefix.length);
         }
 
-        const db = this.activeDatabase();
+        let db = this.activeDatabase();
         
-        return new detectIndexTypeCommand(indexDto, db)
+        // temp stuff
+        if (db.name.endsWith("$0") || db.name.endsWith("$1")) {
+            db.name = db.name.substring(0, db.name.length - 2);
+        }
+        // end temp stuff
+
+        indexDto.SourceType = "Documents";
+        return new saveIndexDefinitionCommand(indexDto, false, db)
             .execute()
-            .then((typeInfo) => {
-                indexDto.SourceType = typeInfo.IndexSourceType;
-                return new saveIndexDefinitionCommand(indexDto, typeInfo.IndexType === "JavaScriptMap" || typeInfo.IndexType === "JavaScriptMapReduce", db)
-                    .execute()
-                    .done((savedIndexName) => {
-                        this.resetDirtyFlag();
-                        router.navigate(appUrl.forIndexes(db, this.editedIndex().name()));
-                    });
+            .done((savedIndexName) => {
+                this.resetDirtyFlag();
+                router.navigate(appUrl.forIndexes(db, this.editedIndex().name()));
             });
+        
+        // return new detectIndexTypeCommand(indexDto, db)
+        //     .execute()
+        //     .then((typeInfo) => {
+        //         indexDto.SourceType = typeInfo.IndexSourceType;
+        //         return new saveIndexDefinitionCommand(indexDto, typeInfo.IndexType === "JavaScriptMap" || typeInfo.IndexType === "JavaScriptMapReduce", db)
+        //             .execute()
+        //             .done((savedIndexName) => {
+        //                 this.resetDirtyFlag();
+        //                 router.navigate(appUrl.forIndexes(db, this.editedIndex().name()));
+        //             });
+        //     });
     }
     
     private resetDirtyFlag() {

@@ -1,21 +1,15 @@
 import app = require("durandal/app");
-import moment = require("moment");
-import getIndexesErrorCommand = require("commands/database/index/getIndexesErrorCommand");
-import virtualGridController = require("widgets/virtualGrid/virtualGridController");
-import textColumn = require("widgets/virtualGrid/columns/textColumn");
-import columnPreviewPlugin = require("widgets/virtualGrid/columnPreviewPlugin");
-import actionColumn = require("widgets/virtualGrid/columns/actionColumn");
-import hyperlinkColumn = require("widgets/virtualGrid/columns/hyperlinkColumn");
 import appUrl = require("common/appUrl");
-import timeHelpers = require("common/timeHelpers");
 import awesomeMultiselect = require("common/awesomeMultiselect");
-import indexErrorDetails = require("viewmodels/database/indexes/indexErrorDetails");
 import generalUtils = require("common/generalUtils");
 import clearIndexErrorsConfirm = require("viewmodels/database/indexes/clearIndexErrorsConfirm");
 import shardViewModelBase from "viewmodels/shardViewModelBase";
 import database from "models/resources/database";
+import shardedDatabase from "models/resources/shardedDatabase";
+import getIndexesErrorCountCommand from "commands/database/index/getIndexesErrorCountCommand";
+import indexErrorInfoModel from "models/database/index/indexErrorInfoModel";
 
-type indexNameAndCount = {
+class indexNameAndCount {
     indexName: string;
     count: number;
 }
@@ -29,51 +23,41 @@ class indexErrors extends shardViewModelBase {
     
     view = require("views/database/indexes/indexErrors.html");
 
-    private allIndexErrors: IndexErrorPerDocument[] = null;
-    private filteredIndexErrors: IndexErrorPerDocument[] = null;
-    private gridController = ko.observable<virtualGridController<IndexErrorPerDocument>>();
-    private columnPreview = new columnPreviewPlugin<IndexErrorPerDocument>();
-
-    private allErroredIndexNames = ko.observableArray<indexNameAndCount>([]);
-    private allErroredActionNames = ko.observableArray<indexActionAndCount>([]);
-    private selectedIndexNames = ko.observableArray<string>([]);
-    private selectedActionNames = ko.observableArray<string>([]);
-    private ignoreSearchCriteriaUpdatesMode = false;
-    searchText = ko.observable<string>();
-
-    private localLatestIndexErrorTime = ko.observable<string>(null);
-    private remoteLatestIndexErrorTime = ko.observable<string>(null);
-
-    private isDirty: KnockoutComputed<boolean>;
+    private isShardedDatabse: boolean;
+    private numberOfShards: number;
+    private errorInfoItems = ko.observableArray<indexErrorInfoModel>([]);
     
-    allIndexesSelected: KnockoutComputed<boolean>;
+    private erroredIndexNames = ko.observableArray<indexNameAndCount>([]);
+    private selectedIndexNames = ko.observableArray<string>([]);
+    
+    private erroredActionNames = ko.observableArray<indexActionAndCount>([]);
+    private selectedActionNames = ko.observableArray<string>([]);
+
+    searchText = ko.observable<string>();
+    allIndexesSelected = ko.observable<boolean>();
+    
     clearErrorsBtnText: KnockoutComputed<string>;
-    clearErrorsBtnTooltip: KnockoutComputed<string>;
+    hasErrors: KnockoutComputed<boolean>;
 
     constructor(db: database) {
         super(db);
+        this.bindToCurrentInstance("toggleDetails", "clearIndexErrorsForItem", "clearIndexErrorsForAllItems");
+        
         this.initObservables();
-        this.bindToCurrentInstance("clearIndexErrors");
+        
+        this.isShardedDatabse = shardedDatabase.isSharded(db);
+        if (this.isShardedDatabse) {
+            this.numberOfShards = (this.db as shardedDatabase).shards().length;
+        }
     }
 
     private initObservables() {
         this.searchText.throttle(200).subscribe(() => this.onSearchCriteriaChanged());
         this.selectedIndexNames.subscribe(() => this.onSearchCriteriaChanged());
         this.selectedActionNames.subscribe(() => this.onSearchCriteriaChanged());
-
-        this.isDirty = ko.pureComputed(() => {
-            const local = this.localLatestIndexErrorTime();
-            const remote = this.remoteLatestIndexErrorTime();
-
-            return local !== remote;
-        });        
       
-        this.allIndexesSelected = ko.pureComputed(() => { 
-            return this.allErroredIndexNames().length === this.selectedIndexNames().length;
-        });
-
         this.clearErrorsBtnText = ko.pureComputed(() => {
-            if (this.allIndexesSelected() && this.allErroredIndexNames().length) {
+            if (this.allIndexesSelected() && this.erroredIndexNames().length) {
                 return "Clear errors (All indexes)";
             } else if (this.selectedIndexNames().length) {
                 return "Clear errors (Selected indexes)";
@@ -81,16 +65,113 @@ class indexErrors extends shardViewModelBase {
                 return "Clear errors";
             }
         });
-
-        this.clearErrorsBtnTooltip = ko.pureComputed(() => {
-            if (this.allIndexesSelected() && this.allErroredIndexNames().length) {
-                return "Clear errors for all indexes";
-            } else if (this.selectedIndexNames().length) {
-                return "Clear errors for selected indexes";
-            }
+        
+        this.hasErrors = ko.pureComputed(() => {
+           return this.errorInfoItems().some(x => x.totalErrorCount() > 0);
         });
     }
 
+    canActivate(args: any): boolean | JQueryPromise<canActivateResultDto> {
+        return $.when<any>(super.canActivate(args))
+            .then(() => {
+                const deferred = $.Deferred<canActivateResultDto>();
+
+                return this.getErrorCount()
+                    .then(() => {
+                        return deferred.resolve({can: true})
+                            .fail(() => deferred.resolve({redirect: appUrl.forStatus(this.db)}));
+                    });
+            });
+    }
+    
+    getErrorCount(): JQueryPromise<any> {
+        this.erroredIndexNames([]);
+        this.erroredActionNames([]);
+        this.errorInfoItems([]);
+        
+        const arrayOfTasks: JQueryPromise<any>[] = [];
+
+        // todo.. remove if.. ???
+        if (this.isShardedDatabse) {
+            this.db.nodes().forEach(node => {
+                for (let i = 0; i < this.numberOfShards; i++) {
+                    const errorCountTask = this.fetchErrorCount(node, i.toString());
+                    arrayOfTasks.push(errorCountTask);
+                }
+            });
+        } else {
+            const errorCountTask = this.fetchErrorCount();
+            arrayOfTasks.push(errorCountTask);
+        }
+
+        return $.when<any>(...arrayOfTasks)
+            .then(() => { 
+                this.selectedIndexNames(this.erroredIndexNames().map(x => x.indexName));
+                this.selectedActionNames(this.erroredActionNames().map(x => x.actionName));
+            });
+    }
+
+    private fetchErrorCount(nodeTag?: string, shardNumber?: string): JQueryPromise<any> {
+        return new getIndexesErrorCountCommand(this.db, nodeTag, shardNumber)
+            .execute()
+            .done(results => {
+                const resultsArray: indexErrorsCount[] = results.Results;
+
+                // calc all model items
+                const totalErrorCount = this.calcErrorCountTotal(resultsArray);
+                const item = new indexErrorInfoModel(this.db, nodeTag, shardNumber, totalErrorCount);
+                this.errorInfoItems.push(item);
+
+                // calc all index names for top dropdown
+                resultsArray.forEach(resultItem => {
+                    const index = this.erroredIndexNames().find(x => x.indexName === resultItem.Name);
+                    if (index) {
+                        index.count += this.calcErrorCountForIndex(resultItem);
+                    } else {
+                        const item = {
+                            indexName: resultItem.Name,
+                            count: this.calcErrorCountForIndex(resultItem)
+                        };
+                        this.erroredIndexNames.push(item);
+                    }
+                });
+
+                // calc all actions for top dropdown
+                resultsArray.forEach(resultItem => {
+                    resultItem.Errors.forEach(errItem => {
+                        const action = this.erroredActionNames().find(x => x.actionName === errItem.Action);
+                        if (action) {
+                            action.count += errItem.NumberOfErrors;
+                        } else {
+                            const item = {
+                                actionName: errItem.Action,
+                                count: errItem.NumberOfErrors
+                            }
+                            this.erroredActionNames.push(item);
+                        }
+                    });
+                });
+
+                this.erroredIndexNames(_.sortBy(this.erroredIndexNames(), x => x.indexName.toLocaleLowerCase()));
+                this.erroredActionNames(_.sortBy(this.erroredActionNames(), x => x.actionName.toLocaleLowerCase()));
+                this.errorInfoItems(_.sortBy(this.errorInfoItems(), x => x.nodeTag, x => x.shardNumber)) // todo.. check.. ??? 
+            });
+    }
+    
+    private calcErrorCountTotal(results: indexErrorsCount[]): number {
+        let count = 0;
+        
+        for (let i = 0; i < results.length; i++) {
+            count += this.calcErrorCountForIndex(results[i]);
+        }
+        
+        return count;
+    }
+    
+    private calcErrorCountForIndex(indexCount: indexErrorsCount): number {
+        return indexCount.Errors.reduce((count, val) => val.NumberOfErrors + count, 0);
+    }
+    
     activate(args: any) {
         super.activate(args);
         this.updateHelpLink('ABUXGF');
@@ -107,8 +188,10 @@ class indexErrors extends shardViewModelBase {
             opts.maxHeight = 500;
             opts.optionLabel = (element: HTMLOptionElement) => {
                 const indexName = $(element).text();
-                const indexItem = this.allErroredIndexNames().find(x => x.indexName === indexName);
-                return `<span class="name">${generalUtils.escape(indexName)}</span><span class="badge">${indexItem.count}</span>`;
+                const indexNameEscaped = generalUtils.escape(indexName);
+                const indexItem = this.erroredIndexNames().find(x => x.indexName === indexName);
+                const indexItemCount = indexItem.count.toLocaleString();
+                return `<span class="name" title="${indexNameEscaped}">${indexNameEscaped}</span><span class="badge" title="${indexItemCount}">${indexItemCount}</span>`;
             };
         });
 
@@ -120,8 +203,10 @@ class indexErrors extends shardViewModelBase {
             opts.maxHeight = 500;
             opts.optionLabel = (element: HTMLOptionElement) => {
                 const actionName = $(element).text();
-                const actionItem = this.allErroredActionNames().find(x => x.actionName === actionName);
-                return `<span class="name">${generalUtils.escape(actionName)}</span><span class="badge">${actionItem.count}</span>`;
+                const actionNameEscaped = generalUtils.escape(actionName);
+                const actionItem = this.erroredActionNames().find(x => x.actionName === actionName);
+                const actionItemCount = actionItem.count.toLocaleString();
+                return `<span class="name" title="${actionNameEscaped}">${actionNameEscaped}</span><span class="badge" title="${actionItemCount}">${actionItemCount}</span>`;
             };
         });
     }
@@ -131,207 +216,83 @@ class indexErrors extends shardViewModelBase {
         awesomeMultiselect.rebuild($("#visibleActionsSelector"));
     }
 
-    protected afterClientApiConnected() {
-        this.addNotification(this.changesContext.databaseNotifications().watchAllDatabaseStatsChanged(stats => this.onStatsChanged(stats)));
-    }
-
     compositionComplete() {
         super.compositionComplete();
-        const grid = this.gridController();
-        grid.headerVisible(true);
-        grid.init(() => this.fetchIndexErrors(), () =>
-            [
-                new actionColumn<IndexErrorPerDocument>(grid, (error, index) => this.showErrorDetails(index), "Show", `<i class="icon-preview"></i>`, "72px",
-                    {
-                        title: () => 'Show indexing error details'
-                    }),
-                new hyperlinkColumn<IndexErrorPerDocument>(grid, x => x.IndexName, x => appUrl.forEditIndex(x.IndexName, this.db), "Index name", "25%", {
-                    sortable: "string",
-                    customComparator: generalUtils.sortAlphaNumeric
-                }),
-                new hyperlinkColumn<IndexErrorPerDocument>(grid, x => x.Document, x => appUrl.forEditDoc(x.Document, this.db), "Document Id", "20%", {
-                    sortable: "string",
-                    customComparator: generalUtils.sortAlphaNumeric
-                }),
-                new textColumn<IndexErrorPerDocument>(grid, x => generalUtils.formatUtcDateAsLocal(x.Timestamp), "Date", "20%", {
-                    sortable: "string"
-                }),
-                new textColumn<IndexErrorPerDocument>(grid, x => x.Action, "Action", "10%", {
-                    sortable: "string"
-                }),
-                new textColumn<IndexErrorPerDocument>(grid, x => x.Error, "Error", "15%", {
-                    sortable: "string"
-                })
-            ]
-        );
-
-        this.columnPreview.install("virtual-grid", ".js-index-errors-tooltip", 
-            (indexError: IndexErrorPerDocument, column: textColumn<IndexErrorPerDocument>, e: JQueryEventObject, 
-             onValue: (context: any, valueToCopy?: string) => void) => {
-            if (column.header === "Action" || column.header === "Show") {
-                // do nothing
-            } else if (column.header === "Date") {
-                onValue(moment.utc(indexError.Timestamp), indexError.Timestamp);
-            } else {
-                const value = column.getCellValue(indexError);
-                if (!_.isUndefined(value)) {
-                    onValue(generalUtils.escapeHtml(value), value);
-                }
-            }
-        });
-        this.registerDisposable(timeHelpers.utcNowWithMinutePrecision.subscribe(() => this.onTick()));
         indexErrors.syncMultiSelect();
     }
 
-    private showErrorDetails(errorIdx: number) {
-        const view = new indexErrorDetails(this.filteredIndexErrors, errorIdx);
-        app.showBootstrapDialog(view);
-    }
-
     refresh() {
-        this.allIndexErrors = null;
-        this.gridController().reset(true);
-    }
-
-    private onTick() {
-        // reset grid on tick - it neighter move scroll position not download data from remote, but it will render contents again, updating time 
-        this.gridController().reset(false);
-    }
-
-    private fetchIndexErrors(): JQueryPromise<pagedResult<IndexErrorPerDocument>> {
-        if (this.allIndexErrors === null) {
-            return this.fetchRemoteIndexesError().then(list => {
-                this.allIndexErrors = list;
-                return this.filterItems(this.allIndexErrors);
-            });
-        }
-
-        return this.filterItems(this.allIndexErrors);
-    }
-
-    private fetchRemoteIndexesError(): JQueryPromise<IndexErrorPerDocument[]> {
-        return new getIndexesErrorCommand(this.db)
-            .execute()
-            .then((result: Raven.Client.Documents.Indexes.IndexErrors[]) => {
-                this.ignoreSearchCriteriaUpdatesMode = true;
-
-                const indexNamesAndCount = indexErrors.extractIndexNamesAndCount(result);
-                const actionNamesAndCount = this.extractActionNamesAndCount(result);
-
-                this.allErroredIndexNames(indexNamesAndCount);
-                this.allErroredActionNames(actionNamesAndCount);
-                this.selectedIndexNames(this.allErroredIndexNames().map(x => x.indexName));
-                this.selectedActionNames(this.allErroredActionNames().map(x => x.actionName));
-
+        this.getErrorCount()
+            .then(() => {
                 indexErrors.syncMultiSelect();
-
-                this.ignoreSearchCriteriaUpdatesMode = false;
-
-                const mappedItems = this.mapItems(result);
-                const itemWithMax = _.maxBy<IndexErrorPerDocument>(mappedItems, x => x.Timestamp);
-                this.localLatestIndexErrorTime(itemWithMax ? itemWithMax.Timestamp : null);
-                this.remoteLatestIndexErrorTime(this.localLatestIndexErrorTime());
-                return mappedItems;
+                this.errorInfoItems().forEach(x => x.refresh());
             });
-    }
-
-    private filterItems(list: IndexErrorPerDocument[]): JQueryPromise<pagedResult<IndexErrorPerDocument>> {
-        const deferred = $.Deferred<pagedResult<IndexErrorPerDocument>>();
-        let filteredItems = list;
-        if (this.selectedIndexNames().length !== this.allErroredIndexNames().length) {
-            filteredItems = filteredItems.filter(error => _.includes(this.selectedIndexNames(), error.IndexName));
-        }
-        if (this.selectedActionNames().length !== this.allErroredActionNames().length) {
-            filteredItems = filteredItems.filter(error => _.includes(this.selectedActionNames(), error.Action));
-        }
-
-        if (this.searchText()) {
-            const searchText = this.searchText().toLowerCase();
-            
-            filteredItems = filteredItems.filter((error) => {
-                return (error.Document && error.Document.toLowerCase().includes(searchText)) ||
-                       error.Error.toLowerCase().includes(searchText)
-           })
-        }
-        
-        // save copy used for details viewer
-        this.filteredIndexErrors = filteredItems;
-        
-        return deferred.resolve({
-            items: filteredItems,
-            totalResultCount: filteredItems.length
-        });
-    }
-
-    private static extractIndexNamesAndCount(indexErrors: Raven.Client.Documents.Indexes.IndexErrors[]): Array<indexNameAndCount> {
-        const array = indexErrors.filter(error => error.Errors.length > 0).map(errors => {
-            return {
-                indexName: errors.Name,
-                count: errors.Errors.length
-            }
-        });
-
-        return _.sortBy(array, x => x.indexName.toLocaleLowerCase());
-    }
-
-    private extractActionNamesAndCount(indexErrors: Raven.Client.Documents.Indexes.IndexErrors[]): indexActionAndCount[] {
-        const mappedItems: indexActionAndCount[] = _.flatMap(indexErrors,
-            value => {
-                return value.Errors.map(x => ({
-                    actionName: x.Action,
-                    count: 1
-                }));
-            });
-
-        const mappedReducedItems: indexActionAndCount[] = mappedItems.reduce((result: indexActionAndCount[], next: indexActionAndCount) => {
-            var existing = result.find(x => x.actionName === next.actionName);
-            if (existing) {
-                existing.count += next.count;
-            } else {
-                result.push(next);
-            }
-            return result;
-        }, []);
-
-        return _.sortBy(mappedReducedItems, x => x.actionName.toLocaleLowerCase());
-    }
-
-    private mapItems(indexErrors: Raven.Client.Documents.Indexes.IndexErrors[]): IndexErrorPerDocument[] {
-        const mappedItems = _.flatMap(indexErrors, value => {
-            return value.Errors.map((error: Raven.Client.Documents.Indexes.IndexingError): IndexErrorPerDocument =>
-                ({
-                    Timestamp: error.Timestamp,
-                    Document: error.Document,
-                    Action: error.Action,
-                    Error: error.Error,
-                    IndexName: value.Name
-                }));
-        });
-        
-        return _.orderBy(mappedItems, [x => x.Timestamp], ["desc"]);
-    }
-
-    private onStatsChanged(stats: Raven.Server.NotificationCenter.Notifications.DatabaseStatsChanged) {
-        this.remoteLatestIndexErrorTime(stats.LastIndexingErrorTime);
     }
 
     private onSearchCriteriaChanged() {
-        if (!this.ignoreSearchCriteriaUpdatesMode) {
-            this.gridController().reset();
-        }
+        this.allIndexesSelected(this.erroredIndexNames().length === this.selectedIndexNames().length);
+        
+        this.errorInfoItems().forEach(x => {
+            x.searchText(this.searchText());
+            x.selectedIndexNames(this.selectedIndexNames());
+            x.selectedActionNames(this.selectedActionNames());
+            x.allIndexesSelected(this.allIndexesSelected());
+            x.refresh();
+        })
+    }
+    
+    toggleDetails(item: indexErrorInfoModel) {
+        item.toggleDetails();
     }
 
-    clearIndexErrors() {
-        const clearErrorsDialog = new clearIndexErrorsConfirm(this.allIndexesSelected() ? null : this.selectedIndexNames(), this.db);
+    clearIndexErrorsForAllItems() {
+        
+        const listOfNodes = this.errorInfoItems().map(x => x.nodeTag());
+        const listOfShardNumbers = this.errorInfoItems().map(x => x.shardNumber());
+        
+        const clearErrorsDialog = new clearIndexErrorsConfirm(this.allIndexesSelected() ? null : this.selectedIndexNames(), this.db, listOfNodes, listOfShardNumbers);
         app.showBootstrapDialog(clearErrorsDialog);
-            
+
         clearErrorsDialog.clearErrorsTask
-            .done((errorsCleared: boolean) => { 
-                if (errorsCleared) { 
-                    this.refresh(); 
-                } 
-        });
+            .done((errorsCleared: boolean) => {
+                if (errorsCleared) {
+                    this.refresh();
+                }
+            });
     }
+    // clearIndexErrorsForAllItems() {
+    //     this.errorInfoItems().forEach(x => {
+    //         this.clearErrors(x.nodeTag(), x.shardNumber());
+    //     })
+    // }
+    
+    clearIndexErrorsForItem(item: indexErrorInfoModel) {
+        
+        const nodeTag = item.nodeTag() ? [item.nodeTag()] : null;
+        const shardNumber = item.shardNumber() ? [item.shardNumber()] : null;
+        
+        const clearErrorsDialog = new clearIndexErrorsConfirm(this.allIndexesSelected() ? null : this.selectedIndexNames(), this.db, nodeTag, shardNumber); // todo - unite content.. with above
+        app.showBootstrapDialog(clearErrorsDialog);
+
+        clearErrorsDialog.clearErrorsTask
+            .done((errorsCleared: boolean) => {
+                if (errorsCleared) {
+                    this.refresh();
+                }
+            });
+    }
+    
+    // private clearErrors(nodeTag?: string, shardNumber?: string) {
+    //     const clearErrorsDialog = new clearIndexErrorsConfirm(this.allIndexesSelected() ? null : this.selectedIndexNames(), this.db, nodeTag, shardNumber);
+    //     app.showBootstrapDialog(clearErrorsDialog);
+    //
+    //     clearErrorsDialog.clearErrorsTask
+    //         .done((errorsCleared: boolean) => {
+    //             if (errorsCleared) {
+    //                 this.refresh();
+    //             }
+    //         });
+    // }
 }
 
 export = indexErrors; 
