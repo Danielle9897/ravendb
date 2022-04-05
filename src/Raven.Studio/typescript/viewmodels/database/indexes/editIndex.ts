@@ -942,6 +942,9 @@ class editIndex extends viewModelBase {
     private initFieldTooltips() {
         this.setupDisableReasons();
 
+        const hrefTest = `https://ravendb.net/l/GHX7NJ/${viewModelBase.clientVersion()}`;
+        console.log(hrefTest);
+
         popoverUtils.longWithHover($(".store-field-info"),
             {
                 content: `
@@ -950,7 +953,7 @@ class editIndex extends viewModelBase {
                                  <strong>Storing the field is Not necessary</strong> in order to filter by the field when querying the index.<br>
                                  Full-text search is also available without storing the field.</small>
                              </li>
-                             <li><small>
+                             <li class="margin-bottom"><small>
                                  <strong>Only Store the field when</strong>:<br>
                                  You want to compute a value during indexing and use it in your projection at query time.<br>
                                  Disadvantage:
@@ -960,10 +963,14 @@ class editIndex extends viewModelBase {
                                  Advantage:
                                  <ul>
                                      <li>The value is fetched directly from the index (instead of from the document store).</li>
-                                 </ul>
-                                 </small>
+                                 </ul></small>
                              </li>
                          </ul>
+                         <small class="margin-left">
+                             <a target="_blank" href="${hrefTest}">
+                                 <i class="icon-link"></i><span>Store tutorial</span>
+                             </a>
+                         </small>
                          `,
                 html: true
             });
