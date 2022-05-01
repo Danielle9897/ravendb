@@ -91,7 +91,7 @@ namespace Raven.Server.Documents.Sharding.Handlers
             var taskName = GetStringQueryString("taskName", false);
 
             if ((taskId == null) && (taskName == null))
-                throw new ArgumentException("You must specify a query string argument of either 'key' or 'name' , but none was specified.");
+                throw new ArgumentException("You must specify a query string argument of either 'key' or 'taskName' , but none was specified.");
 
             var typeStr = GetQueryStringValueAndAssertIfSingleAndNotEmpty("type");
 
@@ -137,7 +137,8 @@ namespace Raven.Server.Documents.Sharding.Handlers
         private async Task GetTaskInfoForSingleShard(TransactionOperationContext context, long key, string taskName)
         {
             if (taskName == null)
-                throw new ArgumentException($"This task {key} is sharded, you must specify a query string argument for 'name', but none was specified.");
+                // throw new ArgumentException($"This task {key} is sharded, you must specify a query string argument for 'name', but none was specified.");
+                throw new ArgumentException($"This task {key} is sharded, you must specify a query string argument for 'taskName', but none was specified.");
 
             if (ShardHelper.TryGetShardNumberAndDatabaseName(ref taskName, out var shardNumber) == false)
                 throw new ArgumentException($"Task '{taskName}' is sharded, you must specify the shard index, for example : '{taskName}$0'");

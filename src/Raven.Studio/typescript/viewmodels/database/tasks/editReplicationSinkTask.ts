@@ -30,7 +30,9 @@ class editReplicationSinkTask extends shardViewModelBase {
 
     editedSinkTask = ko.observable<ongoingTaskReplicationSinkEditModel>();
     isAddingNewTask = ko.observable<boolean>(true);
+    
     private taskId: number = null;
+    private taskName: string;
     
     possibleMentors = ko.observableArray<string>([]);
     
@@ -88,12 +90,16 @@ class editReplicationSinkTask extends shardViewModelBase {
         super.activate(args);
         const deferred = $.Deferred<void>();
 
-        if (args.taskId) {
+        // if (args.taskId) {
+        if (args.taskId && args.taskName) {
             // 1. Editing an existing task
             this.isAddingNewTask(false);
+            
             this.taskId = args.taskId;
+            this.taskName = args.taskName;
 
-            getOngoingTaskInfoCommand.forPullReplicationSink(this.db, this.taskId)
+            // getOngoingTaskInfoCommand.forPullReplicationSink(this.db, this.taskId)
+            getOngoingTaskInfoCommand.forPullReplicationSink(this.db, this.taskId, this.taskName)
                 .execute()
                 .done((result: Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskPullReplicationAsSink) => {
                     

@@ -1,6 +1,9 @@
 import commandBase = require("commands/commandBase");
 import database = require("models/resources/database");
 import endpoints = require("endpoints");
+import shardedDatabase from "models/resources/shardedDatabase";
+import clusterTopologyManager from "common/shell/clusterTopologyManager";
+import { shardingTodo } from "common/developmentHelper";
 
 class getOngoingTaskInfoCommand<T extends Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskReplication |
                                           Raven.Client.Documents.Subscriptions.SubscriptionStateWithNodeDetails |
@@ -27,8 +30,10 @@ class getOngoingTaskInfoCommand<T extends Raven.Client.Documents.Operations.Ongo
 
     private getTaskInfo(): JQueryPromise<T> {
         const url = endpoints.databases.ongoingTasks.task;
-        const args = this.taskName ? { key: this.taskId, type: this.taskType, taskName: this.taskName } :
-            { key: this.taskId, type: this.taskType };
+       
+        const args = this.getArgsToUse();
+        // const args = this.taskName ? { key: this.taskId, type: this.taskType, taskName: this.taskName } :
+        //     { key: this.taskId, type: this.taskType };
 
         return this.query<T>(url, args, this.db);
     }
@@ -37,9 +42,12 @@ class getOngoingTaskInfoCommand<T extends Raven.Client.Documents.Operations.Ongo
         return new getOngoingTaskInfoCommand<Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskReplication>(db, "Replication", taskId);
     }
     
-    static forPullReplicationSink(db: database, taskId: number) {
-        return new getOngoingTaskInfoCommand<Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskPullReplicationAsSink>(db, "PullReplicationAsSink", taskId);
+    static forPullReplicationSink(db: database, taskId: number, taskName: string) {
+        return new getOngoingTaskInfoCommand<Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskPullReplicationAsSink>(db, "PullReplicationAsSink", taskId, taskName);
     }
+    // static forPullReplicationSink(db: database, taskId: number) {
+    //     return new getOngoingTaskInfoCommand<Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskPullReplicationAsSink>(db, "PullReplicationAsSink", taskId);
+    // }
 
     static forSubscription(db: database, taskId: number, taskName: string) {
         return new getOngoingTaskInfoCommand<Raven.Client.Documents.Subscriptions.SubscriptionStateWithNodeDetails>(db, "Subscription", taskId, taskName);
@@ -64,6 +72,29 @@ class getOngoingTaskInfoCommand<T extends Raven.Client.Documents.Operations.Ongo
     static forElasticSearchEtl(db: database, taskId: number) {
         return new getOngoingTaskInfoCommand<Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskElasticSearchEtlDetails>(db, "ElasticSearchEtl", taskId);
     }
+
+    private getArgsToUse() {
+        let taskName = this.taskName;
+
+        if (this.taskName && shardedDatabase.isSharded(this.db)) {
+            shardingTodo("ANY", "Currently, the Sink GET is implemented only for Single-Shard-Only (while PUT is All-Shards-Only)"); // todo ask Shiran .../ Aviv...
+            const location = this.db.getFirstLocation(clusterTopologyManager.default.localNodeTag())
+            taskName = this.taskName + location.nodeTag;
+        }
+
+        if (taskName) {
+            return {
+                key: this.taskId,
+                type: this.taskType,
+                taskName: taskName
+            }
+        }
+
+        return {
+            key: this.taskId,
+            type: this.taskType
+        }
+    }
 }
 
-export = getOngoingTaskInfoCommand; 
+export = getOngoingTaskInfoCommand;
