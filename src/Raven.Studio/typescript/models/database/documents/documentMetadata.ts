@@ -2,7 +2,8 @@
 
 import generalUtils = require("common/generalUtils");
 
-type knownDocumentFlags = "HasRevisions" | "Revision" | "HasAttachments" | "DeleteRevision" | "HasCounters" | "Artificial" | "HasTimeSeries";
+// type knownDocumentFlags = "HasRevisions" | "Revision" | "HasAttachments" | "DeleteRevision" | "HasCounters" | "Artificial" | "HasTimeSeries";
+type knownDocumentFlags = "HasRevisions" | "Revision" | "HasAttachments" | "DeleteRevision" | "HasCounters" | "Artificial" | "HasTimeSeries" | "Conflicted" | "Resolved";
 
 interface revisionCounter {
     name: string;

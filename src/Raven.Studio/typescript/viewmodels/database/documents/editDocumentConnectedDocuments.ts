@@ -26,6 +26,7 @@ interface connectedDocumentItem {
     id: string;
     href: string;
     deletedRevision: boolean;
+    conflictRevision: boolean;
 }
 
 interface connectedRevisionDocumentItem extends connectedDocumentItem {
@@ -135,7 +136,8 @@ class connectedDocuments {
 
         const revisionColumn = new hyperlinkColumn<connectedRevisionDocumentItem>(this.gridController() as virtualGridController<any>, x => x.id, x => x.href, "", "75%",
             {
-                extraClass: item => item.deletedRevision ? "deleted-revision" : ""
+                // extraClass: item => item.deletedRevision ? "deleted-revision" : "" // todo..
+                extraClass: item => item.deletedRevision ? "deleted-revision" : (item.conflictRevision ? "conflict-revision" : "")
             });
         const revisionCompareColumn = new actionColumn<connectedRevisionDocumentItem>(this.gridController() as virtualGridController<any>, (x, idx, e) => this.compareRevision(x, idx, e), "Diff", () => `<i title="Compare document with this revision" class="icon-diff"></i>`, "25%",
             {
@@ -314,7 +316,8 @@ class connectedDocuments {
         const recentDocs = this.recentDocuments.getTopRecentDocuments(this.db(), doc.getId(), this.isClone());
         
         return $.Deferred<pagedResult<connectedDocumentItem>>().resolve({
-            items: recentDocs.map(x => ({ id: x.id, href: x.href, deletedRevision: false })),
+            // items: recentDocs.map(x => ({ id: x.id, href: x.href, deletedRevision: false })),
+            items: recentDocs.map(x => ({ id: x.id, href: x.href, deletedRevision: false, conflictRevision: false })), // todo check..
             totalResultCount: recentDocs.length,
         }).promise();
     }
@@ -353,12 +356,24 @@ class connectedDocuments {
         return fetchTask.promise();
     }
 
+    // private revisionToConnectedDocument(doc: document): connectedRevisionDocumentItem {
+    //     const changeVector = doc.__metadata.changeVector();
+    //     return {
+    //         href: appUrl.forViewDocumentAtRevision(doc.getId(), changeVector, this.db()),
+    //         id: doc.__metadata.lastModified(),
+    //         deletedRevision: doc.__metadata.hasFlag("DeleteRevision"),
+    //         revisionChangeVector: changeVector
+    //     };
+    // }
     private revisionToConnectedDocument(doc: document): connectedRevisionDocumentItem {
         const changeVector = doc.__metadata.changeVector();
         return {
             href: appUrl.forViewDocumentAtRevision(doc.getId(), changeVector, this.db()),
             id: doc.__metadata.lastModified(),
-            deletedRevision: doc.__metadata.hasFlag("DeleteRevision"),
+            
+            deletedRevision: doc.__metadata.hasFlag("DeleteRevision"),            
+            conflictRevision: doc.__metadata.hasFlag("Conflicted") || doc.__metadata.hasFlag("Resolved"), 
+            
             revisionChangeVector: changeVector
         };
     }
@@ -488,9 +503,17 @@ class connectedDocuments {
         return {
             id: docId,
             href: appUrl.forEditDoc(docId, this.db()),
-            deletedRevision: false
+            deletedRevision: false,
+            conflictRevision: false
         }
     }
+    // private docIdToConnectedDoc(docId: string): connectedDocumentItem {
+    //     return {
+    //         id: docId,
+    //         href: appUrl.forEditDoc(docId, this.db()),
+    //         deletedRevision: false
+    //     }
+    // }
 
     goToTimeSeriesEdit(item: timeSeriesItem) { 
         router.navigate(appUrl.forEditTimeSeries(item.name, this.document().getId(), this.db()));
