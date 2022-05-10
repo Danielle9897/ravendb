@@ -15,6 +15,18 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="..\..\src\Raven.Client\Extensions\MemberInfoExtensions.cs" Link="Client\Extensions\MemberInfoExtensions.cs" />
+    <Compile Include="..\..\src\Raven.Client\Extensions\WhoIsLocking.cs" Link="Client\Extensions\WhoIsLocking.cs" />
+    <Compile Include="..\..\src\Raven.Client\Documents\Operations\Configuration\StudioConfiguration.cs" Link="Client\Documents\Operations\Configuration\StudioConfiguration.cs" />
+    <Compile Include="..\..\src\Raven.Client\Documents\Operations\OperationState.cs" Link="Client\Documents\Operations\OperationState.cs" />
+    <Compile Include="..\..\src\Raven.Client\Documents\Operations\IOperationProgress.cs" Link="Client\Documents\Operations\IOperationProgress.cs" />
+    <Compile Include="..\..\src\Raven.Client\Util\SystemTime.cs" Link="Client\Util\SystemTime.cs" />
+    <Compile Include="..\..\src\Raven.Client\Constants.cs" Link="Client\Constants.cs" />
+    <Compile Include="..\..\src\Raven.Client\Properties\VersionInfo.cs" Link="Client\Properties\VersionInfo.cs" />
+    <Compile Include="..\..\src\Raven.Client\Exceptions\Security\SecurityException.cs" Link="Client\Exceptions\Security\SecurityException.cs" />
+    <Compile Include="..\..\src\Raven.Client\Exceptions\RavenException.cs" Link="Client\Exceptions\RavenException.cs" />
+    <Compile Include="..\..\src\Raven.Client\ServerWide\Operations\Certificates\CertificateDefinition.cs" Link="Client\ServerWide\Operations\Certificates\CertificateDefinition.cs" />
+    <Compile Include="..\..\src\Raven.Client\Extensions\CharExtensions.cs" Link="Client\Extensions\CharExtensions.cs" />
+    <Compile Include="..\..\src\Raven.Client\Extensions\MemberInfoExtensions.cs" Link="Client\Extensions\MemberInfoExtensions.cs" />
     <Compile Include="..\..\src\Raven.Client\Extensions\StringExtensions.cs" Link="Client\Extensions\StringExtensions.cs" />
     <Compile Include="..\..\src\Raven.Server\Commercial\CompleteClusterConfigurationResult.cs" Link="Server\Commercial\CompleteClusterConfigurationResult.cs" />
     <Compile Include="..\..\src\Raven.Server\Commercial\GetSetupZipFileParameters.cs" Link="Server\Commercial\GetSetupZipFileParameters.cs" />
