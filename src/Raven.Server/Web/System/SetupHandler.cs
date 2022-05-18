@@ -577,16 +577,18 @@ namespace Raven.Server.Web.System
                     [RavenConfiguration.GetKey(x => x.Core.SetupMode)] = nameof(SetupMode.Unsecured),
                     [RavenConfiguration.GetKey(x => x.Security.UnsecuredAccessAllowed)] = nameof(UnsecuredAccessAddressRange.PublicNetwork)
                 };
-
-                if (setupInfo.Port == Constants.Network.ZeroValue)
-                    setupInfo.Port = Constants.Network.DefaultUnsecuredRavenDbHttpPort;
-
-                settingsJson.Modifications[RavenConfiguration.GetKey(x => x.Core.ServerUrls)] = string.Join(";", setupInfo.Addresses.Select(ip => IpAddressToUrl(ip, setupInfo.Port)));
-
-                if (setupInfo.TcpPort == Constants.Network.ZeroValue)
-                    setupInfo.TcpPort = Constants.Network.DefaultSecuredRavenDbTcpPort;
-
-                settingsJson.Modifications[RavenConfiguration.GetKey(x => x.Core.TcpServerUrls)] = string.Join(";", setupInfo.Addresses.Select(ip => IpAddressToUrl(ip, setupInfo.TcpPort, "tcp")));
+                
+                // TODO - Omer - take info from the nodes list
+                
+                // if (setupInfo.Port == Constants.Network.ZeroValue)
+                //     setupInfo.Port = Constants.Network.DefaultUnsecuredRavenDbHttpPort;
+                //
+                // settingsJson.Modifications[RavenConfiguration.GetKey(x => x.Core.ServerUrls)] = string.Join(";", setupInfo.Addresses.Select(ip => IpAddressToUrl(ip, setupInfo.Port)));
+                //
+                // if (setupInfo.TcpPort == Constants.Network.ZeroValue)
+                //     setupInfo.TcpPort = Constants.Network.DefaultSecuredRavenDbTcpPort;
+                //
+                // settingsJson.Modifications[RavenConfiguration.GetKey(x => x.Core.TcpServerUrls)] = string.Join(";", setupInfo.Addresses.Select(ip => IpAddressToUrl(ip, setupInfo.TcpPort, "tcp")));
 
                 if (setupInfo.EnableExperimentalFeatures)
                 {

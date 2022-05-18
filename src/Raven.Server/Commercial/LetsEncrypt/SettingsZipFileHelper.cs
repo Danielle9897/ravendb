@@ -465,7 +465,8 @@ public static class SettingsZipFileHelper
         }
     }
 
-    public static string CreateReadmeText(string nodeTag, string publicServerUrl, bool isCluster, bool registerClientCert)
+    // TODO - Omer - call this method w/ relevant zipOnly param
+    public static string CreateReadmeText(string nodeTag, string publicServerUrl, bool isCluster, bool registerClientCert, bool zipOnly = false)
     {
         var str =
             string.Format(WelcomeMessage.AsciiHeader, Environment.NewLine) + Environment.NewLine + Environment.NewLine +

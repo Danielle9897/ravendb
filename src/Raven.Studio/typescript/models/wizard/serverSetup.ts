@@ -8,20 +8,28 @@ import certificateInfo = require("models/wizard/certificateInfo");
 import ipEntry = require("models/wizard/ipEntry");
 import setupShell = require("viewmodels/wizard/setupShell");
 
-class serverSetup {
+
+// this is the model...
+
+class serverSetup { 
     static default = new serverSetup();
     static readonly nodesTags = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'];
 
     userDomains = ko.observable<Raven.Server.Commercial.UserDomainsWithIps>();
     
     useExperimentalFeatures = ko.observable<boolean>(false);
+    onlyCreateZipFile = ko.observable<boolean>(false);
     
     mode = ko.observable<Raven.Server.Commercial.SetupMode | "Continue">();
     license = ko.observable<licenseInfo>(new licenseInfo());
     domain = ko.observable<domainInfo>(new domainInfo(() => this.license().toDto()));
-    unsecureSetup = ko.observable<unsecureSetup>(new unsecureSetup());
-    continueSetup = ko.observable<continueSetup>(new continueSetup());
+
     nodes = ko.observableArray<nodeInfo>();
+    startNodeAsPassive = ko.observable<boolean>(false);
+    localNodeTag = ko.observable<string>("A");
+    
+    continueSetup = ko.observable<continueSetup>(new continueSetup());
+    
     certificate = ko.observable<certificateInfo>(new certificateInfo());
     registerClientCertificate = ko.observable<boolean>(true);
     agreementUrl = ko.observable<string>();
@@ -81,7 +89,7 @@ class serverSetup {
         if (params.FixedServerPortNumber != null) {
             this.fixedLocalPort(params.FixedServerPortNumber);
             
-            this.unsecureSetup().port(this.fixedLocalPort().toString());
+            //this.unsecureSetup().port(this.fixedLocalPort().toString());
         } else {
             this.fixedLocalPort(null);
         }
@@ -89,7 +97,7 @@ class serverSetup {
         if (params.FixedServerTcpPortNumber != null) {
             this.fixedTcpPort(params.FixedServerTcpPortNumber);
             
-            this.unsecureSetup().tcpPort(this.fixedTcpPort().toString());
+            //this.unsecureSetup().tcpPort(this.fixedTcpPort().toString());
         } else {
             this.fixedTcpPort(null);
         }
@@ -123,15 +131,27 @@ class serverSetup {
     }
 
     toUnsecuredDto() : Raven.Server.Commercial.UnsecuredSetupInfo {
-        const setup = this.unsecureSetup();
+        //const setup = this.unsecureSetup();
+
+        const nodesInfo = {} as dictionary<Raven.Server.Commercial.NodeInfo>;
+        this.nodes().forEach((node, idx) => {
+            nodesInfo[node.nodeTag()] = node.toDto();
+        });
+        
         return {
             EnableExperimentalFeatures: this.useExperimentalFeatures(),
-            Port: setup.port() ? parseInt(setup.port(), 10) : 8080,
-            Addresses: [setup.ip().ip()],
-            NodeSetupInfos: {}, //TODO
-            LocalNodeTag: setup.bootstrapCluster() ? setup.localNodeTag() : null,
-            Environment: setup.bootstrapCluster() ? this.environment() : null,
-            TcpPort: setup.tcpPort() ? parseInt(setup.tcpPort(), 10) : 38888
+            
+            //Port: setup.port() ? parseInt(setup.port(), 10) : 8080, // TODO ask OMER abou this...
+            //Addresses: [setup.ip().ip()], // TODO... ask OMER
+            //TcpPort: setup.tcpPort() ? parseInt(setup.tcpPort(), 10) : 38888, // todo..
+            
+            NodeSetupInfos: nodesInfo, // todo check...
+            
+            // LocalNodeTag: !setup.startNodeAsPassive() ? setup.localNodeTag() : null,
+            // Environment: !setup.startNodeAsPassive() ? this.environment() : null,
+            LocalNodeTag: !this.startNodeAsPassive() ? this.localNodeTag() : null,
+            Environment: !this.startNodeAsPassive() ? this.environment() : null,
+            ModifyLocalServer: !this.onlyCreateZipFile()
         }
     }
     
@@ -148,13 +168,13 @@ class serverSetup {
             Email: this.domain().userEmail(),
             Domain: this.domain().domain(),
             RootDomain: this.domain().rootDomain(),
-            ModifyLocalServer: true,
             LocalNodeTag: this.getLocalNode().nodeTag(),
             RegisterClientCert: this.registerClientCertificate(), 
             NodeSetupInfos: nodesInfo,
             Certificate: this.certificate().certificate(),
             Password: this.certificate().certificatePassword(),
-            ClientCertNotAfter: this.certificate().expirationDateFormatted()
+            ClientCertNotAfter: this.certificate().expirationDateFormatted(),
+            ModifyLocalServer: !this.onlyCreateZipFile()
         };
     }
     
@@ -176,8 +196,11 @@ class serverSetup {
             case "Continue":
                 return this.continueSetup().serverUrl();
             case "Unsecured":
-                const setupPort = this.unsecureSetup().port() || '8080';
-                const setupAddress = this.unsecureSetup().ip().ip();
+                // const setupPort = this.unsecureSetup().port() || '8080';
+                // const setupAddress = this.unsecureSetup().ip().ip();
+                const setupPort = this.getLocalNode().port() || '8080';
+                const setupAddress = this.getLocalNode().ips()[0].ip();
+                
                 let host, 
                     port = setupPort;
                 if (setupAddress === "0.0.0.0") {
@@ -231,6 +254,10 @@ class serverSetup {
                     } else {
                         return node.hostname() || "<select hostname below>";
                     }
+
+                case "Unsecured":
+                    return "TODO...";
+                    
                 default:
                     return null;
             }
