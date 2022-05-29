@@ -16,19 +16,33 @@ class nodeTagColumn<T extends { nodeTag: string, database: string, noData: boole
         
         this.hrefProvider = hrefProvider;
     }
-    
+
     private valueProvider(item: T) {
         const nodeTag = item.nodeTag;
-        const extraClass = item.noData ? "no-data" : `node-${nodeTag}`;
-        
+        const extraClass = item.noData  ? "no-data" : `node-${nodeTag}`;
+
         if (item.nodeTag) {
             const description = this.hrefProvider(item).targetDescription;
             const titleText = description ? `Go to ${description}` : "";
-            return `<span class="node-label ${extraClass}" title="${titleText}">${nodeTag}</span>`;
+            return `<div class="test-node test-node-2">
+                        <span class="node-label ${extraClass}" title="${titleText}">${nodeTag}</span>
+                    </div>`;
         } else {
             return "";
         }
     }
+    // private valueProvider(item: T) {
+    //     const nodeTag = item.nodeTag;
+    //     const extraClass = item.noData  ? "no-data" : `node-${nodeTag}`;
+    //
+    //     if (item.nodeTag) {
+    //         const description = this.hrefProvider(item).targetDescription;
+    //         const titleText = description ? `Go to ${description}` : "";
+    //         return `<span class="node-label ${extraClass}" title="${titleText}">${nodeTag}</span>`;
+    //     } else {
+    //         return "";
+    //     }
+    // }
 
     toDto(): virtualColumnDto {
         return {

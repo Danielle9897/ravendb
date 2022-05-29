@@ -583,7 +583,8 @@
             position: relative;
             flex-grow: 1;
 
-            .create-database {
+            //.create-database { // todo ... raname to: no-data-msg
+            .no-data-area {
                 text-align: center;
                 display: block;
                 .absolute-center;
@@ -1122,5 +1123,34 @@
             }
         }
 
+    }
+}
+
+.cluster-overview-widget {
+    .node-label {
+        background-color: var(--node-color);
+    }
+    
+    .test-node {
+        opacity: 0.6;
+        position: relative;
+        --node-color: @text-muted !important;
+
+        .node-label {
+            position: relative;
+        }
+    }
+
+    .test-node-2 {
+        &::before {
+            position: absolute;
+            left: -7px;
+            top: -3px;
+            animation: infinite-spinning 6s infinite;
+            content: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='30px' height='30px'><circle cx='15' cy='15' r='8.5' style='fill: none; stroke: %23c4ced7; stroke-linecap: round; stroke-miterlimit: 10; stroke-width: 2px; stroke-dasharray: 15px 3px; stroke-dashoffset: 5px;'/></svg>");
+            width: 30px;
+            height: 30px;
+            display: block;
+        }
     }
 }

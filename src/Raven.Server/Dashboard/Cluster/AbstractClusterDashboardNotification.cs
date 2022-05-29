@@ -17,7 +17,6 @@ namespace Raven.Server.Dashboard.Cluster
                 [nameof(Type)] = Type,
                 [nameof(Date)] = Date
             };
-            
         }
 
         /// <summary>

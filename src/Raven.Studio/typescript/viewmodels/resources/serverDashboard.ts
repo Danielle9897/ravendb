@@ -750,7 +750,7 @@ class serverDashboard extends viewModelBase {
     });
     
     formattedUpTime = ko.observable<string>();
-    formattedStartTime: KnockoutComputed<string>;
+    formattedStartTime: KnockoutComputed<string>; // is needed ?
     
     node: KnockoutComputed<clusterNode>;
     sizeFormatter = generalUtils.formatBytesToSize;
