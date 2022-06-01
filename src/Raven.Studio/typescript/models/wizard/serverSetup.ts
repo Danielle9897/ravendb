@@ -56,6 +56,12 @@ class serverSetup {
         newNode.nodeTag("A");
         this.nodes.push(newNode);
 
+        this.onlyCreateZipFile.subscribe((zipOnly) => {
+            if (zipOnly) {
+                this.startNodeAsPassive(false);
+            }
+        });
+        
         this.certificate.extend({
             required: {
                 onlyIf: () => this.useOwnCertificates()
@@ -208,11 +214,9 @@ class serverSetup {
                 return null;
         }
     }
-    
+
     createIsLocalNodeObservable(node: nodeInfo) {
-        return ko.pureComputed(() => {
-            return this.nodes().indexOf(node) === 0;
-        });
+        return ko.pureComputed(() => this.nodes().indexOf(node) === 0 && !this.onlyCreateZipFile());
     }
     
     createFullNodeNameObservable(node: nodeInfo) {

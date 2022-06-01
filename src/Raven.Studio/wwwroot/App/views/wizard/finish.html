@@ -29,7 +29,7 @@
     <pre data-bind="text: readme"></pre>
 </div>
 <div class="navigation padding padding-lg flex-horizontal">
-    <button type="button" class="btn btn-default btn-lg" data-bind="click: $root.back, disable: spinners.restart, visible: !spinners.finishing()">
+    <button type="button" class="btn btn-default btn-lg" data-bind="click: $root.back, disable: spinners.restart, visible: !spinners.finishing() && !completedWithSuccess()">
         <i class="icon-arrow-left"></i><span>Back</span>
     </button>
     <div class="flex-separator"></div>
@@ -38,9 +38,11 @@
         <span>Try again</span>
     </button>
     <button class="btn btn-primary btn-lg" data-bind="click: restart, css: { 'btn-spinner': spinners.restart }, disable: spinners.restart,
-            visible: canRestart() &&
-                     (!model.onlyCreateZipFile() || (model.mode() === 'Unsecured' && model.nodes().length === 1))">
+            visible: canRestart() && !model.onlyCreateZipFile()">
         <i class="icon-refresh"></i>
         <span>Restart server</span>
     </button>
+</div>
+<div data-bind="visible: canRestart() && model.onlyCreateZipFile()" class="bg-info text-info padding">
+    <span>The Setup Package zip file has been been created & downloaded. Plese check your Downloads folder.</span> 
 </div>
