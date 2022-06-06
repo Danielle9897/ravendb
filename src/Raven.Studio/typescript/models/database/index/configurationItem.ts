@@ -1,6 +1,6 @@
 /// <reference path="../../../../typings/tsd.d.ts"/>
 import jsonUtil = require("common/jsonUtil");
-import configuration = require("configuration");
+//import configuration = require("configuration");
 
 class configurationItem {
 
@@ -32,8 +32,8 @@ class configurationItem {
         "Indexing.ScratchSpaceLimitInMb",
         "Indexing.Throttling.TimeIntervalInMs",
         "Indexing.TimeSinceLastQueryAfterWhichDeepCleanupCanBeExecutedInMin",
-        "Indexing.TransactionSizeLimitInMb",
-        "Indexing.Static.SearchEngineType"
+        "Indexing.TransactionSizeLimitInMb"
+        //"Indexing.Static.SearchEngineType"
     ];
     
     key = ko.observable<string>();
@@ -71,6 +71,10 @@ class configurationItem {
 
     static empty() {
         return new configurationItem("", "");
+    }
+    
+    static getItem(key: string, value: string) {
+        return new configurationItem(key, value);
     }
 }
 

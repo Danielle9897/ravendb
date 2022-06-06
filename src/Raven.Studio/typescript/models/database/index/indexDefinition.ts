@@ -5,6 +5,9 @@ import additionalAssembly = require("models/database/index/additionalAssemblyMod
 import configurationItem = require("models/database/index/configurationItem");
 import validateNameCommand = require("commands/resources/validateNameCommand");
 import generalUtils = require("common/generalUtils");
+import configurationConstants from "configuration";
+
+//type searchEngineType = "Lucene" | "Corax" | null; // null ?? todo..
 
 class mapItem {
     map = ko.observable<string>();
@@ -63,10 +66,17 @@ class indexDefinition {
     deploymentMode = ko.observable<Raven.Client.Documents.Indexes.IndexDeploymentMode>();
 
     customAnalyzers = ko.observableArray<string>();
+        
+    defaultSearchEngine = ko.observable<string>(); // value from ep
+    searchEngine = ko.observable<string>(); // the value for the toggle
+    
+    inheritSearchEngineText: KnockoutComputed<string>; // inherit(corax)
+    effectiveSearchEngineText: KnockoutComputed<string>; // inherit(corax)
 
     validationGroup: KnockoutValidationGroup;
 
-    constructor(dto: Raven.Client.Documents.Indexes.IndexDefinition) {
+    // constructor(dto: Raven.Client.Documents.Indexes.IndexDefinition) {
+    constructor(dto: Raven.Client.Documents.Indexes.IndexDefinition, defaultSearchEngine? : string) { // todo handle the empty constructor and the others !!!
         this.isAutoIndex(dto.Type.startsWith("Auto"));
 
         this.name(dto.Name);
@@ -102,7 +112,9 @@ class indexDefinition {
         
         this.lockMode = dto.LockMode;
         this.priority(dto.Priority);
-        this.configuration(this.parseConfiguration(dto.Configuration));
+        
+        //this.addSearchEngineConfiguration(); // todo..
+        // this.configuration(this.parseConfiguration(dto.Configuration));
 
         this.additionalSources(_.map(dto.AdditionalSources, (code, name) => additionalSource.create(name, code)));
         
@@ -114,6 +126,33 @@ class indexDefinition {
             const nonEmptyFields = this.fields().filter(x => x.name());
             return _.uniqBy(nonEmptyFields, field => field.name()).length !== nonEmptyFields.length;
         });
+        
+        this.defaultSearchEngine(defaultSearchEngine); // todo... this comes from ep...
+        
+        this.inheritSearchEngineText = ko.pureComputed(() => {
+            const experimentalPart = this.defaultSearchEngine() === "Corax"  ? " - experimental feature" : ""; 
+            return `Inherit (${this.defaultSearchEngine()}${experimentalPart})`;
+        });
+
+        this.effectiveSearchEngineText = ko.pureComputed(() => {
+            if (this.searchEngine() === "Corax") {
+              return "Corax - experimental feature"
+            } 
+            
+            return this.searchEngine() ?? this.inheritSearchEngineText();
+        });
+        // this.effectiveSearchEngineText = ko.pureComputed(() => {
+        //     return this.searchEngine() ?? this.inheritSearchEngineText();
+        // });
+        
+        this.searchEngine.subscribe(value => {
+           const searchEngingItem = this.configuration().find(x => x.key() === configurationConstants.indexing.staticIndexingEngineType);
+           if (searchEngingItem) {
+               searchEngingItem.value(this.searchEngine() ?? this.defaultSearchEngine());
+           }
+        });
+
+        this.configuration(this.parseConfiguration(dto.Configuration));
         
         if (!this.isAutoIndex()) {
             this.initValidation();
@@ -225,17 +264,69 @@ class indexDefinition {
         })
     }
     
+    private addSearchEngineConfiguration() {
+        const configurations: configurationItem[] = [];
+        
+        this.searchEngine(this.defaultSearchEngine());
+        // configurations.push(new configurationItem(configurationConstants.indexing.staticIndexingEngineType, this.effectiveSearchEngineText())); // todo..
+        //configurations.push(new configurationItem(configurationConstants.indexing.staticIndexingEngineType, "test")); // todo..
+    }
+
     private parseConfiguration(config: Raven.Client.Documents.Indexes.IndexConfiguration): Array<configurationItem> {
         const configurations: configurationItem[] = [];
 
+        //this.addSearchEngineConfiguration();
+        
+        // add the fixed configuration
+        //this.searchEngine(this.defaultSearchEngine());
+        // configurations.push(new configurationItem(configurationConstants.indexing.staticIndexingEngineType, this.inheritSearchEngineText())); // todo..
+        configurations.push(new configurationItem(configurationConstants.indexing.staticIndexingEngineType, this.searchEngine())); // todo..
+        
         if (config) {
             _.forIn(config, (value, key) => {
-                configurations.push(new configurationItem(key, value));
+                if (key !== configurationConstants.indexing.staticIndexingEngineType) {
+                    configurations.push(new configurationItem(key, value));
+                }
+
+                if (key === configurationConstants.indexing.staticIndexingEngineType) {
+                    // set the toggle observable to be what ever it is..
+                    this.searchEngine(value);
+                }
             });
         }
-
+        
         return configurations;
     }
+    
+    // private parseConfiguration(config: Raven.Client.Documents.Indexes.IndexConfiguration): Array<configurationItem> {
+    //     const configurations: configurationItem[] = [];
+    //
+    //     // set the toggle observable to the inherit(default) value;
+    //     let searchEngineInConfiguration = false;
+    //     this.searchEngine("Lucene"); // todo ...
+    //    
+    //     if (config) {
+    //         _.forIn(config, (value, key) => {
+    //             configurations.push(new configurationItem(key, value));
+    //            
+    //             if (key === "Indexing.Static.SearchEngineType" && !searchEngineInConfiguration) {
+    //                 // set the toggle observabel to be what ever it is..
+    //                 this.searchEngine(value);
+    //                 searchEngineInConfiguration = true;
+    //             }
+    //         });
+    //     }
+    //    
+    //     if (!searchEngineInConfiguration) {
+    //         configurations.push(new configurationItem("Indexing.Static.SearchEngineType", "Lucene"));
+    //     }
+    //
+    //     // here... if config has lucen.. update the dropdown
+    //     // if has no value than inherit.. how to know the inherit ??
+    //     //this.addConfigurationOption("Indexing.Static.SearchEngineType", "Lucene"); // no need for this method becasue we push.. but what if you manually write ?
+    //
+    //     return configurations;
+    // }
 
     private detectIndexType(): Raven.Client.Documents.Indexes.IndexType {
         return this.reduce() ? "MapReduce" : "Map";
@@ -343,6 +434,19 @@ class indexDefinition {
     addConfigurationOption() {
         this.configuration.unshift(configurationItem.empty());
     }
+    
+    // addConfigurationOption(configurationKey?: string, configurationValue?: string) {
+    //     const itemToAdd = configurationKey ?
+    //         configurationItem.getItem(configurationKey, configurationValue) : configurationItem.empty();
+    //
+    //     // this.configuration.unshift(configurationItem.empty());
+    //     this.configuration.unshift(itemToAdd);
+    // }
+
+    // setDefaultSearchEngine(defaultEngine: string) {
+    //     this.defaultSearchEngine(defaultEngine);
+    //     this.addConfigurationOption(configurationConstants.indexing.staticIndexingEngineType, defaultEngine);
+    // }
 
     removeConfigurationOption(item: configurationItem) {
         this.configuration.remove(item);
@@ -381,7 +485,7 @@ class indexDefinition {
         }
     }
     
-    static empty(): indexDefinition {
+    static empty(defaultSearchEngine: string): indexDefinition {
         return new indexDefinition({
             Fields: {},
             Maps: [""],
@@ -398,7 +502,7 @@ class indexDefinition {
             AdditionalAssemblies: null,
             PatternForOutputReduceToCollectionReferences: null,
             PatternReferencesCollectionName: null
-        });
+        }, defaultSearchEngine);
     }
 }
 

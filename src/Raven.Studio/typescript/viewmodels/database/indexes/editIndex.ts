@@ -40,8 +40,12 @@ import documentHelpers = require("common/helpers/database/documentHelpers");
 import getCustomAnalyzersCommand = require("commands/database/settings/getCustomAnalyzersCommand");
 import getServerWideCustomAnalyzersCommand = require("commands/serverWide/analyzers/getServerWideCustomAnalyzersCommand");
 import getIndexDefaultsCommand = require("commands/database/index/getIndexDefaultsCommand");
+import getDatabaseSettingsCommand = require("commands/database/settings/getDatabaseSettingsCommand");
+import database = require("models/resources/database");
 import moment = require("moment");
 import { highlight, languages } from "prismjs";
+import { databaseEntry, serverWideOnlyEntry } from "models/database/settings/databaseSettingsModels";
+import configurationConstants from "configuration";
 
 class editIndex extends viewModelBase {
     
@@ -95,6 +99,17 @@ class editIndex extends viewModelBase {
         const deploymentMode = index.deploymentMode();
         return this.formatDeploymentMode(deploymentMode);
     });
+    
+    defaultSearchEngine = ko.observable<string>();
+
+    indexResultFromFetch: Raven.Client.Documents.Indexes.IndexDefinition;
+    static readonly searchEngineConfigurationLabel = configurationConstants.indexing.staticIndexingEngineType;
+    
+    // canDeleteConfigurationOption = ko.pureComputed((item) => {
+    //     //alert("hi");
+    //     //console.log(item.key);
+    //     return item.key() !== "Indexing.Static.SearchEngineType";
+    // });
 
     constructor() {
         super();
@@ -102,6 +117,7 @@ class editIndex extends viewModelBase {
         this.bindToCurrentInstance("removeMap",
             "removeField",
             "createFieldNameAutocompleter",
+            //"canDeleteConfigurationOption",
             "removeConfigurationOption",
             "formatIndex",
             "deleteAdditionalSource",
@@ -191,7 +207,7 @@ class editIndex extends viewModelBase {
 
     canActivate(indexToEdit: string): JQueryPromise<canActivateResultDto> {
         const indexToEditName = indexToEdit || undefined;
-        
+
         return $.when<any>(super.canActivate(indexToEditName))
             .then(() => {
                 const db = this.activeDatabase();
@@ -207,41 +223,150 @@ class editIndex extends viewModelBase {
                         });
                     return canActivateResult;
                 } else {
-                    this.editedIndex(indexDefinition.empty());
+                    //this.editedIndex(indexDefinition.empty(this.defaultSearchEngine())); // todo not good we still don't know this...
                 }
 
                 return $.Deferred<canActivateResultDto>().resolve({ can: true });
             })
     }
+    
+    // canActivate(indexToEdit: string): JQueryPromise<canActivateResultDto> {
+    //     const indexToEditName = indexToEdit || undefined;
+    //
+    //     console.log("this active db === " + this.activeDatabase())
+    //    
+    //     // when you refresh page there is no active database and we fail.. todo ???
+    //     const fetchIndexDefaultsTask = new getIndexDefaultsCommand(this.activeDatabase())
+    //         .execute();
+    //    
+    //     return $.when<any>(super.canActivate(indexToEditName), fetchIndexDefaultsTask)
+    //         .then((result: any, [indexDefaults]: [Raven.Server.Web.Studio.StudioDatabaseTasksHandler.IndexDefaults]) => {
+    //             const db = this.activeDatabase();
+    //
+    //             this.defaultDeploymentMode(indexDefaults.StaticIndexDeploymentMode);
+    //             this.defaultSearchEngine(indexDefaults.StaticIndexingEngineType === "None" ? "Lucene" : indexDefaults.StaticIndexingEngineType);
+    //            
+    //             if (indexToEditName) {
+    //                 this.isEditingExistingIndex(true);
+    //                 const canActivateResult = $.Deferred<canActivateResultDto>();
+    //                 this.fetchIndexToEdit(indexToEditName)
+    //                     .done(() => canActivateResult.resolve({ can: true }))
+    //                     .fail(() => {
+    //                         messagePublisher.reportError("Could not find " + indexToEditName + " index");
+    //                         canActivateResult.resolve({ redirect: appUrl.forIndexes(db) });
+    //                     });
+    //                 return canActivateResult;
+    //             } else {
+    //                 this.editedIndex(indexDefinition.empty(this.defaultSearchEngine()));
+    //             }
+    //
+    //             return $.Deferred<canActivateResultDto>().resolve({ can: true });
+    //         })
+    // }
+    
+    // canActivate(indexToEdit: string): JQueryPromise<canActivateResultDto> {
+    //     const indexToEditName = indexToEdit || undefined;
+    //    
+    //     return $.when<any>(super.canActivate(indexToEditName))
+    //         .then(() => {
+    //             const db = this.activeDatabase();
+    //
+    //             if (indexToEditName) {
+    //                 this.isEditingExistingIndex(true);
+    //                 const canActivateResult = $.Deferred<canActivateResultDto>();
+    //                 this.fetchIndexToEdit(indexToEditName)
+    //                     .done(() => canActivateResult.resolve({ can: true }))
+    //                     .fail(() => {
+    //                         messagePublisher.reportError("Could not find " + indexToEditName + " index");
+    //                         canActivateResult.resolve({ redirect: appUrl.forIndexes(db) });
+    //                     });
+    //                 return canActivateResult;
+    //             } else {
+    //                 this.editedIndex(indexDefinition.empty(this.defaultSearchEngine()));
+    //             }
+    //
+    //             return $.Deferred<canActivateResultDto>().resolve({ can: true });
+    //         })
+    // }
 
     activate(indexToEditName: string) {
         super.activate(indexToEditName);
+        // moved below done...
+        // if (this.isEditingExistingIndex()) {
+        //     this.editExistingIndex(indexToEditName);
+        // }
+        //
+        // this.updateHelpLink('CQ5AYO');
+        //
+        // this.initializeDirtyFlag();
+        // this.indexAutoCompleter = new indexAceAutoCompleteProvider(this.activeDatabase(), this.editedIndex);
+        //
+        // this.initValidation();
+        //
+        // this.fetchIndexes();
+        //
+        // if (!this.editedIndex().isAutoIndex() && !!indexToEditName) {
+        //     this.showIndexHistory(true);
+        // }
 
-        if (this.isEditingExistingIndex()) {
-            this.editExistingIndex(indexToEditName);
-        }
-
-        this.updateHelpLink('CQ5AYO');
-
-        this.initializeDirtyFlag();
-        this.indexAutoCompleter = new indexAceAutoCompleteProvider(this.activeDatabase(), this.editedIndex);
-
-        this.initValidation();
-        
-        this.fetchIndexes();
-        
-        if (!this.editedIndex().isAutoIndex() && !!indexToEditName) {
-            this.showIndexHistory(true);
-        }
-            
+        // return $.when<any>(this.fetchCustomAnalyzers(), this.fetchServerWideCustomAnalyzers())
+        //     .done(([analyzers]: [Array<Raven.Client.Documents.Indexes.Analysis.AnalyzerDefinition>],
+        //            [serverWideAnalyzers]: [Array<Raven.Client.Documents.Indexes.Analysis.AnalyzerDefinition>]) => {
+        //        
+        //         const analyzersList = [...analyzers.map(x => x.Name), ...serverWideAnalyzers.map(x => x.Name)];
+        //         this.editedIndex().registerCustomAnalyzers(analyzersList);
+        //     });
         return $.when<any>(this.fetchCustomAnalyzers(), this.fetchServerWideCustomAnalyzers(), this.fetchIndexDefaults())
             .done(([analyzers]: [Array<Raven.Client.Documents.Indexes.Analysis.AnalyzerDefinition>],
                    [serverWideAnalyzers]: [Array<Raven.Client.Documents.Indexes.Analysis.AnalyzerDefinition>],
                    [indexDefaults]: [Raven.Server.Web.Studio.StudioDatabaseTasksHandler.IndexDefaults]) => {
+                
                 const analyzersList = [...analyzers.map(x => x.Name), ...serverWideAnalyzers.map(x => x.Name)];
+                // this.editedIndex().registerCustomAnalyzers(analyzersList);
+
+
+                // todo these 2 will move to can activate
+                this.defaultDeploymentMode(indexDefaults.StaticIndexDeploymentMode);                
+                this.defaultSearchEngine(indexDefaults.StaticIndexingEngineType === "None" ? "Lucene" : indexDefaults.StaticIndexingEngineType);
+                
+                if (!!this.indexResultFromFetch) {
+                    if (this.indexResultFromFetch.Type.startsWith("Auto")) {
+                        // Auto Index
+                        this.isAutoIndex(true);
+                        this.editedIndex(new autoIndexDefinition(this.indexResultFromFetch));
+                    } else {
+                        // Regular Index
+                        // this.editedIndex(new indexDefinition(result));
+                        this.editedIndex(new indexDefinition(this.indexResultFromFetch, this.defaultSearchEngine())); // todo..
+                        this.updateIndexFields();
+                    }
+                } else {
+                    this.editedIndex(indexDefinition.empty(this.defaultSearchEngine()));
+                }
+
+                this.originalIndexName = this.editedIndex().name();
+                this.editedIndex().hasReduce(!!this.editedIndex().reduce());
+                
+                //////from above...////////////////
                 this.editedIndex().registerCustomAnalyzers(analyzersList);
                 
-                this.defaultDeploymentMode(indexDefaults.StaticIndexDeploymentMode);
+                if (this.isEditingExistingIndex()) {
+                    this.editExistingIndex(indexToEditName);
+                }
+
+                this.updateHelpLink('CQ5AYO');
+
+                this.initializeDirtyFlag();
+                this.indexAutoCompleter = new indexAceAutoCompleteProvider(this.activeDatabase(), this.editedIndex);
+
+                this.initValidation();
+
+                this.fetchIndexes();
+
+                if (!this.editedIndex().isAutoIndex() && !!indexToEditName) {
+                    this.showIndexHistory(true);
+                }
+
         });
     }
 
@@ -370,7 +495,7 @@ class editIndex extends viewModelBase {
     }
     
     loadIndexDefinitionFromHistory() {
-        const newIndexDefinition = new indexDefinition(this.previewItem().Definition);
+        const newIndexDefinition = new indexDefinition(this.previewItem().Definition, this.defaultSearchEngine());
 
         if (!this.isEditingExistingIndex()) {
             // if editing a clone then load the index definition without the index name
@@ -387,7 +512,7 @@ class editIndex extends viewModelBase {
         const mapsFromPreview = previewItem.Definition.Maps;
         const reduceFromPreview = previewItem.Definition.Reduce;
         
-        const newIndexDefinition = new indexDefinition(this.editedIndex().toDto());
+        const newIndexDefinition = new indexDefinition(this.editedIndex().toDto(), this.defaultSearchEngine());
         newIndexDefinition.setMapsAndReduce(mapsFromPreview, reduceFromPreview);
         this.editedIndex(newIndexDefinition);
 
@@ -605,6 +730,12 @@ class editIndex extends viewModelBase {
         this.editedIndex().removeConfigurationOption(item);
     }
 
+    // canDeleteConfigurationOption(item: configurationItem) {
+    //     alert("hi");
+    //     console.log(item.key);
+    //     return item.key() === "Indexing.Static.SearchEngineType";
+    // }
+
     createConfigurationOptionAutocompleter(item: configurationItem) {
         return ko.pureComputed(() => {
             const key = item.key();
@@ -638,24 +769,67 @@ class editIndex extends viewModelBase {
     }
 
     private fetchIndexToEdit(indexName: string): JQueryPromise<Raven.Client.Documents.Indexes.IndexDefinition> {
+
         return new getIndexDefinitionCommand(indexName, this.activeDatabase())
             .execute()
-            .done(result => {
+            .done((indexResult: Raven.Client.Documents.Indexes.IndexDefinition) => {
 
-                if (result.Type.startsWith("Auto")) {
-                    // Auto Index
-                    this.isAutoIndex(true);
-                    this.editedIndex(new autoIndexDefinition(result));
-                } else {
-                    // Regular Index
-                    this.editedIndex(new indexDefinition(result));
-                    this.updateIndexFields();
-                }
-
-                this.originalIndexName = this.editedIndex().name();
-                this.editedIndex().hasReduce(!!this.editedIndex().reduce());
+                this.indexResultFromFetch = indexResult;
             });
     }
+    
+    // private fetchIndexToEdit(indexName: string): JQueryPromise<Raven.Client.Documents.Indexes.IndexDefinition> {
+    //
+    //     const fetchIndexDefinitionTask = new getIndexDefinitionCommand(indexName, this.activeDatabase())
+    //         .execute();
+    //
+    //     const fetchIndexDefaultsTask = new getIndexDefaultsCommand(this.activeDatabase())
+    //         .execute();
+    //
+    //     // return $.when<any>(fetchIndexDefinitionTask, fetchIndexDefaultsTask) // todo remove the fetchdefaults if works from can activate...
+    //     //     .done(([indexResult]: [Raven.Client.Documents.Indexes.IndexDefinition], [indexDefaults]: [Raven.Server.Web.Studio.StudioDatabaseTasksHandler.IndexDefaults]) => {
+    //
+    //     return fetchIndexDefinitionTask // todo remove the fetchdefaults if works from can activate...
+    //         .done((indexResult: Raven.Client.Documents.Indexes.IndexDefinition) => {
+    //            
+    //             // this.defaultDeploymentMode(indexDefaults.StaticIndexDeploymentMode);
+    //             // this.defaultSearchEngine(indexDefaults.StaticIndexingEngineType === "None" ? "Lucene" : indexDefaults.StaticIndexingEngineType);
+    //            
+    //             if (indexResult.Type.startsWith("Auto")) {
+    //                 // Auto Index
+    //                 this.isAutoIndex(true);
+    //                 this.editedIndex(new autoIndexDefinition(indexResult));
+    //             } else {
+    //                 // Regular Index
+    //                 // this.editedIndex(new indexDefinition(result));
+    //                 this.editedIndex(new indexDefinition(indexResult, this.defaultSearchEngine())); // todo..
+    //                 this.updateIndexFields();
+    //             }
+    //
+    //             this.originalIndexName = this.editedIndex().name();
+    //             this.editedIndex().hasReduce(!!this.editedIndex().reduce());
+    //         });
+    // }
+    
+    // private fetchIndexToEdit(indexName: string): JQueryPromise<Raven.Client.Documents.Indexes.IndexDefinition> {
+    //     return new getIndexDefinitionCommand(indexName, this.activeDatabase())
+    //         .execute()
+    //         .done(result => {
+    //
+    //             if (result.Type.startsWith("Auto")) {
+    //                 // Auto Index
+    //                 this.isAutoIndex(true);
+    //                 this.editedIndex(new autoIndexDefinition(result));
+    //             } else {
+    //                 // Regular Index
+    //                 this.editedIndex(new indexDefinition(result, this.defaultSearchEngine()));
+    //                 this.updateIndexFields();
+    //             }
+    //
+    //             this.originalIndexName = this.editedIndex().name();
+    //             this.editedIndex().hasReduce(!!this.editedIndex().reduce());
+    //         });
+    // }
 
     private validate(): boolean {
         let valid = true;

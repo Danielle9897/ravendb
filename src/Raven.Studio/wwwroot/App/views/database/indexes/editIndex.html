@@ -255,9 +255,64 @@
                                 <span>Add customized indexing configuration</span>
                             </button>
                         </div>
-                        <hr data-bind="visible: editedIndex().numberOfConfigurationFields()">
+                        
+<!--                    <hr data-bind="visible: editedIndex().numberOfConfigurationFields()">-->
+                       
+<!--                    <hr class="margin-bottom-lg">-->
+                        
+<!--                        <div class="form-group" data-bind="with: editedIndex">-->
+<!--                            <label class="control-label">Search Engine</label>-->
+<!--                            <div class="btn-group properties-value">-->
+<!--                                <button type="button" class="btn set-size dropdown-toggle" data-toggle="dropdown" aria-expanded="false">-->
+<!--                                    <span data-bind="text: effectiveSearchEngineText"></span> <i class="caret"></i>-->
+<!--                                </button>-->
+<!--                                <ul class="dropdown-menu">-->
+<!--                                    <li><a href="#" data-bind="click: searchEngine.bind(searchEngine, null)"><span data-bind="text: inheritSearchEngineText"></span></a></li>-->
+<!--                                    <li><a href="#" data-bind="click: searchEngine.bind(searchEngine, 'Lucene')"><span>Lucene</span></a></li>-->
+<!--                                    <li><a href="#" data-bind="click: searchEngine.bind(searchEngine, 'Corax')"><span>Corax</span></a></li>-->
+<!--                                </ul>-->
+<!--                            </div>-->
+<!--                        </div>-->
+
+<!--                        <hr class="margin-bottom-lg margin-top-lg" data-bind="visible: editedIndex().numberOfConfigurationFields()">-->
+                        <hr class="margin-bottom-lg">
+                        
+                        <div class="row" data-bind="with: editedIndex">
+                            <div class="col-lg-8">
+                                <div class="form-group">
+                                    <div class="flex-grow margin-left margin-left-lg">
+<!--                                        todo.. the text...-->
+<!--                                        <input class="form-control" data-bind="textInput: 'Indexing.Static.SearchEngineType'" disabled />-->
+                                        <input class="form-control" data-bind="textInput: $root.constructor.searchEngineConfigurationLabel" disabled />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-3">
+                                    <div class="btn-group properties-value">
+                                        <button type="button" class="btn set-size dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
+                                            <span data-bind="text: effectiveSearchEngineText"></span> <i class="caret"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li><a href="#" data-bind="click: searchEngine.bind(searchEngine, null)"><span data-bind="text: inheritSearchEngineText"></span></a></li>
+                                            <li><a href="#" data-bind="click: searchEngine.bind(searchEngine, 'Lucene')"><span>Lucene</span></a></li>
+                                            <li><a href="#" data-bind="click: searchEngine.bind(searchEngine, 'Corax')"><span>Corax - experimental feature</span></a></li>
+                                        </ul>
+                                    </div>
+                                
+<!--                                <input class="form-control" data-bind="textInput: effectiveSearchEngineText" />-->
+<!--                                <ul class="dropdown-menu">-->
+<!--                                    <li><a href="#" data-bind="click: searchEngine.bind(searchEngine, null)"><span data-bind="text: inheritSearchEngineText"></span></a></li>-->
+<!--                                    <li><a href="#" data-bind="click: searchEngine.bind(searchEngine, 'Lucene')"><span>Lucene</span></a></li>-->
+<!--                                    <li><a href="#" data-bind="click: searchEngine.bind(searchEngine, 'Corax')"><span>Corax</span></a></li>-->
+<!--                                </ul>-->
+                                
+                                
+                            </div>
+                        </div>
+                        
                         <div data-bind="foreach: editedIndex().configuration">
-                            <div class="row">
+<!--                            <div class="row" data-bind="visible: $data.key() !== 'Indexing.Static.SearchEngineType'">-->
+                            <div class="row" data-bind="visible: $data.key() !== $root.constructor.searchEngineConfigurationLabel">
                                 <div class="col-lg-8" data-bind="validationElement: key">
                                     <div class="form-group">
                                         <div data-bind="validationElement: key" class="flex-grow margin-left margin-left-lg">
@@ -276,16 +331,21 @@
                                     <input class="form-control" placeholder="Value" data-bind="textInput: value" />
                                 </div>
                                 <div class="col-lg-1 text-center no-padding-right">
-                                    <button class="btn btn-danger" data-bind="click: _.partial($parent.removeConfigurationOption, $data)" title="Remove this customized configuration">
+                                    <button class="btn btn-danger" title="Remove this customized configuration"
+                                            data-bind="click: _.partial($parent.removeConfigurationOption, $data)">
                                         <i class="icon-trash"></i>
                                     </button>
+<!--                                    <button class="btn btn-danger" title="Remove this customized configuration"-->
+<!--                                            data-bind="click: _.partial($parent.removeConfigurationOption, $data), visible: _.partial($parent.canDeleteConfigurationOption, $data)">-->
+<!--                                        <i class="icon-trash"></i>-->
+<!--                                    </button>-->
                                 </div>
                             </div>
                         </div>
-                        <div class="text-center text-muted" data-bind="visible: !editedIndex().numberOfConfigurationFields()">
-                            <i class="icon-lg icon-empty-set"></i>
-                            <h2 class="margin-top margin-top-sm">No customized indexing configuration added</h2>
-                        </div>
+<!--                        <div class="text-center text-muted" data-bind="visible: !editedIndex().numberOfConfigurationFields()">-->
+<!--                            <i class="icon-lg icon-empty-set"></i>-->
+<!--                            <h2 class="margin-top margin-top-sm">No customized indexing configuration added</h2>-->
+<!--                        </div>-->
                     </div>
                     <div role="tabpanel" class="tab-pane fade" id="additionalAssemblies">
                         <div class="row margin-left margin-bottom margin-bottom-lg">
