@@ -59,7 +59,8 @@ type trackItemContext = {
 type previewEtlScriptItemContext = {
     transformationName: string;
     taskId: number;
-    etlType: Raven.Client.Documents.Operations.ETL.EtlType;
+    //etlType: Raven.Client.Documents.Operations.ETL.EtlType;
+    etlType: Raven.Client.Documents.Operations.ETL.EtlType | StudioEtlType; // todo - should be handled in the future
 }
 
 type previewSubscriptionQueryItemContext = {

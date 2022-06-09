@@ -62,7 +62,9 @@ class taskNode extends layoutable {
     static readonly minWidth = 170;
     static readonly textLeftPadding = 45;
     
-    type: Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskType;
+    //type: Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskType;
+    type: StudioTaskType;
+    
     taskId: number;
     uniqueId: string;
     name: string;
@@ -74,14 +76,16 @@ class taskNode extends layoutable {
         super();
     }
 
-    static for(dto: Raven.Client.Documents.Operations.OngoingTasks.OngoingTask, responsibleNode: databaseNode) {
+    static for(dto: Raven.Client.Documents.Operations.OngoingTasks.OngoingTask, responsibleNode: databaseNode): taskNode {
         const node = new taskNode();
         node.updateWith(dto, responsibleNode);
         return node;
     }
 
     updateWith(dto: Raven.Client.Documents.Operations.OngoingTasks.OngoingTask, responsibleNode: databaseNode) {
-        this.type = dto.TaskType;
+        // this.type = dto.TaskType;
+        this.type = ongoingTaskModel.getStudioTaskType(dto);
+        
         this.uniqueId = databaseGroupGraph.getUniqueTaskId(dto);
         this.taskId = dto.TaskId;
         this.state = dto.TaskState;
@@ -568,6 +572,10 @@ class databaseGroupGraph {
                     return icomoonHelpers.getCodePointForCanvas("olap-etl");
                 case "ElasticSearchEtl":
                     return icomoonHelpers.getCodePointForCanvas("elastic-search-etl");
+                case "KafkaQueueEtl":
+                    return icomoonHelpers.getCodePointForCanvas("kafka-etl");
+                case "RabbitQueueEtl":
+                    return icomoonHelpers.getCodePointForCanvas("rabbitmq-etl");
                 case "Subscription":
                     return icomoonHelpers.getCodePointForCanvas("subscription");
                 case "PullReplicationAsHub":
@@ -588,8 +596,8 @@ class databaseGroupGraph {
             .attr("height", x => x.height);
 
         selection
-            .select(".task-desc")
-            .text(x => ongoingTaskModel.mapTaskType(x.type));
+            .select(".task-desc")            
+            .text(x => ongoingTaskModel.mapTaskType(x.type as StudioTaskType));
 
         selection
             .select(".task-name")
@@ -713,6 +721,7 @@ class databaseGroupGraph {
             if (existing) {
                 existing.updateWith(taskDto, responsibleNode);
             } else {
+                // extract type in studio - 
                 this.data.tasks.push(taskNode.for(taskDto, responsibleNode));
             }
         });
