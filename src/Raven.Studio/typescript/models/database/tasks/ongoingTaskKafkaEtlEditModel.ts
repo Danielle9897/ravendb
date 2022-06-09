@@ -1,29 +1,64 @@
 ﻿/// <reference path="../../../../typings/tsd.d.ts"/>
 import ongoingTaskEditModel = require("models/database/tasks/ongoingTaskEditModel");
-import ongoingTaskRavenEtlTransformationModel = require("models/database/tasks/ongoingTaskRavenEtlTransformationModel");
+import ongoingTaskKafkaEtlTransformationModel = require("models/database/tasks/ongoingTaskKafkaEtlTransformationModel");
 import jsonUtil = require("common/jsonUtil");
 
-class ongoingTaskRavenEtlEditModel extends ongoingTaskEditModel {
+class queueOptionsModel {
+    queueName = ko.observable<string>();
+    deleteProcessedDocuments = ko.observable<boolean>();
+
+    validationGroup: KnockoutObservable<any>;
+    dirtyFlag: () => DirtyFlag;
+
+    constructor(name: string, deleteSource: boolean) {
+        this.queueName(name);
+        this.deleteProcessedDocuments(deleteSource);
+
+        this.initValidation();
+
+        this.dirtyFlag = new ko.DirtyFlag([
+            this.queueName,
+            this.deleteProcessedDocuments,
+        ], false, jsonUtil.newLineNormalizingHashFunction);
+    }
+
+    private initValidation() {
+        this.queueName.extend({
+            required: true
+        });
+
+        this.validationGroup = ko.validatedObservable({
+            queueName: this.queueName
+        });
+    }
+
+    static empty() {
+        return new queueOptionsModel("", false);
+    }
+}
+
+class ongoingTaskKafkaEtlEditModel extends ongoingTaskEditModel {
     
-    connectionStringName = ko.observable<string>(); // Contains list of discovery urls in the targeted cluster. The task communicates with these urls.
-    loadRequestTimeout = ko.observable<number>();
+    connectionStringName = ko.observable<string>();
         
     allowEtlOnNonEncryptedChannel = ko.observable<boolean>(false);
-    transformationScripts = ko.observableArray<ongoingTaskRavenEtlTransformationModel>([]);
+    transformationScripts = ko.observableArray<ongoingTaskKafkaEtlTransformationModel>([]);
 
     showEditTransformationArea: KnockoutComputed<boolean>;
 
-    transformationScriptSelectedForEdit = ko.observable<ongoingTaskRavenEtlTransformationModel>();
-    editedTransformationScriptSandbox = ko.observable<ongoingTaskRavenEtlTransformationModel>();
+    transformationScriptSelectedForEdit = ko.observable<ongoingTaskKafkaEtlTransformationModel>();
+    editedTransformationScriptSandbox = ko.observable<ongoingTaskKafkaEtlTransformationModel>(); // make queue // common.. // todo
+    
+    optionsPerQueue = ko.observableArray<queueOptionsModel>(); // move to base class // todo
     
     validationGroup: KnockoutValidationGroup;
     dirtyFlag: () => DirtyFlag;
 
     get studioTaskType(): StudioTaskType {
-        return "RavenEtl";
+        return "KafkaQueueEtl";
     }
     
-    constructor(dto: Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskRavenEtlDetails) {
+    constructor(dto: Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskQueueEtlDetails) {
         super();
 
         this.update(dto);
@@ -48,7 +83,7 @@ class ongoingTaskRavenEtlEditModel extends ongoingTaskEditModel {
             });
             return anyDirty;
         });
-        
+
         this.dirtyFlag = new ko.DirtyFlag([
                 innerDirtyFlag,
                 this.taskName,
@@ -57,7 +92,7 @@ class ongoingTaskRavenEtlEditModel extends ongoingTaskEditModel {
                 this.manualChooseMentor,
                 this.connectionStringName,
                 this.allowEtlOnNonEncryptedChannel,
-                this.loadRequestTimeout,
+                this.optionsPerQueue,
                 scriptsCount,
                 hasAnyDirtyTransformationScript
             ],
@@ -69,10 +104,6 @@ class ongoingTaskRavenEtlEditModel extends ongoingTaskEditModel {
 
         this.connectionStringName.extend({
             required: true
-        });
-        
-        this.loadRequestTimeout.extend({
-            digit: true
         });
         
         this.transformationScripts.extend({
@@ -88,36 +119,43 @@ class ongoingTaskRavenEtlEditModel extends ongoingTaskEditModel {
             connectionStringName: this.connectionStringName,
             mentorNode: this.mentorNode,
             transformationScripts: this.transformationScripts,
-            loadRequestTimeout: this.loadRequestTimeout
+            //optionsPerQueue: this.optionsPerQueue
         });
     }
 
-    update(dto: Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskRavenEtlDetails) {
+    update(dto: Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskQueueEtlDetails) {
         super.update(dto);
 
         if (dto.Configuration) {
             this.connectionStringName(dto.Configuration.ConnectionStringName);
-            this.transformationScripts(dto.Configuration.Transforms.map(x => new ongoingTaskRavenEtlTransformationModel(x, false, false)));
+            this.transformationScripts(dto.Configuration.Transforms.map(x => new ongoingTaskKafkaEtlTransformationModel(x, false, false)));
             this.manualChooseMentor(!!dto.Configuration.MentorNode);
-            this.loadRequestTimeout(dto.Configuration.LoadRequestTimeoutInSec);
+            
+            if (dto.Configuration.Queues) {
+                dto.Configuration.Queues.forEach(x => {
+                    const queueOptions = new queueOptionsModel(x.Name, x.DeleteProcessedDocuments);
+                    this.optionsPerQueue.push(queueOptions);
+                });
+            }
         }
     }
 
-    toDto(): Raven.Client.Documents.Operations.ETL.RavenEtlConfiguration { 
+    toDto(): Raven.Client.Documents.Operations.ETL.Queue.QueueEtlConfiguration { 
         return {
             Name: this.taskName(),
             ConnectionStringName: this.connectionStringName(),
             AllowEtlOnNonEncryptedChannel: this.allowEtlOnNonEncryptedChannel(),
             Disabled: this.taskState() === "Disabled",
             Transforms: this.transformationScripts().map(x => x.toDto()),
-            EtlType: "Raven",
+            EtlType: "Queue",
             MentorNode: this.manualChooseMentor() ? this.mentorNode() : undefined,
             TaskId: this.taskId,
-            LoadRequestTimeoutInSec: this.loadRequestTimeout() || null,
+            BrokerType: "Kafka",
+            Queues: this.queueOptionsToDto()
         };
     }
 
-    deleteTransformationScript(transformationScript: ongoingTaskRavenEtlTransformationModel) { 
+    deleteTransformationScript(transformationScript: ongoingTaskKafkaEtlTransformationModel) { 
         this.transformationScripts.remove(x => transformationScript.name() === x.name());
         
         if (this.transformationScriptSelectedForEdit() === transformationScript) {
@@ -126,26 +164,48 @@ class ongoingTaskRavenEtlEditModel extends ongoingTaskEditModel {
         }
     }
 
-    editTransformationScript(transformationScript: ongoingTaskRavenEtlTransformationModel) {
+    editTransformationScript(transformationScript: ongoingTaskKafkaEtlTransformationModel) {
         this.transformationScriptSelectedForEdit(transformationScript);
-        this.editedTransformationScriptSandbox(new ongoingTaskRavenEtlTransformationModel(transformationScript.toDto(), false, transformationScript.resetScript()));
+        this.editedTransformationScriptSandbox(new ongoingTaskKafkaEtlTransformationModel(transformationScript.toDto(), false, transformationScript.resetScript()));
     }
 
-    static empty(): ongoingTaskRavenEtlEditModel {
-        return new ongoingTaskRavenEtlEditModel(
+    static empty(): ongoingTaskKafkaEtlEditModel {
+        return new ongoingTaskKafkaEtlEditModel(
             {
                 TaskName: "",
                 TaskType: "RavenEtl",
                 TaskState: "Enabled",
                 TaskConnectionStatus: "Active",
                 Configuration: {
-                    EtlType: "Raven",
+                    EtlType: "Queue",
                     Transforms: [],
                     ConnectionStringName: "",
                     Name: "",
                 },
-            } as Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskRavenEtlDetails);
+            } as Raven.Client.Documents.Operations.OngoingTasks.OngoingTaskQueueEtlDetails);
+    }
+    
+    addNewQueueOptions() {
+        this.optionsPerQueue.push(queueOptionsModel.empty());
+    }
+
+    removeQueueOptions(item: queueOptionsModel) {
+        this.optionsPerQueue.remove(item);
+    }
+
+    queueOptionsToDto(): Array<Raven.Client.Documents.Operations.ETL.Queue.EtlQueue> {
+        const result = [] as Array<Raven.Client.Documents.Operations.ETL.Queue.EtlQueue>;
+
+        this.optionsPerQueue().forEach(x => {
+            result.push({ Name: x.queueName(), DeleteProcessedDocuments: x.deleteProcessedDocuments() });
+        });
+
+        return result;
+    }
+    
+    hasOptions() {
+        return !!this.optionsPerQueue().length;
     }
 }
 
-export = ongoingTaskRavenEtlEditModel;
+export = ongoingTaskKafkaEtlEditModel;
