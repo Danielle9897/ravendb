@@ -470,104 +470,166 @@ public static class SettingsZipFileHelper
             throw new UnsuccessfulFileAccessException(e, settingsPath, FileAccess.Write);
         }
     }
-
-    public static string CreateReadmeTextUnsecured(string nodeTag, string publicServerUrl, bool isCluster, bool zipOnly, bool isContinueFlow)
+    
+    public static string CreateReadmeTextUnsecured(string nodeTag, string publicServerUrl, bool multipleNodes, bool zipOnly, bool isContinueFlow)
     {
+        var isPassive = nodeTag == null;
         var str = string.Empty;
         
         switch (zipOnly)
         {
             case false when isContinueFlow:
             {
-                str +=
-                    string.Format(WelcomeMessage.AsciiHeader, Environment.NewLine) + Environment.NewLine + Environment.NewLine +
-                    "Your RavenDB cluster settings configuration are contained in this zip file."
-                    + Environment.NewLine;
-
-                str += Environment.NewLine +
-                       $"The new server is available at: {publicServerUrl}."
-                       + Environment.NewLine;
-
-                str += Environment.NewLine +
-                       $"The current node ('{nodeTag}') has already been configured and requires no further action on your part." +
-                       Environment.NewLine;
-
-                str += Environment.NewLine +
-                       $"You can now restart the server and access the studio at {publicServerUrl}." +
-                       Environment.NewLine;
+                str += string.Format(WelcomeMessage.AsciiHeader, Environment.NewLine) + Environment.NewLine + Environment.NewLine +
+                       "Your RavenDB cluster settings configuration are contained in this zip file." + Environment.NewLine + Environment.NewLine +
+                       $"The new server is available at: {publicServerUrl}." + Environment.NewLine + Environment.NewLine +
+                       $"The current node ('{nodeTag}') has already been configured and requires no further action on your part." + Environment.NewLine + Environment.NewLine +
+                       $"You can now restart the server and access the studio at {publicServerUrl}." + Environment.NewLine;
                 
                 return str;
             }
-            case true when isCluster:
+            
+            case true when multipleNodes:
             {
-               str += string.Format(WelcomeMessage.AsciiHeader, Environment.NewLine) + Environment.NewLine + Environment.NewLine +
-                          "RavenDB Setup Package has been downloaded successfully." + Environment.NewLine +
-                          "Your cluster settings configuration is contained in the downloaded zip file."
-                          + Environment.NewLine;
+                str += string.Format(WelcomeMessage.AsciiHeader, Environment.NewLine) + Environment.NewLine + Environment.NewLine +
+                       "RavenDB Setup Package has been downloaded successfully." + Environment.NewLine +
+                       "Your cluster settings configuration is contained in the downloaded zip file." + Environment.NewLine +
+                       "You can use this file to configure your RavenDB cluster in the Cloud or any other environment of your choice other than this machine." + Environment.NewLine;
 
-                str += "You can use this file to configure your RavenDB cluster in the Cloud or any other environment of your choice other than this machine.";
-
-                str +=
-                    Environment.NewLine +
-                    "You are setting up a cluster. The cluster topology and node addresses have already been configured." +
-                    Environment.NewLine +
-                    "The next step is to download a new RavenDB server for each of the other nodes." +
-                    Environment.NewLine +
-                    Environment.NewLine +
-                    "When you enter the Setup Wizard on a new node, please choose 'Use Setup Package'." +
-                    Environment.NewLine +
-                    "Do not try to start a new setup process again in this new node, it is not supported." +
-                    Environment.NewLine +
-                    "You will be asked to upload the zip file which was just downloaded." +
-                    Environment.NewLine +
-                    "The new server node will join the already existing cluster." +
-                    Environment.NewLine +
-                    Environment.NewLine +
-                    "When the Setup Wizard is done and the new node was restarted, the cluster will automatically detect it. " +
-                    Environment.NewLine +
-                    "There is no need to manually add it again from the studio. Simply access the 'Cluster' view and " +
-                    Environment.NewLine +
-                    "observe the topology being updated." +
-                    Environment.NewLine;
+                str += "You are setting up a cluster. The cluster topology and node addresses have already been configured." + Environment.NewLine +
+                       "The next step is to download a new RavenDB server for each of the other nodes." + Environment.NewLine + Environment.NewLine +
+                       "When you enter the Setup Wizard on a new node, please choose 'Use Setup Package'." + Environment.NewLine +
+                       "Do not try to start a new setup process again in this new node, it is not supported." + Environment.NewLine;
+                
+                str += "You will be asked to upload the zip file which was just downloaded." + Environment.NewLine +
+                       "The new server node will join the already existing cluster." + Environment.NewLine + Environment.NewLine +
+                       "When the Setup Wizard is done and the new node was restarted, the cluster will automatically detect it." + Environment.NewLine +
+                       "There is no need to manually add it again from the studio. Simply access the 'Cluster' view and " + Environment.NewLine +
+                       "observe the topology being updated." + Environment.NewLine;
 
                 return str;
             }
-            case false when isCluster:
+            
+            case false when multipleNodes:
             {
-                str += Environment.NewLine +
-                          $"The new server is available at: {publicServerUrl}"
-                          + Environment.NewLine;
+                str += Environment.NewLine + $"The new server is available at: {publicServerUrl}" + Environment.NewLine +
+                       $"The current node ('{nodeTag}') has already been configured and requires no further action on your part." + Environment.NewLine + Environment.NewLine;
 
-                str += $"The current node ('{nodeTag}') has already been configured and requires no further action on your part." +
-                          Environment.NewLine;
-                str +=
-                    Environment.NewLine +
-                    "You are setting up a cluster. The cluster topology and node addresses have already been configured." +
-                    Environment.NewLine +
-                    "The next step is to download a new RavenDB server for each of the other nodes." +
-                    Environment.NewLine +
-                    Environment.NewLine +
-                    "When you enter the Setup Wizard on a new node, please choose 'Use Setup Package'." +
-                    Environment.NewLine +
-                    "Do not try to start a new setup process again in this new node, it is not supported." +
-                    Environment.NewLine +
-                    "You will be asked to upload the zip file which was just downloaded." +
-                    Environment.NewLine +
-                    "The new server node will join the already existing cluster." +
-                    Environment.NewLine +
-                    Environment.NewLine +
-                    "When the Setup Wizard is done and the new node was restarted, the cluster will automatically detect it. " +
-                    Environment.NewLine +
-                    "There is no need to manually add it again from the studio. Simply access the 'Cluster' view and " +
-                    Environment.NewLine +
-                    "observe the topology being updated." +
-                    Environment.NewLine;
+                str += "You are setting up a cluster. The cluster topology and node addresses have already been configured." + Environment.NewLine +
+                       "The next step is to download a new RavenDB server for each of the other nodes." + Environment.NewLine + Environment.NewLine +
+                       "When you enter the Setup Wizard on a new node, please choose 'Use Setup Package'." + Environment.NewLine +
+                       "Do not try to start a new setup process again in this new node, it is not supported." + Environment.NewLine;
+                
+                str += "You will be asked to upload the zip file which was just downloaded." + Environment.NewLine +
+                       "The new server node will join the already existing cluster." + Environment.NewLine + Environment.NewLine +
+                       "When the Setup Wizard is done and the new node was restarted, the cluster will automatically detect it. " + Environment.NewLine +
+                       "There is no need to manually add it again from the studio. Simply access the 'Cluster' view and " + Environment.NewLine +
+                       "observe the topology being updated." + Environment.NewLine;
 
                 return str;
             }
         }
         return str;
     }
+    
+    // org    
+    // public static string CreateReadmeTextUnsecured(string nodeTag, string publicServerUrl, bool isCluster, bool zipOnly, bool isContinueFlow)
+    // {
+    //     var str = string.Empty;
+    //     
+    //     switch (zipOnly)
+    //     {
+    //         case false when isContinueFlow:
+    //         {
+    //             str +=
+    //                 string.Format(WelcomeMessage.AsciiHeader, Environment.NewLine) + Environment.NewLine + Environment.NewLine +
+    //                 "Your RavenDB cluster settings configuration are contained in this zip file."
+    //                 + Environment.NewLine;
+    //
+    //             str += Environment.NewLine +
+    //                    $"The new server is available at: {publicServerUrl}."
+    //                    + Environment.NewLine;
+    //
+    //             str += Environment.NewLine +
+    //                    $"The current node ('{nodeTag}') has already been configured and requires no further action on your part." +
+    //                    Environment.NewLine;
+    //
+    //             str += Environment.NewLine +
+    //                    $"You can now restart the server and access the studio at {publicServerUrl}." +
+    //                    Environment.NewLine;
+    //             
+    //             return str;
+    //         }
+    //         case true when isCluster:
+    //         {
+    //            str += string.Format(WelcomeMessage.AsciiHeader, Environment.NewLine) + Environment.NewLine + Environment.NewLine +
+    //                       "RavenDB Setup Package has been downloaded successfully." + Environment.NewLine +
+    //                       "Your cluster settings configuration is contained in the downloaded zip file."
+    //                       + Environment.NewLine;
+    //
+    //             str += "You can use this file to configure your RavenDB cluster in the Cloud or any other environment of your choice other than this machine.";
+    //
+    //             str +=
+    //                 Environment.NewLine +
+    //                 "You are setting up a cluster. The cluster topology and node addresses have already been configured." +
+    //                 Environment.NewLine +
+    //                 "The next step is to download a new RavenDB server for each of the other nodes." +
+    //                 Environment.NewLine +
+    //                 Environment.NewLine +
+    //                 "When you enter the Setup Wizard on a new node, please choose 'Use Setup Package'." +
+    //                 Environment.NewLine +
+    //                 "Do not try to start a new setup process again in this new node, it is not supported." +
+    //                 Environment.NewLine +
+    //                 "You will be asked to upload the zip file which was just downloaded." +
+    //                 Environment.NewLine +
+    //                 "The new server node will join the already existing cluster." +
+    //                 Environment.NewLine +
+    //                 Environment.NewLine +
+    //                 "When the Setup Wizard is done and the new node was restarted, the cluster will automatically detect it. " +
+    //                 Environment.NewLine +
+    //                 "There is no need to manually add it again from the studio. Simply access the 'Cluster' view and " +
+    //                 Environment.NewLine +
+    //                 "observe the topology being updated." +
+    //                 Environment.NewLine;
+    //
+    //             return str;
+    //         }
+    //         case false when isCluster:
+    //         {
+    //             str += Environment.NewLine +
+    //                       $"The new server is available at: {publicServerUrl}"
+    //                       + Environment.NewLine;
+    //
+    //             str += $"The current node ('{nodeTag}') has already been configured and requires no further action on your part." +
+    //                       Environment.NewLine;
+    //             str +=
+    //                 Environment.NewLine +
+    //                 "You are setting up a cluster. The cluster topology and node addresses have already been configured." +
+    //                 Environment.NewLine +
+    //                 "The next step is to download a new RavenDB server for each of the other nodes." +
+    //                 Environment.NewLine +
+    //                 Environment.NewLine +
+    //                 "When you enter the Setup Wizard on a new node, please choose 'Use Setup Package'." +
+    //                 Environment.NewLine +
+    //                 "Do not try to start a new setup process again in this new node, it is not supported." +
+    //                 Environment.NewLine +
+    //                 "You will be asked to upload the zip file which was just downloaded." +
+    //                 Environment.NewLine +
+    //                 "The new server node will join the already existing cluster." +
+    //                 Environment.NewLine +
+    //                 Environment.NewLine +
+    //                 "When the Setup Wizard is done and the new node was restarted, the cluster will automatically detect it. " +
+    //                 Environment.NewLine +
+    //                 "There is no need to manually add it again from the studio. Simply access the 'Cluster' view and " +
+    //                 Environment.NewLine +
+    //                 "observe the topology being updated." +
+    //                 Environment.NewLine;
+    //
+    //             return str;
+    //         }
+    //     }
+    //     return str;
+    // }
 
     public static string CreateReadmeTextSecured(string nodeTag, string publicServerUrl, bool isCluster, bool registerClientCert, bool zipOnly, bool isContinueFlow)
     {
@@ -597,86 +659,139 @@ public static class SettingsZipFileHelper
 
     private static string CreateReadmeForCluster()
     {
-       var str =
-            "Your cluster settings configuration and the certificate are contained in the downloaded zip file."+
-            Environment.NewLine +
-            "You are setting up a cluster. The cluster topology and node addresses have already been configured." +
-            Environment.NewLine +
-            "The next step is to download a new RavenDB server for each of the other nodes." +
-            Environment.NewLine +
-            Environment.NewLine +
-            "When you enter the Setup Wizard on a new node, please choose 'Use Setup Package'." +
-            Environment.NewLine +
-            "Do not try to start a new setup process again in this new node, it is not supported." +
-            Environment.NewLine +
-            "You will be asked to upload the zip file which was just downloaded." +
-            Environment.NewLine +
-            "The new server node will join the already existing cluster." +
-            Environment.NewLine +
-            Environment.NewLine +
-            "When the Setup Wizard is done and the new node was restarted, the cluster will automatically detect it. " +
-            Environment.NewLine +
-            "There is no need to manually add it again from the studio. Simply access the 'Cluster' view and " +
-            Environment.NewLine +
-            "observe the topology being updated." +
-            Environment.NewLine;
+        var str = "Your cluster settings configuration and the certificate are contained in the downloaded zip file." + Environment.NewLine;
+        
+        str += "You are setting up a cluster. The cluster topology and node addresses have already been configured." + Environment.NewLine +
+               "The next step is to download a new RavenDB server for each of the other nodes." + Environment.NewLine + Environment.NewLine +
+               "When you enter the Setup Wizard on a new node, please choose 'Use Setup Package'." + Environment.NewLine +
+               "Do not try to start a new setup process again in this new node, it is not supported." + Environment.NewLine;
+        
+        str += "You will be asked to upload the zip file which was just downloaded." + Environment.NewLine +
+               "The new server node will join the already existing cluster." + Environment.NewLine + Environment.NewLine +
+               "When the Setup Wizard is done and the new node was restarted, the cluster will automatically detect it. " + Environment.NewLine +
+               "There is no need to manually add it again from the studio. Simply access the 'Cluster' view and " + Environment.NewLine +
+               "observe the topology being updated." + Environment.NewLine;
        
-       return str;
+        return str;
     }
-
+    
+    // org
+    // private static string CreateReadmeForCluster()
+    // {
+    //    var str =
+    //         "Your cluster settings configuration and the certificate are contained in the downloaded zip file."+
+    //         Environment.NewLine +
+    //         "You are setting up a cluster. The cluster topology and node addresses have already been configured." +
+    //         Environment.NewLine +
+    //         "The next step is to download a new RavenDB server for each of the other nodes." +
+    //         Environment.NewLine +
+    //         Environment.NewLine +
+    //         "When you enter the Setup Wizard on a new node, please choose 'Use Setup Package'." +
+    //         Environment.NewLine +
+    //         "Do not try to start a new setup process again in this new node, it is not supported." +
+    //         Environment.NewLine +
+    //         "You will be asked to upload the zip file which was just downloaded." +
+    //         Environment.NewLine +
+    //         "The new server node will join the already existing cluster." +
+    //         Environment.NewLine +
+    //         Environment.NewLine +
+    //         "When the Setup Wizard is done and the new node was restarted, the cluster will automatically detect it. " +
+    //         Environment.NewLine +
+    //         "There is no need to manually add it again from the studio. Simply access the 'Cluster' view and " +
+    //         Environment.NewLine +
+    //         "observe the topology being updated." +
+    //         Environment.NewLine;
+    //    
+    //    return str;
+    // }
+    
+    
     private static string CreateReadmeForClientCertificate(string publicServerUrl, bool registerClientCert, string nodeTag)
     {
         var str = string.Empty;
         
-        str += Environment.NewLine +
-                  $"The new server is available at: {publicServerUrl}"
-                  + Environment.NewLine;
-
-        str += $"The current node ('{nodeTag}') has already been configured and requires no further action on your part." +
-               Environment.NewLine;
+        str += Environment.NewLine + 
+               $"The new server is available at: {publicServerUrl}" + Environment.NewLine +
+               $"The current node ('{nodeTag}') has already been configured and requires no further action on your part." + Environment.NewLine;
         
         if (registerClientCert && PlatformDetails.RunningOnPosix == false)
         {
-            str += Environment.NewLine +
-                   $"An administrator client certificate has been installed on this machine ({Environment.MachineName})." 
-                   + Environment.NewLine;
-            str += "Chrome will let you select this certificate automatically. " +
-                   Environment.NewLine;
-            
-            str +=  Environment.NewLine +
-                    "If it doesn't, you will get an authentication error. Please restart all instances of Chrome to make sure nothing is cached." + 
-                    Environment.NewLine;
+            str += Environment.NewLine + $"An administrator client certificate has been installed on this machine ({Environment.MachineName})." + Environment.NewLine +
+                   "Chrome will let you select this certificate automatically. " + Environment.NewLine + Environment.NewLine + 
+                   "If it doesn't, you will get an authentication error. Please restart all instances of Chrome to make sure nothing is cached." + Environment.NewLine;
         }
         else
         {
-            str += 
-                "An administrator client certificate has been generated and is located in the zip file." +
-                Environment.NewLine +
-                $"However, the certificate was not installed on this machine ({Environment.MachineName}), this can be done manually." +
-                Environment.NewLine;
+            str += "An administrator client certificate has been generated and is located in the zip file." + Environment.NewLine +
+                   $"However, the certificate was not installed on this machine ({Environment.MachineName}), this can be done manually." + Environment.NewLine;
         }
 
-        str += 
-            "If you are using Firefox (or Chrome under Linux), the certificate must be imported manually to the browser." +
-            Environment.NewLine +
-            "You can do that via: Tools > Options > Advanced > 'Certificates: View Certificates'." +
-            Environment.NewLine;
+        str += "If you are using Firefox (or Chrome under Linux), the certificate must be imported manually to the browser." + Environment.NewLine +
+               "You can do that via: Tools > Options > Advanced > 'Certificates: View Certificates'." + Environment.NewLine;
 
         if (PlatformDetails.RunningOnPosix)
-            str +=
-                "In Linux, importing the client certificate to the browser might fail for 'Unknown Reasons'." +
-                Environment.NewLine +
-                "If you encounter this bug, use the RavenCli command 'generateClientCert' to create a new certificate with a password." +
-                Environment.NewLine +
-                "For more information on this workaround, read the security documentation in 'ravendb.net'." +
-                Environment.NewLine +
-                "It is recommended to generate additional certificates with reduced access rights for applications and users." +
-                Environment.NewLine +
-                "This can be done using the RavenDB Studio, in the 'Manage Server' > 'Certificates' page." +
-                Environment.NewLine;
+            str += "In Linux, importing the client certificate to the browser might fail for 'Unknown Reasons'." + Environment.NewLine +
+                   "If you encounter this bug, use the RavenCli command 'generateClientCert' to create a new certificate with a password." + Environment.NewLine +
+                   "For more information on this workaround, read the security documentation in 'ravendb.net'." + Environment.NewLine +
+                   "It is recommended to generate additional certificates with reduced access rights for applications and users." + Environment.NewLine +
+                   "This can be done using the RavenDB Studio, in the 'Manage Server' > 'Certificates' page." + Environment.NewLine;
 
         return str;
     }
+    // org
+    // private static string CreateReadmeForClientCertificate(string publicServerUrl, bool registerClientCert, string nodeTag)
+    // {
+    //     var str = string.Empty;
+    //     
+    //     str += Environment.NewLine +
+    //               $"The new server is available at: {publicServerUrl}"
+    //               + Environment.NewLine;
+    //
+    //     str += $"The current node ('{nodeTag}') has already been configured and requires no further action on your part." +
+    //            Environment.NewLine;
+    //     
+    //     if (registerClientCert && PlatformDetails.RunningOnPosix == false)
+    //     {
+    //         str += Environment.NewLine +
+    //                $"An administrator client certificate has been installed on this machine ({Environment.MachineName})." 
+    //                + Environment.NewLine;
+    //         str += "Chrome will let you select this certificate automatically. " +
+    //                Environment.NewLine;
+    //         
+    //         str +=  Environment.NewLine +
+    //                 "If it doesn't, you will get an authentication error. Please restart all instances of Chrome to make sure nothing is cached." + 
+    //                 Environment.NewLine;
+    //     }
+    //     else
+    //     {
+    //         str += 
+    //             "An administrator client certificate has been generated and is located in the zip file." +
+    //             Environment.NewLine +
+    //             $"However, the certificate was not installed on this machine ({Environment.MachineName}), this can be done manually." +
+    //             Environment.NewLine;
+    //     }
+    //
+    //     str += 
+    //         "If you are using Firefox (or Chrome under Linux), the certificate must be imported manually to the browser." +
+    //         Environment.NewLine +
+    //         "You can do that via: Tools > Options > Advanced > 'Certificates: View Certificates'." +
+    //         Environment.NewLine;
+    //
+    //     if (PlatformDetails.RunningOnPosix)
+    //         str +=
+    //             "In Linux, importing the client certificate to the browser might fail for 'Unknown Reasons'." +
+    //             Environment.NewLine +
+    //             "If you encounter this bug, use the RavenCli command 'generateClientCert' to create a new certificate with a password." +
+    //             Environment.NewLine +
+    //             "For more information on this workaround, read the security documentation in 'ravendb.net'." +
+    //             Environment.NewLine +
+    //             "It is recommended to generate additional certificates with reduced access rights for applications and users." +
+    //             Environment.NewLine +
+    //             "This can be done using the RavenDB Studio, in the 'Manage Server' > 'Certificates' page." +
+    //             Environment.NewLine;
+    //
+    //     return str;
+    // }
 
     internal static string IpAddress(string address, int port)
     {
