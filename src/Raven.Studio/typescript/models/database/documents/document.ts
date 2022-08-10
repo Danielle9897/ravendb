@@ -2,6 +2,8 @@ import documentMetadata = require("models/database/documents/documentMetadata");
 
 class document implements documentBase {
     
+    static readonly hugeSizeInBytesDefault = 10_485_760; // 10 MG
+    
     static readonly customColumnName = "@@x => x.getId()@@";
 
     static createDocumentIdProvider() {

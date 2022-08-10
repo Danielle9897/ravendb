@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,31 +27,35 @@ namespace FastTests.Client
                 using (var newSession = store.OpenSession())
                 {
                     newSession.Store(new User { Name = "user1" }, "users/1");
+                    
                     var user2 = new User {Name = "user2", Age = 1};
                     newSession.Store(user2, "users/2");
+                    
                     var user3 = new User { Name = "user3", Age = 1 };
                     newSession.Store(user3, "users/3");
-                    newSession.Store(new User { Name = "user4" }, "users/4");
-                    
-                    newSession.Delete(user2);
-                    user3.Age = 3;
-                    newSession.SaveChanges();
 
-                    var tempUser = newSession.Load<User>("users/2");
-                    Assert.Null(tempUser);
-                    tempUser = newSession.Load<User>("users/3");
-                    Assert.Equal(tempUser.Age, 3);
-                    var user1 = newSession.Load<User>("users/1");
-                    var user4 = newSession.Load<User>("users/4");
+                    // BinaryReader binReader = new BinaryReader(File.Open(@"E:\huge\1MG", FileMode.Open));
+                    // string longTextBin = binReader.ReadString(); 
                     
-                    newSession.Delete(user4);
-                    user1.Age = 10;
-                    newSession.SaveChanges();
+                    // Random random = new Random();
+                    // const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+                    // var newChar = new string(Enumerable.Repeat(chars, 1).Select(s => s[random.Next(s.Length)]).ToArray());
+                    
+                    var longText = System.IO.File.ReadAllText(@"E:\huge\1MG");
+                    
+                    longText = longText.Replace("\0", "some long text ... "); // 1 mg ==> 18MB => does not crash but very slow
+                    // longText = longText.Replace("\0", "some long text ... some long text ... "); // 1 mg ==> 36MB => does not crash but very slow
+                    // longText = longText.Replace("\0", "some long text ... some long text ... some long text ..."); // 1 mg ==> 53MB => does not crash but very slow
+                    // longText = longText.Replace("\0", "some long text ... some long text ... some long text ... some long text ... "); // 1 mg ==> 72MB => same
+                    // longText = longText.Replace("\0", "some long text ... some long text ... some long text ... some long text ... some long text "); // 1 mg ==> 86MB => crash
+                    
+                    //var longText = System.IO.File.ReadAllText(@"E:\huge\dummy-2MG");
+                    
+                    newSession.Store(new User { Name = longText }, "users/4");
 
-                    tempUser = newSession.Load<User>("users/4");
-                    Assert.Null(tempUser);
-                    tempUser = newSession.Load<User>("users/1");
-                    Assert.Equal(tempUser.Age, 10);
+                    newSession.SaveChanges();
+                    
+                    WaitForUserToContinueTheTest(store);
                 }
             }
         }

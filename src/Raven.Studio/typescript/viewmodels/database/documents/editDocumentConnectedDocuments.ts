@@ -389,7 +389,7 @@ class connectedDocuments {
             this.downloadAttachmentAtRevision(doc, args);
         } else {
             const url = endpoints.databases.attachment.attachments + appUrl.urlEncodeArgs(args);
-            this.downloader.download(this.db(), url);    
+            this.downloader.download(this.db(), url);
         }
     }
 

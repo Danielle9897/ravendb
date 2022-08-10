@@ -3,6 +3,7 @@ import studioConfigurationModel = require("models/database/settings/studioConfig
 import studioSettings = require("common/settings/studioSettings");
 import globalSettings = require("common/settings/globalSettings");
 import jsonUtil = require("common/jsonUtil");
+import document = require("models/database/documents/document");
 
 class studioConfiguration extends viewModelBase {
 
@@ -13,6 +14,8 @@ class studioConfiguration extends viewModelBase {
     model: studioConfigurationModel;
 
     static environments = studioConfigurationModel.environments;
+    
+    static hugeSize = document.hugeSizeInBytesDefault;
 
     activate(args: any) {
         super.activate(args);
@@ -24,7 +27,8 @@ class studioConfiguration extends viewModelBase {
                     Disabled: settings.disabled.getValue(),
                     ReplicationFactor: settings.replicationFactor.getValue(),
                     SendUsageStats: settings.sendUsageStats.getValue(),
-                    CollapseDocsWhenOpening: settings.collapseDocsWhenOpening.getValue()
+                    CollapseDocsWhenOpening: settings.collapseDocsWhenOpening.getValue(),
+                    HugeDocumentSize: settings.hugeDocumentSize.getValue()
                 });
 
                 this.dirtyFlag = new ko.DirtyFlag([
@@ -49,6 +53,7 @@ class studioConfiguration extends viewModelBase {
                 settings.sendUsageStats.setValueLazy(model.sendUsageStats());
                 settings.replicationFactor.setValueLazy(model.replicationFactor());
                 settings.collapseDocsWhenOpening.setValue(model.collapseDocsWhenOpening());
+                settings.hugeDocumentSize.setValue(model.hugeDocumentSize());
                 
                 settings.save()
                     .done(() => this.model.dirtyFlag().reset())

@@ -13,6 +13,8 @@ class globalSettings extends abstractSettings {
     replicationFactor = new simpleStudioSetting<number>("remote", null, x => this.saveSetting(x));
     
     collapseDocsWhenOpening = new simpleStudioSetting<boolean>("local", false, x => this.saveSetting(x));
+
+    hugeDocumentSize = new simpleStudioSetting<number>("local", null, x => this.saveSetting(x));
     
     numberFormatting = new simpleStudioSetting<studio.settings.numberFormatting>("local", "formatted", x => this.saveSetting(x));
     dontShowAgain = new dontShowAgainSettings(x => this.saveSetting(x));

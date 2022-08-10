@@ -23,7 +23,9 @@
                             <a href="#" class="copy-button" title="Copy document Id" data-bind="click: copyDocumentIdToClipboard"><i class="icon-copy"></i></a>
                             <span data-bind="visible: inReadOnlyMode() && !isDeleteRevision()" class="text-primary revision flex-noshrink"> | REVISION</span>
                             <span data-bind="visible: inReadOnlyMode() && isDeleteRevision()" class="text-primary revision flex-noshrink"> | DELETED REVISION</span>
-                            <a target="_blank" href="#" title="Show raw output" class="flex-noshrink margin-left margin-left-sm" data-bind="attr: { href: rawJsonUrl }, visible: !isDeleteRevision()"><i class="icon-json"></i></a>
+                            <a target="_blank" href="#" title="Click to view the raw content of the document" class="flex-noshrink margin-left margin-left-sm"
+                               data-bind="attr: { href: rawJsonUrl }, visible: !isDeleteRevision()"><i class="icon-json"></i>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -33,7 +35,7 @@
                         <small>Last modified <span data-bind="text: $root.lastModifiedAsAgo"></span></small>
                     </p>
                     <p class="pull-right-md bg-warning padding padding-xs" data-bind="visible: displayDocumentChange">
-                        <small>
+                        <small>טכני
                             <i class="icon-warning"></i>
                             <span>This document has been modified outside of Studio.</span>
                             <a href="#" data-bind="click: refreshDocument">Click here to refresh.</a>
@@ -65,6 +67,11 @@
                             data-bind="click: deleteDocument, enable: !isCreatingNewDocument(), visible: !inReadOnlyMode() && !inDiffMode() && !isClone() && !isCreatingNewDocument(), requiredAccess: 'DatabaseReadWrite'">
                         <i class="icon-trash"></i>
                         <span>Delete</span>
+                    </button>
+                    <button type="button" class="btn btn-warning"
+                            data-bind="visible: hugeTextSize, click: handleHugeDocument, disable: isBusy, css: { 'btn-spinner': isBusy }, attr: { title: tooltipForHandleHugeButton }">
+                        <i class="icon-alert"></i>
+                        <span data-bind="text: textForHandleHugeButton"></span>
                     </button>
                     <a data-bind="attr: { href: latestRevisionUrl }, visible: inReadOnlyMode() && !isDeleteRevision()" class="btn btn-default">
                         <i class="icon-latest"></i>
@@ -139,9 +146,9 @@
         </div>
         <div class="flex-window-scroll editors-container">
             <div class="left-editor">
-                <pre id="docEditor" class="form-control absolute-fill"
-                     data-bind="aceEditor: { code: documentText, fontSize:'16px', lang: 'ace/mode/raven_document', readOnly: inReadOnlyMode() || inDiffMode() || isReadOnlyAccess() },
-                                disable: isBusy, validationOptions: { errorsAsTitle: false }, validationElement: documentText, visible: !isDeleteRevision()"></pre>
+                 <pre id="docEditor" class="form-control absolute-fill"
+                      data-bind="aceEditor: { code: documentText, fontSize:'16px', lang: 'ace/mode/raven_document', readOnly: inReadOnlyMode() || inDiffMode() || isReadOnlyAccess() || hugeTextSize() > 0 },
+                                 disable: isBusy, validationOptions: { errorsAsTitle: false }, validationElement: documentText, visible: !isDeleteRevision()"></pre>
                 <div class="absolute-fill" data-bind="visible: isDeleteRevision()">
                     <div class="absolute-center padding padding-lg bg-info text-center">
                         <i class="icon-trash icon-xl"></i>
@@ -156,7 +163,7 @@
             </div>
             <div class="right-editor">
                 <pre id="docEditorRight" class="form-control absolute-fill"
-                     data-bind="aceEditor: { code: documentTextRight, fontSize:'16px', lang: 'ace/mode/raven_document', readOnly: inReadOnlyMode() || inDiffMode() || isReadOnlyAccess() },
+                     data-bind="aceEditor: { code: documentTextRight, fontSize:'16px', lang: 'ace/mode/raven_document', readOnly: inReadOnlyMode() || inDiffMode() || isReadOnlyAccess() | hugeTextSize() > 0 },
                                 disable: isBusy, validationOptions: { errorsAsTitle: false }, validationElement: documentText, visible: !isDeleteRevision()"></pre>
             </div>
         </div>
@@ -249,6 +256,7 @@
                         <span data-placement="left" data-toggle="tooltip" data-html="true" data-animation="true"
                              data-bind="tooltipText: $root.documentSizeHtml()">
                             <span data-bind="text: $root.computedDocumentSize()"></span>
+                            <i class="icon-warning text-warning margin-left-xs" data-bind="visible: $root.isHugeDocument"></i>
                         </span>
                     </dd>
                 </dl>

@@ -43,6 +43,8 @@ import getTimeSeriesStatsCommand = require("commands/database/documents/timeSeri
 import studioSettings = require("common/settings/studioSettings");
 import globalSettings = require("common/settings/globalSettings");
 import accessManager = require("common/shell/accessManager");
+import hugeDocumentConfirm = require("viewmodels/database/documents/hugeDocumentConfirm");
+import fileDownloader = require("../../../common/fileDownloader");
 
 interface revisionToCompare {
     date: string;
@@ -65,7 +67,9 @@ class editDocument extends viewModelBase {
     
     revisionChangeVector = ko.observable<string>();
     document = ko.observable<document>();
+    
     documentText = ko.observable("");
+    documentTextOrg = ko.observable("");
     documentTextRight = ko.observable("");
     
     documentTextStash = ko.observable<string>("");
@@ -137,8 +141,16 @@ class editDocument extends viewModelBase {
         this.isClone);
 
     isSaveEnabled: KnockoutComputed<boolean>;
-    
+
     computedDocumentSize: KnockoutComputed<string>;
+    hugeTextSize = ko.observable<number>(0);
+    isHugeDocument = ko.observable<boolean>(false);
+    ignoreHugeDocument = ko.observable<boolean>(false);
+    hugeSizeLimitInBytes = ko.observable<number>(document.hugeSizeInBytesDefault);
+    
+    textForHandleHugeButton: KnockoutComputed<string>;
+    tooltipForHandleHugeButton: KnockoutComputed<string>;
+    
     sizeOnDiskActual = ko.observable<string>();
     sizeOnDiskAllocated = ko.observable<String>();
     documentSizeHtml: KnockoutComputed<string>;
@@ -170,6 +182,12 @@ class editDocument extends viewModelBase {
     }
 
     canActivate(args: any) {
+        this.ignoreHugeDocument(false);
+
+        studioSettings.default.globalSettings(true).done((settings: globalSettings) => {
+            this.hugeSizeLimitInBytes(settings.hugeDocumentSize.getValue() || document.hugeSizeInBytesDefault);
+        });
+        
         return $.when<any>(super.canActivate(args))
             .then(() => {
                 if (args && args.revisionBinEntry && args.id) {
@@ -408,13 +426,27 @@ class editDocument extends viewModelBase {
             if (doc) {
                 const docDto = doc.toDto(true);
                 const metaDto = docDto["@metadata"];
-                if (metaDto) {
+                
+                if (metaDto) { // todo - where should be ?
                     this.metaPropsToRestoreOnSave.length = 0;
                     documentMetadata.filterMetadata(metaDto, this.metaPropsToRestoreOnSave);
                 }
-
+                
                 const docText = genUtils.stringify(docDto);
-                this.documentText(docText);
+                const textSizeInByes = genUtils.getSizeInBytesAsUTF8(docText);
+                
+                this.isHugeDocument(textSizeInByes > this.hugeSizeLimitInBytes());
+                
+                if (this.isHugeDocument() && !this.ignoreHugeDocument()) {
+                    this.documentTextOrg(docText);
+                    this.documentText(`{ "Note": "${this.inReadOnlyMode() ? 'Revision' : 'Document'} is huge" }`);
+                    this.hugeTextSize(textSizeInByes);
+                    this.handleHugeDocument();
+                } else {
+                    this.documentTextOrg(null);
+                    this.documentText(docText);
+                    this.hugeTextSize(0);
+                }
             }
         });
 
@@ -442,13 +474,16 @@ class editDocument extends viewModelBase {
             const metadata = this.metadata();
             return metadata && ("Raven-Replication-Conflict" in metadata) && !(metadata as any).id.includes("/conflicts/");
         });
-
+        
         this.computedDocumentSize = ko.pureComputed(() => {
             try {
+                if (this.hugeTextSize()) {
+                    return genUtils.formatBytesToSize(this.hugeTextSize());
+                }
                 const textSize: number = genUtils.getSizeInBytesAsUTF8(this.documentText());
                 const metadataAsString = JSON.stringify(this.metadata().toDto());
-                const metadataSize = genUtils.getSizeInBytesAsUTF8(metadataAsString);
-                const metadataKey = genUtils.getSizeInBytesAsUTF8(", @metadata: ");
+                const metadataSize: number = genUtils.getSizeInBytesAsUTF8(metadataAsString);
+                const metadataKey: number = genUtils.getSizeInBytesAsUTF8(", @metadata: ");
                 return genUtils.formatBytesToSize(textSize + metadataSize + metadataKey);
             } catch (e) {
                 return "cannot compute";
@@ -460,7 +495,21 @@ class editDocument extends viewModelBase {
                 return `Computed Size: ${this.computedDocumentSize()} KB`;
             }
             
-            return `<div><strong>Document Size on Disk</strong></div> Actual Size: ${this.sizeOnDiskActual()} <br/> Allocated Size: ${this.sizeOnDiskAllocated()}`;
+            const text = `<div class="margin-top-sm margin-bottom-sm"><strong>Document Size on Disk</strong></div> Actual Size: ${this.sizeOnDiskActual()} <br/> Allocated Size: ${this.sizeOnDiskAllocated()}`;
+            const hugeSizeText = this.isHugeDocument() ? `<br /><div class="text-warning bg-warning margin-top margin-bottom">Document is huge</div>` : "";
+            
+            return text + hugeSizeText;
+        });
+        
+        this.textForHandleHugeButton = ko.computed(() => {
+            const action = this.isBusy() ? "Loading" : "Handle";
+            const item = this.inReadOnlyMode() ? "revision" : "document";
+            return `${action} huge ${item}`;
+        });
+
+        this.tooltipForHandleHugeButton = ko.computed(() => {
+            const item = this.inReadOnlyMode() ? "Revision" : "Document";
+            return `${item} is huge. Click to select how to proceed.`;
         });
         
         this.metadata.subscribe((meta: documentMetadata) => {
@@ -617,7 +666,35 @@ class editDocument extends viewModelBase {
         
         return collectionForNewDocument + "/";
     }
-
+    
+    handleHugeDocument() {
+        const hugeDocumentDialog = new hugeDocumentConfirm(this.computedDocumentSize(), genUtils.formatBytesToSize(this.hugeSizeLimitInBytes()), this.inReadOnlyMode());
+        
+        hugeDocumentDialog.result.done((confirmResult: hugeDocumentConfirmResult) => {
+            if (confirmResult.can) {
+                if (confirmResult.load) {
+                    this.ignoreHugeDocument(true);
+                    
+                    if (this.inReadOnlyMode()) {
+                        this.documentText(`{"Note": "Loading huge revision..."}`);
+                        this.loadRevision(this.revisionChangeVector());
+                    } else {
+                        this.documentText(`{"Note": "Loading huge document..."}`);
+                        this.loadDocument(this.document().getId());
+                    }
+                }
+                if (confirmResult.download) {
+                    fileDownloader.downloadAsJson(this.documentTextOrg(), this.document().getId());
+                }
+                if (confirmResult.viewRaw) {
+                    window.open(this.rawJsonUrl(), "_blank");
+                }
+            }
+        });
+        
+        app.showBootstrapDialog(hugeDocumentDialog);
+    }
+    
     copyDocumentBodyToClipboard() {
         copyToClipboard.copy(this.documentText(), "Document has been copied to clipboard");
     }
@@ -1058,10 +1135,12 @@ class editDocument extends viewModelBase {
         return new getDocumentAtRevisionCommand(changeVector, this.activeDatabase())
             .execute()
             .done((doc: document) => {
+                this.inReadOnlyMode(true);
+                
                 this.document(doc);
                 this.displayDocumentChange(false);
 
-                this.inReadOnlyMode(true);
+                //this.inReadOnlyMode(true);
                 this.revisionChangeVector(changeVector);
 
                 this.dirtyFlag().reset();

@@ -5,6 +5,7 @@ import jsonUtil = require("common/jsonUtil");
 interface globalStudioConfigurationOptions extends Raven.Client.ServerWide.Operations.Configuration.ServerWideStudioConfiguration {
     SendUsageStats: boolean;
     CollapseDocsWhenOpening: boolean;
+    HugeDocumentSize: number;
 }
 
 class studioConfigurationModel {
@@ -16,6 +17,7 @@ class studioConfigurationModel {
     disabled = ko.observable<boolean>();
     replicationFactor = ko.observable<number>(null);
     collapseDocsWhenOpening = ko.observable<boolean>();
+    hugeDocumentSize = ko.observable<number>(null);
 
     dirtyFlag: () => DirtyFlag;
     validationGroup: KnockoutValidationGroup;
@@ -28,12 +30,14 @@ class studioConfigurationModel {
         this.sendUsageStats(dto.SendUsageStats);
         this.replicationFactor(dto.ReplicationFactor);
         this.collapseDocsWhenOpening(dto.CollapseDocsWhenOpening);
+        this.hugeDocumentSize(dto.HugeDocumentSize);
 
         this.dirtyFlag = new ko.DirtyFlag([
             this.environment,
             this.sendUsageStats,
             this.replicationFactor,
-            this.collapseDocsWhenOpening
+            this.collapseDocsWhenOpening,
+            this.hugeDocumentSize,
         ], false, jsonUtil.newLineNormalizingHashFunction);
     }
     

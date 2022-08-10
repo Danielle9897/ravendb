@@ -185,6 +185,12 @@ interface disableDatabaseResult {
     Disabled: boolean;
 }
 
+interface hugeDocumentConfirmResult extends confirmDialogResult {
+    load: boolean;
+    download: boolean;
+    viewRaw: boolean;
+}
+
 interface deleteDatabaseConfirmResult extends confirmDialogResult {
     keepFiles: boolean;
 }
