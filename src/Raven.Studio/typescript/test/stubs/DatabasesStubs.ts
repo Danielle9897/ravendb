@@ -585,6 +585,7 @@ export class DatabasesStubs {
                     OllamaSettings: null,
                     OnnxSettings: null,
                     OpenAiSettings: null,
+                    MistralAiSettings: null,
                 },
             },
         };
