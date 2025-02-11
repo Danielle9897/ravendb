@@ -108,6 +108,7 @@ export default function ConnectionStrings(props: ConnectionStringsUrlParameters)
 }
 
 const allStudioEtlTypes = exhaustiveStringTuple<StudioEtlType>()(
+    "Ai",
     "Raven",
     "Sql",
     "Snowflake",
@@ -116,8 +117,7 @@ const allStudioEtlTypes = exhaustiveStringTuple<StudioEtlType>()(
     "Kafka",
     "RabbitMQ",
     "AzureQueueStorage",
-    "AmazonSqs",
-    "Ai"
+    "AmazonSqs"
 );
 
 const addNewButtonId = "add-new-connection-string";
