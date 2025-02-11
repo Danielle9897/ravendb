@@ -16,6 +16,7 @@ import ConnectionTestError from "components/common/connectionTests/ConnectionTes
 import { useAppSelector } from "components/store";
 import { databaseSelectors } from "components/common/shell/databaseSliceSelectors";
 import { accessManagerSelectors } from "components/common/shell/accessManagerSliceSelectors";
+import AzureOpenAiSettings from "components/pages/database/settings/connectionStrings/editForms/aiFields/AzureOpenAiSettings";
 
 type FormData = ConnectionFormData<KafkaConnection>;
 
@@ -93,6 +94,7 @@ export default function KafkaConnectionString({
                     autoComplete="off"
                 />
             </div>
+            <AzureOpenAiSettings isUsedByAnyTask={false} />
             <div className="mb-2">
                 <Label className="d-flex align-items-center gap-1">
                     Bootstrap Servers
