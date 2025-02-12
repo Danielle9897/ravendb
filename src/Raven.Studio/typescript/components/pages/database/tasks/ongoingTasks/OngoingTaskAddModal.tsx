@@ -102,6 +102,21 @@ export default function OngoingTaskAddModal(props: OngoingTaskAddModalProps) {
                     </div>
                     <div className="text-center lead">Add a Database Task</div>
                 </div>
+                <HrHeader>AI Integration</HrHeader>
+                <Row className="gy-sm">
+                    <TaskItem
+                        title="Create new AI task"
+                        href={appUrl.forEditAiEtl(db.name)}
+                        className="ai-etl"
+                        target="AiETL"
+                        disabled={isSharded}
+                        disableReason={getDisableReasonForSharded()}
+                    >
+                        <Icon icon="ai-etl" margin="m-0" />
+                        <h4 className="mt-1 mb-0">AI</h4>
+                        {!hasAiEtl && <LicenseRestrictedBadge licenseRequired="Enterprise" />}
+                    </TaskItem>
+                </Row>
                 <HrHeader>Replication</HrHeader>
                 <Row className="gy-sm">
                     <TaskItem
@@ -278,18 +293,6 @@ export default function OngoingTaskAddModal(props: OngoingTaskAddModalProps) {
                         <Icon icon="amazon-sqs-etl" />
                         <h4 className="mt-1 mb-0">Amazon SQS ETL</h4>
                         {!hasAmazonSqsEtl && <LicenseRestrictedBadge licenseRequired="Enterprise" />}
-                    </TaskItem>
-                    <TaskItem
-                        title="Create new AI ETL task"
-                        href={appUrl.forEditAiEtl(db.name)}
-                        className="ai-etl"
-                        target="AiETL"
-                        disabled={isSharded}
-                        disableReason={getDisableReasonForSharded()}
-                    >
-                        <Icon icon="ai-etl" />
-                        <h4 className="mt-1 mb-0">AI ETL</h4>
-                        {!hasAiEtl && <LicenseRestrictedBadge licenseRequired="Enterprise" />}
                     </TaskItem>
                 </Row>
                 <HrHeader>SINK (SOURCE ⇛ RavenDB)</HrHeader>
