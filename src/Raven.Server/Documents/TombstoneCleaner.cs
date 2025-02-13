@@ -541,7 +541,7 @@ namespace Raven.Server.Documents
             PullReplicationAsHub,
             PullReplicationAsSink,
             Index,
-            AiEtl
+            AiIntegration
         }
     }
 }
