@@ -29,6 +29,8 @@ import getBackupLocationCommand from "commands/database/tasks/getBackupLocationC
 import testAzureQueueStorageServerConnectionCommand from "commands/database/cluster/testAzureQueueStorageServerConnectionCommand";
 import testSnowflakeConnectionStringCommand from "commands/database/cluster/testSnowflakeConnectionStringCommand";
 import testAmazonSqsServerConnectionCommand from "commands/database/cluster/testAmazonSqsServerConnectionCommand";
+import testAiCommand from "commands/database/tasks/testAiCommand";
+import testAiConnectionStringCommand from "commands/database/cluster/testAiConnectionStringCommand";
 
 export default class TasksService {
     async getOngoingTasks(databaseName: string, location: databaseLocationSpecifier) {
@@ -168,5 +170,13 @@ export default class TasksService {
 
     async getBackupLocation(path: string, databaseName: string) {
         return new getBackupLocationCommand(path, databaseName).execute();
+    }
+
+    async testAi(...args: ConstructorParameters<typeof testAiCommand>) {
+        return new testAiCommand(...args).execute();
+    }
+
+    async testAiConnectionString(...args: ConstructorParameters<typeof testAiConnectionStringCommand>) {
+        return new testAiConnectionStringCommand(...args).execute();
     }
 }
