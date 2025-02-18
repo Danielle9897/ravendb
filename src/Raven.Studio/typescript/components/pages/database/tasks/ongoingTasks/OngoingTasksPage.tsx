@@ -311,7 +311,7 @@ export function OngoingTasksPage() {
     );
 
     return (
-        <div className="content-margin">
+        <div className="content-margin ongoing-tasks-page">
             {subscriptionsClusterLimitStatus !== "notReached" && (
                 <RichAlert
                     variant={subscriptionsClusterLimitStatus === "limitReached" ? "danger" : "warning"}
