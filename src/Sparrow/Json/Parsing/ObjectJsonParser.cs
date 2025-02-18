@@ -642,6 +642,27 @@ namespace Sparrow.Json.Parsing
                     continue;
                 }
 
+                if (current is float[] fArray)
+                {
+                    var dja = new DynamicJsonArray(fArray);
+                    current = dja;
+                    continue;
+                }
+
+                if (current is sbyte[] sbArray)
+                {
+                    var dja = new DynamicJsonArray(sbArray);
+                    current = dja;
+                    continue;
+                }
+
+                if (current is byte[] bArray)
+                {
+                    var dja = new DynamicJsonArray(bArray);
+                    current = dja;
+                    continue;
+                }
+
                 if (current is Dictionary<string, long> dsl)
                 {
                     var dja = new DynamicJsonArray();
