@@ -1,10 +1,11 @@
-﻿import React from "react";
-import {
+﻿import {
     RichPanel,
     RichPanelHeader,
     RichPanelInfo,
     RichPanelName,
     RichPanelActions,
+    RichPanelDetailItem,
+    RichPanelDetails,
 } from "components/common/RichPanel";
 import { Button, UncontrolledTooltip } from "reactstrap";
 import { Icon } from "components/common/Icon";
@@ -19,6 +20,7 @@ import { useDispatch } from "react-redux";
 import useConfirm from "components/common/ConfirmDialog";
 import useUniqueId from "components/hooks/useUniqueId";
 import { databaseSelectors } from "components/common/shell/databaseSliceSelectors";
+import copyToClipboard from "common/copyToClipboard";
 
 interface ConnectionStringsPanelProps {
     connection: Connection;
@@ -93,6 +95,23 @@ export default function ConnectionStringsPanel(props: ConnectionStringsPanelProp
                         </RichPanelActions>
                     )}
                 </RichPanelHeader>
+
+                {"identifier" in connection && (
+                    <RichPanelDetails className="p-0">
+                        <RichPanelDetailItem label="Identifier">
+                            {connection.identifier}
+                            <Button
+                                color="link"
+                                onClick={() =>
+                                    copyToClipboard.copy(connection.identifier, "Identifier copied to clipboard")
+                                }
+                                size="xs"
+                            >
+                                <Icon icon="copy-to-clipboard" />
+                            </Button>
+                        </RichPanelDetailItem>
+                    </RichPanelDetails>
+                )}
             </div>
         </RichPanel>
     );
