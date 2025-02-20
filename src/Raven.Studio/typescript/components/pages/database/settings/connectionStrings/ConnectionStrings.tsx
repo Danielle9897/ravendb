@@ -30,6 +30,7 @@ export default function ConnectionStrings(props: ConnectionStringsUrlParameters)
     const dispatch = useAppDispatch();
 
     useEffect(() => {
+        dispatch(connectionStringsActions.viewContextSet("connectionString"));
         dispatch(
             connectionStringsActions.urlParametersLoaded({
                 name: nameFromUrl,

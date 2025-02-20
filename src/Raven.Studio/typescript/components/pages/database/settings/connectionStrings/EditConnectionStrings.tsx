@@ -5,7 +5,7 @@ import Select, { SelectOptionWithIcon, SingleValueWithIcon } from "components/co
 import { Connection, EditConnectionStringFormProps } from "./connectionStringsTypes";
 import RavenConnectionString from "./editForms/RavenConnectionString";
 import { useDispatch } from "react-redux";
-import { connectionStringsActions } from "./store/connectionStringsSlice";
+import { connectionStringsActions, connectionStringSelectors } from "./store/connectionStringsSlice";
 import ElasticSearchConnectionString from "./editForms/ElasticSearchConnectionString";
 import KafkaConnectionString from "./editForms/KafkaConnectionString";
 import OlapConnectionString from "./editForms/OlapConnectionString";
@@ -43,6 +43,8 @@ export default function EditConnectionStrings(props: EditConnectionStringsProps)
     const { features: licenseFeatures } = useConnectionStringsLicense();
 
     const EditConnectionStringComponent = getEditConnectionStringComponent(connectionStringType);
+
+    const viewContext = useAppSelector(connectionStringSelectors.viewContext);
 
     const databaseName = useAppSelector(databaseSelectors.activeDatabaseName);
     const asyncSave = useAsyncCallback((dto: any) => tasksService.saveConnectionString(databaseName, dto));
@@ -82,23 +84,26 @@ export default function EditConnectionStrings(props: EditConnectionStringsProps)
                     <Icon icon="manage-connection-strings" color="info" className="fs-1" margin="m-0" />
                 </div>
                 <div className="text-center lead">{isForNewConnection ? "Create a new" : "Edit"} connection string</div>
-                <div className="mb-2">
-                    <Label>Type</Label>
-                    <InputGroup className="gap-1 flex-wrap flex-column">
-                        <Select
-                            options={availableConnectionStringsOptions}
-                            value={availableConnectionStringsOptions.find((x) => x.value === connectionStringType)}
-                            onChange={(x: SelectOptionWithIcon<StudioEtlType>) => setConnectionStringType(x.value)}
-                            placeholder="Select a connection string type"
-                            isSearchable={false}
-                            isDisabled={!isForNewConnection || !!initialConnection.type}
-                            components={{
-                                Option: OptionWithIconAndBadge,
-                                SingleValue: SingleValueWithIcon,
-                            }}
-                        />
-                    </InputGroup>
-                </div>
+
+                {viewContext === "connectionString" && (
+                    <div className="mb-2">
+                        <Label>Type</Label>
+                        <InputGroup className="gap-1 flex-wrap flex-column">
+                            <Select
+                                options={availableConnectionStringsOptions}
+                                value={availableConnectionStringsOptions.find((x) => x.value === connectionStringType)}
+                                onChange={(x: SelectOptionWithIcon<StudioEtlType>) => setConnectionStringType(x.value)}
+                                placeholder="Select a connection string type"
+                                isSearchable={false}
+                                isDisabled={!isForNewConnection}
+                                components={{
+                                    Option: OptionWithIconAndBadge,
+                                    SingleValue: SingleValueWithIcon,
+                                }}
+                            />
+                        </InputGroup>
+                    </div>
+                )}
                 {EditConnectionStringComponent && (
                     <EditConnectionStringComponent
                         initialConnection={initialConnection}
