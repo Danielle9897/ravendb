@@ -2203,7 +2203,7 @@ namespace Raven.Server.ServerWide
                         command = new AddSnowflakeEtlCommand(snowflakeEtl, databaseName, raftRequestId);
                         break;
 
-                    case EtlType.Ai:
+                    case EtlType.EmbeddingsGeneration:
                         var aiIntegration = JsonDeserializationCluster.AiIntegrationConfiguration(etlConfiguration);
                         aiIntegration.Validate(out var aiIntegrationErr, validateName: false, validateConnection: false);
                         if (ValidateConnectionString(rawRecord, aiIntegration.ConnectionStringName, aiIntegration.EtlType) == false)
@@ -2339,7 +2339,7 @@ namespace Raven.Server.ServerWide
                 case EtlType.Snowflake:
                     var snowflakeConnectionString = databaseRecord.SnowflakeConnectionStrings;
                     return snowflakeConnectionString != null && snowflakeConnectionString.TryGetValue(connectionStringName, out _);
-                case EtlType.Ai:
+                case EtlType.EmbeddingsGeneration:
                     var aiConnectionStrings = databaseRecord.AiConnectionStrings;
                     return aiConnectionStrings != null && aiConnectionStrings.TryGetValue(connectionStringName, out _);
                 default:
@@ -2418,7 +2418,7 @@ namespace Raven.Server.ServerWide
                         command = new UpdateSnowflakeEtlCommand(id, snowflakeEtl, databaseName, raftRequestId);
                         break;
 
-                    case EtlType.Ai:
+                    case EtlType.EmbeddingsGeneration:
                         var aiIntegration = JsonDeserializationCluster.AiIntegrationConfiguration(etlConfiguration);
                         aiIntegration.Validate(out var aiIntegrationErr, validateName: false, validateConnection: false);
                         if (ValidateConnectionString(rawRecord, aiIntegration.ConnectionStringName, aiIntegration.EtlType) == false)
@@ -2655,7 +2655,7 @@ namespace Raven.Server.ServerWide
 
                     case ConnectionStringType.Ai:
 
-                        var aiEtls = rawRecord.AiIntegrations;
+                        var aiEtls = rawRecord.EmbeddingsGenerations;
 
                         // Don't delete the connection string if used by tasks types: AI Integration
                         if (aiEtls != null)
