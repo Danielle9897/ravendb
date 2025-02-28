@@ -5239,13 +5239,10 @@ namespace Raven.Server.Documents.Indexes
             });
         }
 
-        private IndexField GetOrAddVectorField(string name, EmbeddingsGenerationTaskIdentifier embeddingsGenerationTaskIdentifier, bool isText)
+        private IndexField GetOrAddVectorField(string name, bool isText)
         {
             return _vectorFields.GetOrAdd(name, _ =>
             {
-                
-
-                {
                     if (Definition.MapFields.TryGetValue(name, out var field) == false || field is IndexField { Vector: null })
                     {
                         var isTextual = IsFieldTextualAndPersistConfigurationOnDisk();
@@ -5261,7 +5258,6 @@ namespace Raven.Server.Documents.Indexes
                         IndexField staticField => staticField,
                         _ => throw new InvalidOperationException($"Unknown configuration error. Cannot create vector field '{name}' dynamically for {(isText ? "numerical" : "textual")} values.")
                     };
-                }
             });
 
             bool IsFieldTextualAndPersistConfigurationOnDisk()
