@@ -14,10 +14,11 @@ import { exhaustiveStringTuple } from "components/utils/common";
 import useConnectionStringsLicense from "./useConnectionStringsLicense";
 import { LoadError } from "components/common/LoadError";
 import { databaseSelectors } from "components/common/shell/databaseSliceSelectors";
+import { StudioConnectionType } from "./connectionStringsTypes";
 
 export interface ConnectionStringsUrlParameters {
     name?: string;
-    type?: StudioEtlType;
+    type?: StudioConnectionType;
 }
 
 export default function ConnectionStrings(props: ConnectionStringsUrlParameters) {
@@ -108,7 +109,7 @@ export default function ConnectionStrings(props: ConnectionStringsUrlParameters)
     );
 }
 
-const allStudioEtlTypes = exhaustiveStringTuple<StudioEtlType>()(
+const allStudioEtlTypes = exhaustiveStringTuple<StudioConnectionType>()(
     "Ai",
     "Raven",
     "Sql",

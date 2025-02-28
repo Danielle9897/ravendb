@@ -9,7 +9,7 @@
 } from "components/common/RichPanel";
 import { Button, UncontrolledTooltip } from "reactstrap";
 import { Icon } from "components/common/Icon";
-import { Connection } from "./connectionStringsTypes";
+import { Connection, StudioConnectionType } from "./connectionStringsTypes";
 import { accessManagerSelectors } from "components/common/shell/accessManagerSliceSelectors";
 import { useAppSelector } from "components/store";
 import { useAsyncCallback } from "react-async-hook";
@@ -117,7 +117,7 @@ export default function ConnectionStringsPanel(props: ConnectionStringsPanelProp
     );
 }
 
-function getDtoEtlType(type: StudioEtlType): Raven.Client.Documents.Operations.ETL.EtlType {
+function getDtoEtlType(type: StudioConnectionType): Raven.Client.Documents.Operations.ETL.EtlType {
     switch (type) {
         case "Kafka":
         case "RabbitMQ":
