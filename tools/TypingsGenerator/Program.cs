@@ -64,6 +64,7 @@ using Raven.Server.Dashboard.Cluster;
 using Raven.Server.Dashboard.Cluster.Notifications;
 using Raven.Server.Documents;
 using Raven.Server.Documents.ETL;
+using Raven.Server.Documents.ETL.Providers.AI.Embeddings;
 using Raven.Server.Documents.ETL.Providers.AI.Embeddings.Test;
 using Raven.Server.Documents.ETL.Providers.ElasticSearch.Test;
 using Raven.Server.Documents.ETL.Providers.OLAP;
@@ -581,6 +582,7 @@ namespace TypingsGenerator
             scripter.AddType(typeof(TestEmbeddingsGenerationScript));
             scripter.AddType(typeof(EmbeddingsGenerationTestScriptResult));
             scripter.AddType(typeof(AiConnectorType));
+            scripter.AddType(typeof(EmbeddingsGenerationPerformanceOperation));
 
             // connection strings
             scripter.AddType(typeof(ConnectionString));
