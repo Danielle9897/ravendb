@@ -43,7 +43,7 @@ export default function MistralaiAiSettings({ isUsedByAnyTask }: { isUsedByAnyTa
                     API Key
                     <Icon icon="info" color="info" id="apiKey" margin="ms-1" />
                     <UncontrolledPopover target="apiKey" trigger="hover" className="bs5">
-                        <PopoverBody>The API key required for accessing the Mistral AI service.</PopoverBody>
+                        <PopoverBody>The API key to use to authenticate with the Mistral AI service.</PopoverBody>
                     </UncontrolledPopover>
                 </Label>
                 <FormInput control={control} name="mistralaiAiSettings.apiKey" type="password" passwordPreview />
@@ -53,7 +53,7 @@ export default function MistralaiAiSettings({ isUsedByAnyTask }: { isUsedByAnyTa
                     Endpoint
                     <Icon icon="info" color="info" id="endpoint" margin="ms-1" />
                     <UncontrolledPopover target="endpoint" trigger="hover" className="bs5">
-                        <PopoverBody>The endpoint for the Mistral AI service.</PopoverBody>
+                        <PopoverBody>The Mistral AI endpoint for generating embeddings from text.</PopoverBody>
                     </UncontrolledPopover>
                 </Label>
                 <FormInput control={control} name="mistralaiAiSettings.endpoint" type="text" />
@@ -63,7 +63,7 @@ export default function MistralaiAiSettings({ isUsedByAnyTask }: { isUsedByAnyTa
                     Model
                     <Icon icon="info" color="info" id="model" margin="ms-1" />
                     <UncontrolledPopover target="model" trigger="hover" className="bs5">
-                        <PopoverBody>The model ID for the Mistral AI service.</PopoverBody>
+                        <PopoverBody>The Mistral AI model ID to use.</PopoverBody>
                     </UncontrolledPopover>
                 </Label>
                 <FormInput control={control} name="mistralaiAiSettings.model" type="text" disabled={isUsedByAnyTask} />

@@ -23,12 +23,12 @@ public sealed class HuggingFaceSettings : AbstractAiSettings
     public string Model { get; set; }
 
     /// <summary>
-    /// The endpoint for the text embedding generation service. If not specified, the default endpoint will be used.
+    /// The Hugging Face endpoint for text embedding generation. If not specified, the default endpoint is used.
     /// </summary>
     public string Endpoint { get; set; }
 
     /// <summary>
-    /// The API key required for accessing the Hugging Face service.
+    /// The API key required for accessing the Hugging Face service. 
     /// </summary>
     public string ApiKey { get; set; }
 

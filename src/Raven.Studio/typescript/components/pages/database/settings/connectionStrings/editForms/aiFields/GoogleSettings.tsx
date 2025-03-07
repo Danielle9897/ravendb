@@ -45,7 +45,7 @@ export default function GoogleSettings({ isUsedByAnyTask }: { isUsedByAnyTask: b
                     AI Version <OptionalLabel />
                     <Icon icon="info" color="info" id="aiVersion" margin="ms-1" />
                     <UncontrolledPopover target="aiVersion" trigger="hover" className="bs5">
-                        <PopoverBody>The version of the Google AI.</PopoverBody>
+                        <PopoverBody>The Google AI version to use.</PopoverBody>
                     </UncontrolledPopover>
                 </Label>
                 <FormSelect
@@ -66,7 +66,7 @@ export default function GoogleSettings({ isUsedByAnyTask }: { isUsedByAnyTask: b
                     API Key
                     <Icon icon="info" color="info" id="apiKey" margin="ms-1" />
                     <UncontrolledPopover target="apiKey" trigger="hover" className="bs5">
-                        <PopoverBody>The API key to used to authenticate with the service.</PopoverBody>
+                        <PopoverBody>The API key to use to authenticate with the Google AI service.</PopoverBody>
                     </UncontrolledPopover>
                 </Label>
 
@@ -77,7 +77,7 @@ export default function GoogleSettings({ isUsedByAnyTask }: { isUsedByAnyTask: b
                     Model
                     <Icon icon="info" color="info" id="model" margin="ms-1" />
                     <UncontrolledPopover target="model" trigger="hover" className="bs5">
-                        <PopoverBody>The model that should be used.</PopoverBody>
+                        <PopoverBody>The Google AI model to use.</PopoverBody>
                     </UncontrolledPopover>
                 </Label>
                 <FormInput control={control} name="googleSettings.model" type="text" disabled={isUsedByAnyTask} />

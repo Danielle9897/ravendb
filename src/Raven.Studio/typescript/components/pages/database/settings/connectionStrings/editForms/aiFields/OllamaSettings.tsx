@@ -42,7 +42,7 @@ export default function OllamaSettings({ isUsedByAnyTask }: { isUsedByAnyTask: b
                     Model
                     <Icon icon="info" color="info" id="model" margin="ms-1" />
                     <UncontrolledPopover target="model" trigger="hover" className="bs5">
-                        <PopoverBody>The model that should be used.</PopoverBody>
+                        <PopoverBody>The Ollama model to use.</PopoverBody>
                     </UncontrolledPopover>
                 </Label>
                 <FormInput control={control} name="ollamaSettings.model" type="text" disabled={isUsedByAnyTask} />
@@ -52,7 +52,7 @@ export default function OllamaSettings({ isUsedByAnyTask }: { isUsedByAnyTask: b
                     URI
                     <Icon icon="info" color="info" id="uri" margin="ms-1" />
                     <UncontrolledPopover target="uri" trigger="hover" className="bs5">
-                        <PopoverBody>The URI of the Ollama API.</PopoverBody>
+                        <PopoverBody>The Ollama API URI to use.</PopoverBody>
                     </UncontrolledPopover>
                 </Label>
                 <FormInput control={control} name="ollamaSettings.uri" type="text" />

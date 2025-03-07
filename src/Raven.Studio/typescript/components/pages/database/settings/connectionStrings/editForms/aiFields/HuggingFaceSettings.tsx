@@ -44,7 +44,7 @@ export default function HuggingFaceSettings({ isUsedByAnyTask }: { isUsedByAnyTa
                     API Key <OptionalLabel />
                     <Icon icon="info" color="info" id="apiKey" margin="ms-1" />
                     <UncontrolledPopover target="apiKey" trigger="hover" className="bs5">
-                        <PopoverBody>The API key required for accessing the Hugging Face service.</PopoverBody>
+                        <PopoverBody>The API key to use to authenticate with the Hugging Face service.</PopoverBody>
                     </UncontrolledPopover>
                 </Label>
                 <FormInput control={control} name="huggingFaceSettings.apiKey" type="password" passwordPreview />
@@ -55,8 +55,8 @@ export default function HuggingFaceSettings({ isUsedByAnyTask }: { isUsedByAnyTa
                     <Icon icon="info" color="info" id="endpoint" margin="ms-1" />
                     <UncontrolledPopover target="endpoint" trigger="hover" className="bs5">
                         <PopoverBody>
-                            The endpoint for the text embedding generation service. If not specified, the default
-                            endpoint will be used.
+                            The Hugging Face endpoint for generating embeddings from text. If not specified, the default
+                            endpoint is used.
                         </PopoverBody>
                     </UncontrolledPopover>
                 </Label>
@@ -67,7 +67,7 @@ export default function HuggingFaceSettings({ isUsedByAnyTask }: { isUsedByAnyTa
                     Model
                     <Icon icon="info" color="info" id="model" margin="ms-1" />
                     <UncontrolledPopover target="model" trigger="hover" className="bs5">
-                        <PopoverBody>The name of the Hugging Face model.</PopoverBody>
+                        <PopoverBody>The Hugging Face model to use.</PopoverBody>
                     </UncontrolledPopover>
                 </Label>
                 <FormInput control={control} name="huggingFaceSettings.model" type="text" disabled={isUsedByAnyTask} />
