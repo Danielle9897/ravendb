@@ -11,6 +11,16 @@ const schema = yup
             .positive()
             .integer()
             .when("isArchiveFrequencyEnabled", { is: true, then: (schema) => schema.required() }),
+        isLimitMaxItemsToProcessEnabled: yup.boolean(),
+        maxItemsToProcess: yup
+            .number()
+            .nullable()
+            .positive()
+            .integer()
+            .when("isLimitMaxItemsToProcessEnabled", {
+                is: true,
+                then: (schema) => schema.required(),
+            }),
     })
     .required();
 
