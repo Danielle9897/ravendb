@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FastTests;
@@ -7,6 +8,7 @@ using Raven.Client.Documents;
 using Raven.Client.Documents.Indexes;
 using Raven.Client.Documents.Operations.Indexes;
 using Raven.Client.Documents.Operations.SchemaValidation;
+using Raven.Client.Documents.Queries;
 using Raven.Client.Exceptions;
 using Sparrow.Json;
 using Sparrow.Json.Parsing;
@@ -22,6 +24,12 @@ public class SchemaValidationIndexingTests : RavenTestBase
 {
     public SchemaValidationIndexingTests(ITestOutputHelper output) : base(output)
     {
+    }
+    
+    public class Order
+    {
+        public string Customer { get; set; }
+        public double Total { get; set; }
     }
 
     private const string ValidateNonDocumentDataForMapIndex =
@@ -50,6 +58,91 @@ map("TestObjs", (doc) => {
         { ValidateNonDocumentDataForJavascriptMapIndex, IndexType.JavaScriptMap, "'schema.GetErrorsFor' can only be performed on the source document." }
     };
 
+    [RavenTheory(RavenTestCategory.Indexes)]
+    [MemberData(nameof(ValidateNonDocumentData))]
+    public async Task test(string map, IndexType indexType, string errorMsg)
+    {
+        using var store = GetDocumentStore();
+        
+        string schemaDefinition = @"{
+            ""properties"": {
+                ""Customer"": { ""type"": ""string"" },
+                ""Total"": { ""type"": ""number"", ""minimum"": 0 }
+            },
+            ""required"": [""Customer"", ""Total""]
+        }";
+            
+        var schemaDefinitions = new IndexSchemaDefinitions
+        {
+            { "Orders", schemaDefinition }
+        };
+        
+        const string OrdersValidationMap = @"
+        map('Orders', function (doc) {
+            return {
+                Errors: schema.getErrorsFor(doc)
+            };
+        })";
+    
+        // Create the index definition
+        var indexDefinition = new IndexDefinition
+        {
+            Name = "Orders_WithValidation_JS",
+            Maps = { OrdersValidationMap },
+            SchemaDefinitions = schemaDefinitions,
+            Fields = new Dictionary<string, IndexFieldOptions>
+            {
+                { "Errors", new IndexFieldOptions { Storage = FieldStorage.Yes } }
+            },
+            Type = IndexType.JavaScriptMap
+        };
+
+        // Create valid and invalid orders
+        using (var session = store.OpenAsyncSession())
+        {
+            // Valid order
+            await session.StoreAsync(new Order { Customer = "Alice", Total = 100 }, "orders/1-A");
+            // Invalid order (2 errors: missing Customer, negative Total)
+            await session.StoreAsync(new Order { Total = -50 }, "orders/2-A");
+            // Invalid order (negative Total)
+            await session.StoreAsync(new Order { Customer = "Bob", Total = -10 }, "orders/3-A");
+            await session.SaveChangesAsync();
+        }
+        
+        // Create the index
+        await store.Maintenance.SendAsync(new PutIndexesOperation(indexDefinition));
+
+        // Wait for the index to process all documents
+        await Indexes.WaitForIndexingAsync(store);
+    
+        // Query the index and print validation errors
+        using (var session = store.OpenAsyncSession())
+        {
+            // Retrieve results, containing validation errors, from the index
+            var results = await session.Query<IndexResult>("Orders_WithValidation_JS")
+                .Select(x => new
+                {
+                    Id = RavenQuery.Metadata(x)["Id"] as string, // Also project the document Id
+                    Errors = x.Errors
+                })
+                .ToListAsync();
+
+            foreach (var doc in results)
+            {
+                if (doc != null && doc.Errors is { Length: > 0 })
+                {
+                    foreach (var error in doc.Errors)
+                        Console.WriteLine($"{doc.Id} {error}");
+                }
+                else
+                {
+                    Console.WriteLine("No errors or no document.");
+                }
+            }
+        }
+    
+    }
+    
     [RavenTheory(RavenTestCategory.Indexes)]
     [MemberData(nameof(ValidateNonDocumentData))]
     public async Task IndexingSchemaErrors_WhenSchemaValidateNonDocument_ShouldFailIndexing(string map, IndexType indexType, string errorMsg)

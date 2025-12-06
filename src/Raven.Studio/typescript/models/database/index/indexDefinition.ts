@@ -298,6 +298,7 @@ class indexDefinition {
 
     toDto(): Raven.Client.Documents.Indexes.IndexDefinition {
         return {
+            SchemaDefinitions: null,
             Name: this.name(),
             Maps: this.maps().map(m => m.map()),
             Reduce: this.reduce(),
@@ -420,7 +421,8 @@ class indexDefinition {
             AdditionalAssemblies: null,
             PatternForOutputReduceToCollectionReferences: null,
             PatternReferencesCollectionName: null,
-            CompoundFields: []
+            CompoundFields: [],
+            SchemaDefinitions: null
         }, indexingDatabaseSettings);
     }
 }
