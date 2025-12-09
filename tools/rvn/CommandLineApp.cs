@@ -339,8 +339,11 @@ namespace rvn
                     }
 
                     
+#pragma warning disable SYSLIB0057
                     X509Certificate2 clientCertificate = new(clientCertificatePathArg.Value);
                     X509Certificate2 serverCertificate = new(serverCertificatePathArg.Value);
+#pragma warning restore SYSLIB0057
+
                     var name = Path.GetFileNameWithoutExtension(clientCertificatePathArg.Value);
                     try
                     {

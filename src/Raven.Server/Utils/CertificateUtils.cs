@@ -271,7 +271,9 @@ namespace Raven.Server.Utils
             var pfxCollection = new X509Certificate2Collection();
 
             // Import the existing PFX file (client certificate) into the collection
+#pragma warning disable SYSLIB0057
             pfxCollection.Import(certBytes, null, CertificateLoaderUtil.FlagsForExport);
+#pragma warning restore SYSLIB0057
 
             // Add the server certificate to the collection
             pfxCollection.Add(CertificateLoaderUtil.CreateCertificate(serverCertBytes, flags: CertificateLoaderUtil.FlagsForExport));
@@ -520,7 +522,9 @@ namespace Raven.Server.Utils
 
             // Return a new X509Certificate2 object from the generated PFX byte array.
             var flags = X509KeyStorageFlags.PersistKeySet;
+#pragma warning disable SYSLIB0057
             return new X509Certificate2(clientCertBytes, string.Empty, flags);
+#pragma warning restore SYSLIB0057
         }
 
         public static X509Certificate2 ExtractServerCertificateFromExtension(X509Certificate2 clientCert)
@@ -540,7 +544,9 @@ namespace Raven.Server.Utils
                 {
                     // The RawData property of the extension contains the DER-encoded certificate bytes.
                     // The native .NET X509Certificate2 constructor can directly create a certificate from these bytes.
+#pragma warning disable SYSLIB0057
                     serverCertificateFromExtension = new X509Certificate2(extension.RawData);
+#pragma warning restore SYSLIB0057
                 }
                 catch (CryptographicException)
                 {
@@ -564,7 +570,9 @@ namespace Raven.Server.Utils
                             // Try to create a certificate from this position
                             var certBytes = new byte[rawData.Length - i];
                             Array.Copy(rawData, i, certBytes, 0, certBytes.Length);
+#pragma warning disable SYSLIB0057
                             serverCertificateFromExtension = new X509Certificate2(certBytes);
+#pragma warning restore SYSLIB0057
                             break;
                         }
                         catch
@@ -790,7 +798,9 @@ namespace Raven.Server.Utils
 
             // Return a new X509Certificate2 object from the exported PFX data.
             var flags = X509KeyStorageFlags.Exportable | X509KeyStorageFlags.PersistKeySet;
+#pragma warning disable SYSLIB0057
             return new X509Certificate2(pfxBytes, string.Empty, flags);
+#pragma warning restore SYSLIB0057
         }
 
         public static string GetBasicCertificateInfo(this X509Certificate2 certificate)

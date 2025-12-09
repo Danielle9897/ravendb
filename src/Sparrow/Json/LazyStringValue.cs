@@ -184,7 +184,7 @@ namespace Sparrow.Json
                 _lazyStringTempBuffer = new char[Bits.NextAllocationSize(charCount)];
             return _lazyStringTempBuffer;
         }
-        
+
         private static byte[] GetLazyStringTempComparisonBuffer(int charCount)
         {
             if (_lazyStringTempComparisonBuffer == null || _lazyStringTempComparisonBuffer.Length < charCount * 5)
@@ -321,7 +321,7 @@ namespace Sparrow.Json
 
             if (ReferenceEquals(self, null))
                 return false;
-            
+
             return ReferenceEquals(str, null) == false && self.Equals(str);
         }
 
@@ -1014,6 +1014,13 @@ namespace Sparrow.Json
         {
             return ToString().Split(separator, count, options);
         }
+
+#if NET9_0_OR_GREATER
+        public string[] Split(scoped ReadOnlySpan<char> separator)
+        {
+            return ToString().Split(separator);
+        }
+#endif
 
         public bool StartsWith(string value)
         {

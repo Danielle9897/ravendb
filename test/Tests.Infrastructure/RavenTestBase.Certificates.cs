@@ -158,7 +158,9 @@ public partial class RavenTestBase
                 X509Certificate2 serverCertificate;
                 try
                 {
+#pragma warning disable SYSLIB0057
                     serverCertificate = new X509Certificate2(certBytes, (string)null, X509KeyStorageFlags.MachineKeySet | CertificateLoaderUtil.FlagsForExport);
+#pragma warning restore SYSLIB0057
                 }
                 catch (Exception e)
                 {

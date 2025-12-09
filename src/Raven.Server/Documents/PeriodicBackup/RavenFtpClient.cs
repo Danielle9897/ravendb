@@ -159,7 +159,9 @@ namespace Raven.Server.Documents.PeriodicBackup
 
                 try
                 {
+#pragma warning disable SYSLIB0057
                     var x509Certificate = new X509Certificate2(byteArray);
+#pragma warning restore SYSLIB0057
                     client.Config.EncryptionMode = FtpEncryptionMode.Explicit;
                     client.Config.ClientCertificates.Add(x509Certificate);
                     client.ValidateCertificate += OnValidateCertificate;
