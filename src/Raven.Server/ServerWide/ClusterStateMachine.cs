@@ -652,6 +652,7 @@ namespace Raven.Server.ServerWide
                         break;
 
                     case nameof(RemoveServerWideConnectionStringCommand):
+                        AssertServerWideFor(serverStore, LicenseAttribute.ServerWideConnectionStrings);
                         var deleteCSConfiguration = UpdateValue<RemoveServerWideConnectionStringCommand.DeleteConfiguration>(context, type, cmd, index, skipNotifyValueChanged: true);
                         RemoveServerWideConnectionStringFromAllDatabases(deleteCSConfiguration, context, type, index);
                         break;
@@ -2059,7 +2060,7 @@ namespace Raven.Server.ServerWide
                     if (serverWideBackups.TryGet(propertyName, out BlittableJsonReaderObject configurationBlittable) == false)
                         continue;
 
-                    if (IsExcluded(configurationBlittable, addDatabaseCommand.Name))
+                    if (IsExcluded(configurationBlittable, addDatabaseCommand.Name, nameof(IServerWideTask.ExcludedDatabases)))
                         continue;
 
                     configurationBlittable.TryGet(nameof(ServerWideBackupConfiguration.BackupType), out BackupType backupType);
@@ -2123,7 +2124,7 @@ namespace Raven.Server.ServerWide
                     if (configurationBlittable.TryGet(nameof(ServerWideExternalReplication.TopologyDiscoveryUrls), out BlittableJsonReaderArray topologyDiscoveryUrlsBlittableArray) == false)
                         continue;
 
-                    if (IsExcluded(configurationBlittable, addDatabaseCommand.Name))
+                    if (IsExcluded(configurationBlittable, addDatabaseCommand.Name, nameof(IServerWideTask.ExcludedDatabases)))
                         continue;
 
                     var topologyDiscoveryUrls = topologyDiscoveryUrlsBlittableArray.Select(x => x.ToString()).ToArray();
@@ -2161,9 +2162,9 @@ namespace Raven.Server.ServerWide
             };
         }
 
-        private static bool IsExcluded(BlittableJsonReaderObject configurationBlittable, string databaseName)
+        private static bool IsExcluded(BlittableJsonReaderObject configurationBlittable, string databaseName, string excludedDatabasesPropertyName)
         {
-            if (configurationBlittable.TryGet(nameof(IServerWideTask.ExcludedDatabases), out BlittableJsonReaderArray excludedDatabases) == false || excludedDatabases == null)
+            if (configurationBlittable.TryGet(excludedDatabasesPropertyName, out BlittableJsonReaderArray excludedDatabases) == false || excludedDatabases == null)
                 return false;
 
             foreach (object excludedDatabase in excludedDatabases)
