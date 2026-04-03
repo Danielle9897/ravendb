@@ -95,7 +95,10 @@ namespace Raven.Server.Documents.PeriodicBackup.Restore
                 }
                 databaseRecord.ExternalReplications = filtered;
             }
+        }
 
+        private static void FilterOutServerWideConnectionStrings(DatabaseRecord databaseRecord)
+        {
             FilterOutServerWideConnectionStrings(databaseRecord.RavenConnectionStrings);
             FilterOutServerWideConnectionStrings(databaseRecord.SqlConnectionStrings);
             FilterOutServerWideConnectionStrings(databaseRecord.OlapConnectionStrings);
@@ -263,6 +266,7 @@ namespace Raven.Server.Documents.PeriodicBackup.Restore
 
                                     restoreSettings = JsonDeserializationServer.RestoreSettings(json);
                                     FilterOutServerWideTasks(restoreSettings.DatabaseRecord);
+                                    FilterOutServerWideConnectionStrings(restoreSettings.DatabaseRecord);
                                     RemoveSubscriptionFromDatabaseValues(restoreSettings);
                                     restoreSettings.DatabaseRecord.DatabaseName = RestoreConfiguration.DatabaseName;
                                     DatabaseHelper.Validate(RestoreConfiguration.DatabaseName, restoreSettings.DatabaseRecord, ServerStore.Configuration);
