@@ -15,6 +15,7 @@ import RevisionsConfiguration = Raven.Client.Documents.Operations.Revisions.Revi
 import RevisionsCollectionConfiguration = Raven.Client.Documents.Operations.Revisions.RevisionsCollectionConfiguration;
 import SorterDefinition = Raven.Client.Documents.Queries.Sorting.SorterDefinition;
 import AnalyzerDefinition = Raven.Client.Documents.Indexes.Analysis.AnalyzerDefinition;
+import { ServerWideConnectionStringDto } from "components/pages/database/settings/connectionStrings/store/connectionStringsMapsFromDto";
 
 export class DatabasesStubs {
     static nonShardedSingleNodeDatabaseDto() {
@@ -587,6 +588,135 @@ export class DatabasesStubs {
                 },
             },
         };
+    }
+
+    static serverWideConnectionStrings(): ServerWideConnectionStringDto[] {
+        return [
+            {
+                Type: "Raven",
+                Name: "sw-raven-name",
+                Database: "some-db",
+                TopologyDiscoveryUrls: ["http://test"],
+                ExcludedDatabases: ["excluded-db"],
+            },
+            {
+                Type: "Sql",
+                Name: "sw-sql-name",
+                ConnectionString: "some-connection-string",
+                FactoryName: "System.Data.SqlClient",
+                ExcludedDatabases: [],
+            },
+            {
+                Type: "Olap",
+                Name: "sw-olap-name",
+                LocalSettings: {
+                    Disabled: false,
+                    GetBackupConfigurationScript: null,
+                    FolderPath: "/bin",
+                },
+                S3Settings: null,
+                AzureSettings: null,
+                GlacierSettings: null,
+                GoogleCloudSettings: null,
+                FtpSettings: null,
+                ExcludedDatabases: [],
+            },
+            {
+                Type: "ElasticSearch",
+                Name: "sw-elasticsearch-name",
+                Nodes: ["http://test"],
+                EnableCompatibilityMode: false,
+                Authentication: {
+                    Basic: null,
+                    ApiKey: null,
+                    Certificate: null,
+                },
+                ExcludedDatabases: [],
+            },
+            {
+                Type: "Queue",
+                Name: "sw-kafka-name",
+                BrokerType: "Kafka",
+                KafkaConnectionSettings: {
+                    BootstrapServers: "test:0",
+                    UseRavenCertificate: false,
+                    ConnectionOptions: {},
+                },
+                RabbitMqConnectionSettings: null,
+                AzureQueueStorageConnectionSettings: null,
+                AmazonSqsConnectionSettings: null,
+                ExcludedDatabases: [],
+            },
+            {
+                Type: "Queue",
+                Name: "sw-rabbitmq-name",
+                BrokerType: "RabbitMq",
+                KafkaConnectionSettings: null,
+                RabbitMqConnectionSettings: {
+                    ConnectionString: "some-connection-string",
+                },
+                AzureQueueStorageConnectionSettings: null,
+                AmazonSqsConnectionSettings: null,
+                ExcludedDatabases: [],
+            },
+            {
+                Type: "Snowflake",
+                Name: "sw-snowflake-name",
+                ConnectionString: "some-snowflake-connection-string",
+                ExcludedDatabases: [],
+            },
+            {
+                Type: "Queue",
+                Name: "sw-azure-queue-storage-name",
+                BrokerType: "AzureQueueStorage",
+                KafkaConnectionSettings: null,
+                RabbitMqConnectionSettings: null,
+                AzureQueueStorageConnectionSettings: {
+                    ConnectionString: "some-connection-string",
+                    EntraId: null,
+                    Passwordless: null,
+                },
+                AmazonSqsConnectionSettings: null,
+                ExcludedDatabases: [],
+            },
+            {
+                Type: "Queue",
+                Name: "sw-amazon-sqs-name",
+                BrokerType: "AmazonSqs",
+                KafkaConnectionSettings: null,
+                RabbitMqConnectionSettings: null,
+                AzureQueueStorageConnectionSettings: null,
+                AmazonSqsConnectionSettings: {
+                    Basic: {
+                        AccessKey: "AKIA123",
+                        SecretKey: "this is secret",
+                        RegionName: "us-west-2",
+                    },
+                    Passwordless: false,
+                },
+                ExcludedDatabases: [],
+            },
+            {
+                Type: "Ai",
+                Name: "sw-ai-name",
+                Identifier: "some-identifier",
+                ModelType: "TextEmbeddings",
+                GoogleSettings: {
+                    ApiKey: "some-api-key",
+                    Endpoint: "https://generativelanguage.googleapis.com",
+                    Model: "some-model",
+                    AiVersion: "V1",
+                },
+                AzureOpenAiSettings: null,
+                HuggingFaceSettings: null,
+                OllamaSettings: null,
+                EmbeddedSettings: null,
+                OpenAiSettings: null,
+                MistralAiSettings: null,
+                VertexSettings: null,
+                ExcludedDatabases: [],
+            },
+        ];
     }
 
     static nodeConnectionTestErrorResult(): Raven.Server.Web.System.NodeConnectionTestResult {

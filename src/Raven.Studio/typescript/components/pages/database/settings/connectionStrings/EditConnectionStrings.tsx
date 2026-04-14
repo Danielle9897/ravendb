@@ -28,15 +28,19 @@ import AmazonSqsConnectionString from "components/pages/database/settings/connec
 import AiConnectionString from "components/pages/database/settings/connectionStrings/editForms/AiConnectionString";
 import Modal from "components/common/Modal";
 import { FormLabel } from "components/common/Form";
+import {
+    ServerWideConnectionStringDto
+} from "components/pages/database/settings/connectionStrings/store/connectionStringsMapsFromDto";
 
 export interface EditConnectionStringsProps {
     initialConnection?: Connection;
     afterSave?: (name: string) => void;
     afterClose?: () => void;
+    isServerwide?: boolean;
 }
 
 export default function EditConnectionStrings(props: EditConnectionStringsProps) {
-    const { initialConnection, afterSave, afterClose } = props;
+    const { initialConnection, afterSave, afterClose, isServerwide = false } = props;
 
     const isForNewConnection = !initialConnection.name;
 
@@ -50,32 +54,42 @@ export default function EditConnectionStrings(props: EditConnectionStringsProps)
     const viewContext = useAppSelector(connectionStringSelectors.viewContext);
 
     const databaseName = useAppSelector(databaseSelectors.activeDatabaseName);
-    const asyncSave = useAsyncCallback((dto: any) => tasksService.saveConnectionString(databaseName, dto));
+    const asyncSave = useAsyncCallback((dto) =>
+        isServerwide
+            ? tasksService.saveServerWideConnectionString(dto)
+            : tasksService.saveConnectionString(databaseName, dto)
+    );
 
     const save = async (newConnection: Connection) => {
         return tryHandleSubmit(async () => {
-            await asyncSave.execute(mapConnectionStringToDto(newConnection));
+            const dto = mapConnectionStringToDto(newConnection);
+            if (isServerwide) {
+                (dto as ServerWideConnectionStringDto).ExcludedDatabases = newConnection.excludedDatabases ?? [];
+            }
+            await asyncSave.execute(dto);
 
-            if (isForNewConnection) {
-                dispatch(
-                    connectionStringsActions.connectionAdded({
-                        ...newConnection,
-                        usedByTasks: initialConnection.usedByTasks,
-                    })
-                );
-            } else {
-                dispatch(
-                    connectionStringsActions.connectionEdited({
-                        oldName: initialConnection.name,
-                        newConnection: {
+            if (!isServerwide) {
+                if (isForNewConnection) {
+                    dispatch(
+                        connectionStringsActions.connectionAdded({
                             ...newConnection,
                             usedByTasks: initialConnection.usedByTasks,
-                        },
-                    })
-                );
+                        })
+                    );
+                } else {
+                    dispatch(
+                        connectionStringsActions.connectionEdited({
+                            oldName: initialConnection.name,
+                            newConnection: {
+                                ...newConnection,
+                                usedByTasks: initialConnection.usedByTasks,
+                            },
+                        })
+                    );
+                }
+                dispatch(connectionStringsActions.editConnectionModalClosed());
             }
 
-            dispatch(connectionStringsActions.editConnectionModalClosed());
             afterSave?.(newConnection.name);
         });
     };
@@ -83,7 +97,9 @@ export default function EditConnectionStrings(props: EditConnectionStringsProps)
     const availableConnectionStringsOptions = getAvailableConnectionStringsOptions(licenseFeatures);
 
     const handleCancel = () => {
-        dispatch(connectionStringsActions.editConnectionModalClosed());
+        if (!isServerwide) {
+            dispatch(connectionStringsActions.editConnectionModalClosed());
+        }
         afterClose?.();
     };
 
@@ -121,6 +137,7 @@ export default function EditConnectionStrings(props: EditConnectionStringsProps)
                     <EditConnectionStringComponent
                         initialConnection={initialConnection}
                         isForNewConnection={isForNewConnection}
+                        isServerwide={isServerwide}
                         onSave={save}
                     />
                 )}

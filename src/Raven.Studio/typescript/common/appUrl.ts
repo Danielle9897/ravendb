@@ -253,6 +253,10 @@ class appUrl {
         return "#admin/settings/serverWideCustomSorters";
     }
 
+    static forServerwideConnectionStrings(): string {
+        return "#admin/settings/serverwideConnectionStrings";
+    }
+
     static forDatabases(databasesUrlAction?: "compact" | "restore", databaseToCompact?: string, shardToCompact?: number): string {
         let actionPart = "";
         
