@@ -373,9 +373,9 @@ export type ServerWideConnectionStringDto =
 
 const noTasks: ConnectionStringUsedTask[] = [];
 
-export function mapServerWideConnectionsFromDto(
-    results: ServerWideConnectionStringDto[]
-): { [key in StudioConnectionType]: Connection[] } {
+export function mapServerWideConnectionsFromDto(results: ServerWideConnectionStringDto[]): {
+    [key in StudioConnectionType]: Connection[];
+} {
     const mapped: Record<StudioConnectionType, Connection[]> = {
         Raven: [],
         Sql: [],
@@ -493,11 +493,13 @@ export function mapServerWideConnectionsFromDto(
                                 entraId: {
                                     clientId: d.AzureQueueStorageConnectionSettings.EntraId?.ClientId,
                                     clientSecret: d.AzureQueueStorageConnectionSettings.EntraId?.ClientSecret,
-                                    storageAccountName: d.AzureQueueStorageConnectionSettings.EntraId?.StorageAccountName,
+                                    storageAccountName:
+                                        d.AzureQueueStorageConnectionSettings.EntraId?.StorageAccountName,
                                     tenantId: d.AzureQueueStorageConnectionSettings.EntraId?.TenantId,
                                 },
                                 passwordless: {
-                                    storageAccountName: d.AzureQueueStorageConnectionSettings.Passwordless?.StorageAccountName,
+                                    storageAccountName:
+                                        d.AzureQueueStorageConnectionSettings.Passwordless?.StorageAccountName,
                                 },
                             },
                             usedByTasks: noTasks,
